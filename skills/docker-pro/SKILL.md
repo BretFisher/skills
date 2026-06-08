@@ -1,5 +1,5 @@
 ---
-name: docker-buildkit
+name: docker-pro
 description: Create, edit, and modernize Dockerfiles, .dockerignore, Docker Bake files, and Compose files using Bret Fisher's strongly opinionated modern Docker + BuildKit rules. Use this skill whenever the user asks about a Dockerfile, containerizing or "dockerizing" an app, base image choice, digest/SHA pinning of image tags, multi-stage builds, BuildKit, build caching or secrets, .dockerignore, docker-bake.hcl / `docker buildx bake`, hardened or distroless images (Chainguard, Docker Hardened Images / DHI), a compose.yaml / docker-compose file, or local dev environments with Compose — even for a small change to any of these files.
 ---
 

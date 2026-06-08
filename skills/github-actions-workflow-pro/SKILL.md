@@ -1,5 +1,5 @@
 ---
-name: github-action-workflow
+name: github-actions-workflow-pro
 description: Create, edit, review, and harden GitHub Actions workflows using Bret Fisher's strongly opinionated DevOps rules. Use this skill whenever the user asks about GitHub Actions, GHA, workflow YAML, CI/CD pipelines, Docker image publishing, workflow security, action pinning, build caching, matrix builds, release automation, or `.github/workflows/*` files, even if they only ask for a small workflow change.
 ---
 
