@@ -1,8 +1,16 @@
 # Bret's DevOps and *Ops Skills
 
-A bunch of skills for daily work in DevOps, found in ./skills/
+A bunch of skills for daily work in DevOps, found in `./skills/`
 
-Installable via `npx skills add https://github.com/bretfisher/skills --skill <skill-name>`
+Installable via `npx skills add https://github.com/bretfisher/skills` and mark the ones you want to install. Add `-g` to command to install them globally.
+
+## Skills
+
+| Name | Purpose |
+| --- | --- |
+| `docker-pro` | Light up all the best docker features and security best practices for dockerizing a repo. From a Docker Captain. |
+| `github-actions-workflow-pro` | Keeping your workflows safe and linted by an expert who teaches GH Actions. |
+| `super-linting` | Picks the right linter for every file type in a project and wires them into a `make lint` target plus an agent-guide contract so code is linted before every commit. Focused on local developer/agent linting, not CI. |
 
 ## Repo layout
 
