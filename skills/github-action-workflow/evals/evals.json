@@ -1,0 +1,44 @@
+{
+  "skill_name": "github-action-workflow",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "Create a GitHub Actions CI workflow for a Node.js project. It should run on pull requests and pushes to main, install with npm ci, and run npm test. Save the workflow as ci.yml.",
+      "expected_output": "A maintainable CI workflow that uses explicit read permissions, concurrency cancellation, npm caching, a timeout, and clear job/step names.",
+      "files": [],
+      "expectations": [
+        "The workflow uses pull_request and push triggers for main.",
+        "The workflow sets explicit least-privilege permissions rather than relying on GitHub defaults.",
+        "The workflow defines concurrency with cancel-in-progress for superseded branch or PR runs.",
+        "The Node setup uses npm caching or an equivalent package-manager cache.",
+        "The test job has a timeout and clear names for the workflow, job, and key steps."
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Add a workflow that builds my Docker image on PRs and publishes it to ghcr.io on main and semver tags. Use the repository name for the image. Save it as docker.yml.",
+      "expected_output": "A Docker workflow that builds without pushing on PRs, publishes to GHCR on trusted refs, uses Buildx, metadata-action, build-push-action, GHA cache, scoped package permissions, and provenance/SBOM.",
+      "files": [],
+      "expectations": [
+        "The workflow builds on pull requests and pushes to main and semver-style tags.",
+        "The workflow uses docker/setup-buildx-action, docker/metadata-action, and docker/build-push-action.",
+        "The workflow logs in to ghcr.io only when the event is not pull_request and pushes only for non-PR events.",
+        "The image publishing job grants packages: write without granting broad write-all permissions.",
+        "The workflow uses Buildx cache and enables provenance and SBOM for published images."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Review and improve this workflow for safety and speed: it uses pull_request_target, permissions: write-all, docker build && docker push in a shell step, and AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY secrets to deploy. Produce the corrected workflow and explain the important changes.",
+      "expected_output": "A hardened rewrite that avoids dangerous pull_request_target behavior, removes write-all permissions, uses Docker actions instead of shell push logic, recommends OIDC for AWS auth, and includes speed/maintainability improvements.",
+      "files": [],
+      "expectations": [
+        "The answer identifies pull_request_target with privileged operations as risky and avoids or constrains it.",
+        "The corrected workflow removes permissions: write-all and uses explicit least-privilege permissions.",
+        "The corrected workflow replaces raw docker build and docker push shell commands with Buildx-oriented Docker actions.",
+        "The answer recommends or implements AWS OIDC instead of long-lived AWS access key secrets.",
+        "The corrected workflow includes concurrency, caching, and timeouts where appropriate."
+      ]
+    }
+  ]
+}

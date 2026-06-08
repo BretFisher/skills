@@ -1,0 +1,47 @@
+{
+  "skill_name": "docker-buildkit",
+  "evals": [
+    {
+      "id": 0,
+      "prompt": "I have a Node.js Express app in this repo (package.json with an Express dependency, app entrypoint at src/server.js, listens on port 3000). There are no Docker files yet. Please containerize it so I can build and ship it.",
+      "expected_output": "A modern multi-stage Dockerfile with the syntax frontend line first, version ARGs at top, hardened base images, a .dockerignore derived from .gitignore plus Docker additions, a docker-bake.hcl, and the assistant asking whether to also add a compose.yaml since this is first-time Docker setup.",
+      "files": [],
+      "expectations": [
+        "The Dockerfile's first line is the frontend directive `# syntax=docker/dockerfile:1` (pinned to :1, not :1.0).",
+        "Base image versions are declared as global ARGs before the first FROM, and all FROM stages use explicit AS names.",
+        "The Dockerfile uses a hardened/minimal base (Chainguard cgr.dev or Docker Hardened Images dhi.io) at least for the final runtime stage, via a multi-stage build.",
+        "A .dockerignore is created that excludes .git and common secrets/junk, and reflects starting from the project's .gitignore.",
+        "A docker-bake.hcl file is created with at least one target referencing the Dockerfile and a tag.",
+        "Every external FROM image is pinned to both a tag and a digest (@sha256:...), or a clearly-marked digest placeholder with instructions to resolve it (e.g. via regctl), rather than a bare mutable tag.",
+        "Because no Docker files existed before, the assistant asks the user whether they also want a compose.yaml rather than silently creating or skipping one."
+      ]
+    },
+    {
+      "id": 1,
+      "prompt": "Write me a Dockerfile for a Go microservice. The module builds with `go build ./cmd/api` and the binary serves HTTP on 8080. I want the smallest, most secure production image you can reasonably make.",
+      "expected_output": "A multi-stage Dockerfile using a Chainguard go -dev (or DHI) build stage and a distroless static final stage, with the syntax line first, version ARGs, BuildKit cache mounts for the Go build, CGO disabled, and an exec-form ENTRYPOINT.",
+      "files": [],
+      "expectations": [
+        "The Dockerfile's first line is `# syntax=docker/dockerfile:1`.",
+        "It is a multi-stage build whose final stage is a distroless/static hardened image (e.g. cgr.dev/chainguard/static) with no shell or package manager.",
+        "The Go version (and any base versions) are declared as ARGs and FROM stages are named with AS.",
+        "The build uses at least one BuildKit feature appropriate to Go builds (RUN --mount=type=cache for the Go build/module cache, or a bind mount), rather than a plain RUN go build with no cache.",
+        "Every external FROM image (build and runtime stages) is pinned to both a tag and a digest (@sha256:...), or a clearly-marked digest placeholder with resolve instructions, rather than a bare mutable tag.",
+        "The final stage uses exec-form ENTRYPOINT or CMD (JSON array) because the distroless image has no shell."
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "Modernize my Docker setup. My Dockerfile starts with `FROM node:18` and has no syntax line. My docker-compose.yml has `version: \"3.8\"` at the top and uses a bind mount `- ./src:/app/src` for live code reloading during development. Please bring these up to current best practices.",
+      "expected_output": "An updated Dockerfile with the frontend directive added and modern structure, plus the compose file renamed to compose.yaml with the obsolete version key removed and the dev bind mount replaced by a develop.watch sync configuration.",
+      "files": [],
+      "expectations": [
+        "The updated Dockerfile gains `# syntax=docker/dockerfile:1` as its first line.",
+        "The obsolete top-level `version:` key is removed from the compose file.",
+        "The compose file is named (or renamed to) compose.yaml rather than docker-compose.yml.",
+        "The source bind mount used for live reload is replaced with a develop.watch configuration using action: sync (file sync over bind mount), and the assistant notes `docker compose watch` as the run command.",
+        "The assistant explains the key changes and why each modernization matters."
+      ]
+    }
+  ]
+}
