@@ -1,0 +1,15 @@
+---
+# Keep GitHub Actions references up to date (SHA pins / versions).
+# Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates
+# NOTE: the only action reference today is the super-linter reusable workflow,
+# intentionally tracking @main. Dependabot manages any SHA-pinned actions added later.
+
+version: 2
+updates:
+  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    cooldown:
+      default-days: 7
+    schedule:
+      interval: "daily"

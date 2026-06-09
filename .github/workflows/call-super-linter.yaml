@@ -1,0 +1,49 @@
+---
+# template source: https://github.com/bretfisher/super-linter-workflow/blob/main/templates/call-super-linter.yaml
+name: Lint Code Base
+
+on:
+  # run anytime a PR is merged to main or a direct push to main
+  push:
+    branches: [main]
+
+  # run on any push to a PR branch
+  pull_request:
+
+# cancel any previously-started, yet still active runs of this workflow on the same branch
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+# reset permissions to none at the workflow level
+# we'll set them at the job level below
+permissions: {}
+
+jobs:
+  call-super-linter:
+    name: Call Super-Linter
+
+    permissions:
+      contents: read # clone the repository to lint
+      pull-requests: write # create a summary comment in PR
+      statuses: write # read/write to repository custom statuses
+
+    ### Call my central reusable linter workflow remotely.
+    ### https://docs.github.com/en/actions/learn-github-actions/reusing-workflows
+    # NOTE: zizmor scanner rule ignored because we control sha pins via the reusable workflow, not this calling workflow
+    uses: bretfisher/super-linter-workflow/.github/workflows/reusable-super-linter.yaml@main # zizmor: ignore[unpinned-uses]
+
+    with:
+      # skip vendored 3rd-party skill-creator tooling; lint our own skills/ and root docs
+      filter-regex-exclude: ^\.agents/
+
+    ### Other optional settings (which linters run is controlled by .github/super-linter.env)
+    ###
+    ### For a DevOps-focused repository. Prevents some code-language linters from running (defaults to false)
+    # devops-only: false
+    ###
+    ### Additional environment variables to pass to super-linter (one per line)
+    ### NOTE: only applied when .github/super-linter.env is absent; this repo uses the env file instead
+    # extra-envs: |
+    #   VALIDATE_DOCKERFILE=false
+    #   VALIDATE_JSCPD=false
