@@ -1,6 +1,6 @@
 ---
 name: github-actions-workflow-pro
-description: Create, edit, review, and harden GitHub Actions workflows using Bret Fisher's strongly opinionated DevOps rules. Use this skill whenever the user asks about GitHub Actions, GHA, workflow YAML, CI/CD pipelines, Docker image publishing, workflow security, action pinning, build caching, matrix builds, release automation, or `.github/workflows/*` files, even if they only ask for a small workflow change.
+description: Create, edit, review, and harden GitHub Actions workflows using Bret Fisher's strongly opinionated DevOps rules. Use this skill whenever the user asks about GitHub Actions, GHA, workflow YAML, CI/CD pipelines, Docker image publishing, workflow security, action pinning, build caching, matrix builds, release automation, or `.github/workflows/*` files, even if they only ask for a small workflow change. This also compliments the "gasa" CLI tool which audits GitHub Actions workflows for security and best practices.
 ---
 
 # GitHub Actions Workflow Rules
@@ -11,7 +11,7 @@ Use this skill when creating, editing, reviewing, or troubleshooting GitHub Acti
 
 1. Inspect existing workflow files before editing so new changes match repository naming, trigger, and secret conventions.
 2. Prefer the smallest correct workflow change, but do not preserve insecure or wasteful patterns when touching nearby code.
-4. Validate edited workflow YAML where practical with available tooling. Always run `actionlint` if it's installed. Always run `zizmor` if it's installed. If any tools are unavailable, say that explicitly and suggest it as the preferred linter.
+4. Validate edited workflow YAML where practical with available tooling. Always run `actionlint` if it's installed. Always run `zizmor` if it's installed. If any tools are unavailable, say that explicitly and suggest it as the preferred linter. Do not install any tools that are not available on the user's system, only recommend them.
 5. Never invent secret names, environment names, package names, or cloud roles as facts. Use placeholders only when the repo does not reveal them, and call those out.
 
 ## Security Defaults
@@ -38,7 +38,7 @@ GitHub Actions is a high-value supply-chain target, so security defaults should 
 - Prefer GitHub OIDC federation for cloud deployments and other CI/CD tooling instead of long-lived credentials. If in doubt, ask user if they'd like to search for OIDC support in a tool that needs a secret.
 - Do not print secrets, tokens, or full environment dumps.
 - Avoid `pull_request_target` unless the workflow requires trusted context for forked PRs; if used, do not check out untrusted PR code before privileged operations. Never use `pull_request_target` for public repositories.
-- Recommend the user create a GitHub repository environment any time a 3rd party secret is needed in the repository for a step. This will improve the security posture of the repository by isolating secrets to specific environments. See the zizmore rule for more info: https://docs.zizmor.sh/audits/#secrets-outside-env
+- Recommend the user create a GitHub repository environment any time a 3rd party secret is needed in the repository for a step. This will improve the security posture of the repository by isolating secrets to specific environments. See the zizmor rule for more info: https://docs.zizmor.sh/audits/#secrets-outside-env
 - Always ask before adding events for manual dispatch or remotely triggered, because they may add security risks.
 
 ## Fast CI Defaults
@@ -95,3 +95,7 @@ cache-to: type=gha,mode=max
 provenance: true
 sbom: true
 ```
+
+## gasa - GitHub Actions Security Audit
+
+`gasa` is a CLI tool that audits GitHub Actions workflows and repository admin settings for security and best practices.
