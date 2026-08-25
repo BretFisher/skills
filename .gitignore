@@ -5,3 +5,6 @@
 
 # macOS Finder metadata
 .DS_Store
+
+# Python bytecode from make lint-py
+__pycache__/
