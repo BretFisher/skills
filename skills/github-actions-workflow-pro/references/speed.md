@@ -1,6 +1,6 @@
 # Speed reference
 
-The rules behind the speed lines of the SKILL.md checklist, with the reason for each. Read this when the user reports slow CI, when adding a matrix, path filter, or cache, or when writing the speed section of an audit. Fast workflows get maintained; slow ones get ignored, so quick feedback is worth a few extra lines of YAML but never clever YAML.
+The rules behind the speed lines of the SKILL.md checklist, with the reason for each. Almost none of these are checked by a scanner, so in an audit they come from reading the YAML and the run history (`scripts/run-stats.py`). Read this when the user reports slow CI, when adding a matrix, path filter, or cache, or when writing the speed section of an audit. Fast workflows get maintained; slow ones get ignored, so quick feedback is worth a few extra lines of YAML but never clever YAML.
 
 ## Cancel superseded runs
 
@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 ```
 
-A new push to the same PR or branch makes the running build stale; cancelling it frees the runner for the run that matters. Deploy and release workflows are the exception: cancelling a deploy mid-flight is worse than waiting, so give them their own group with `cancel-in-progress: false` (a queue) rather than sharing the CI group.
+A new push to the same PR or branch makes the running build stale; cancelling it frees the runner for the run that matters. Deploy and release workflows are the exception: cancelling a deploy mid-flight is worse than waiting, so give them their own group with `cancel-in-progress: false` (a queue) rather than sharing the CI group. zizmor `concurrency-limits` (pedantic) detects a missing block; whether the group is right for a deploy is yours to check.
 
 ## Order jobs cheap to expensive
 
@@ -44,7 +44,7 @@ Security, release, and deploy workflows stay unfiltered: a workflow that runs on
 
 ## Fan out only for confidence
 
-A matrix earns its cost when each cell tests something the others cannot: a supported OS, a runtime version the project promises to support, an architecture that ships. Cells with identical inputs are the same test paid for twice. Use `fail-fast: false` when the user wants every cell's result rather than the first failure, and `include:`/`exclude:` to trim cells that cannot happen.
+A matrix earns its cost when each cell tests something the others cannot: a supported OS, a runtime version the project promises to support, an architecture that ships. Cells with identical inputs are the same test paid for twice. actionlint flags literal duplicate matrix values; runner aliases (`ubuntu-latest` is `ubuntu-24.04` today) are yours to spot. Use `fail-fast: false` when the user wants every cell's result rather than the first failure, and `include:`/`exclude:` to trim cells that cannot happen.
 
 ## Checkout depth
 
