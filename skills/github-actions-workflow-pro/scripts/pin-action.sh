@@ -18,9 +18,10 @@ Usage: pin-action.sh [options] owner/repo[/subpath][@ref]
 
 Resolve an action reference to `owner/repo[/subpath]@<full-sha> # <tag>`.
 
-Without @ref: pick the newest non-prerelease release published at least
---min-age-days ago (default 7). Falls back to tags when the repo has no
-releases (age taken from the tag's commit date).
+Without @ref: pick the highest semver release (vX.Y[.Z], no suffix) published
+at least --min-age-days ago (default 7). Falls back to semver tags when the
+repo has no releases, and to the default branch HEAD when it has neither
+(source "branch", comment "# main YYYY-MM-DD", warning on stderr).
 
 With @ref: resolve exactly that tag. Still fails if it is younger than the
 minimum age unless --allow-fresh is passed.
@@ -37,7 +38,7 @@ Output (JSON on stdout, diagnostics on stderr):
 
 Exit codes:
   0 resolved     2 bad arguments     3 repo or ref not found
-  4 no release old enough (use --allow-fresh or an older @ref)
+  4 every release or tag is too fresh (use --allow-fresh or an older @ref)
   5 gh missing or not authenticated
 
 Examples:
@@ -106,14 +107,19 @@ if [ -n "$REF" ]; then
   PUBLISHED=$(gh api "repos/$FULL/releases/tags/$TAG" --jq .published_at 2>/dev/null) || PUBLISHED=""
   if [ -n "$PUBLISHED" ]; then SOURCE="release"; else SOURCE="tag"; fi
 else
-  # Newest non-draft, non-prerelease release at least MIN_AGE old.
+  # Highest semver release (not newest by date: backports like v3.1.0-node20 are
+  # published after v8.x) among non-draft, non-prerelease releases at least MIN_AGE old.
+  # Only plain vX.Y[.Z] tags count; suffixed tags are backports or previews.
+  SEMVER_FILTER='select(.tag_name | test("^v?[0-9]+\\.[0-9]+(\\.[0-9]+)?$"))'
+  SEMVER_KEY='(.tag_name | ltrimstr("v") | split(".") | map(tonumber))'
   read -r TAG PUBLISHED < <(gh api "repos/$FULL/releases?per_page=100" \
-    --jq "[.[] | select(.draft==false and .prerelease==false and ((now - (.published_at|fromdateiso8601)) >= $MIN_AGE_SECONDS))] | .[0] | select(.) | \"\(.tag_name) \(.published_at)\"" 2>/dev/null) || true
+    --jq "[.[] | select(.draft==false and .prerelease==false) | $SEMVER_FILTER | select((now - (.published_at|fromdateiso8601)) >= $MIN_AGE_SECONDS)] | max_by($SEMVER_KEY) | select(.) | \"\(.tag_name) \(.published_at)\"" 2>/dev/null) || true
   if [ -n "$TAG" ]; then
     SOURCE="release"
   else
-    # Either no releases at all, or every release is too fresh. Tell them apart.
-    NEWEST=$(gh api "repos/$FULL/releases?per_page=1" --jq '.[0] | select(.) | "\(.tag_name) \(.published_at)"' 2>/dev/null || true)
+    # No eligible release. Either every semver release is too fresh, or there are none.
+    NEWEST=$(gh api "repos/$FULL/releases?per_page=100" \
+      --jq "[.[] | select(.draft==false and .prerelease==false) | $SEMVER_FILTER] | max_by($SEMVER_KEY) | select(.) | \"\(.tag_name) \(.published_at)\"" 2>/dev/null) || NEWEST=""
     if [ -n "$NEWEST" ]; then
       if [ "$ALLOW_FRESH" -eq 1 ]; then
         read -r TAG PUBLISHED <<<"$NEWEST"; SOURCE="release"
@@ -121,7 +127,7 @@ else
         die 4 "every release of $FULL is younger than $MIN_AGE_DAYS days (newest: $NEWEST); wait, pin an older @ref, or pass --allow-fresh"
       fi
     else
-      # Tags only: walk the newest few and take the first old enough.
+      # Tags without releases: highest semver tag whose commit is old enough.
       SOURCE="tag"
       while read -r t; do
         [ -n "$t" ] || continue
@@ -129,17 +135,32 @@ else
         if [ "$(age_seconds "$d")" -ge "$MIN_AGE_SECONDS" ] || [ "$ALLOW_FRESH" -eq 1 ]; then
           TAG="$t"; PUBLISHED="$d"; break
         fi
-      done < <(gh api "repos/$FULL/tags?per_page=10" --jq '.[].name')
-      [ -n "$TAG" ] || die 4 "no tag of $FULL is at least $MIN_AGE_DAYS days old (checked newest 10)"
+      done < <(gh api "repos/$FULL/tags?per_page=100" \
+        --jq "[.[] | select(.name | test(\"^v?[0-9]+\\\\.[0-9]+(\\\\.[0-9]+)?$\"))] | sort_by(.name | ltrimstr(\"v\") | split(\".\") | map(tonumber)) | reverse | .[].name")
+      if [ -z "$TAG" ]; then
+        TAG_COUNT=$(gh api "repos/$FULL/tags?per_page=1" --jq length 2>/dev/null || echo 0)
+        if [ "$TAG_COUNT" -gt 0 ]; then
+          die 4 "every semver tag of $FULL is younger than $MIN_AGE_DAYS days; wait, pin an older @ref, or pass --allow-fresh"
+        fi
+        # Nothing to pin to but a branch. Pin its HEAD so the ref is at least immutable,
+        # and say so: Dependabot will not bump a branch SHA, so this pin needs a human.
+        BRANCH=$(gh api "repos/$FULL" --jq .default_branch)
+        SHA=$(gh api "repos/$FULL/commits/$BRANCH" --jq .sha)
+        PUBLISHED=$(commit_date "$SHA")
+        SOURCE="branch"
+        TAG="$BRANCH ${PUBLISHED%%T*}"
+        echo "pin-action: $FULL has no tags or releases; pinning HEAD of '$BRANCH'. Dependabot cannot update a branch pin, so ask the owner to tag releases." >&2
+      fi
     fi
   fi
 fi
 
-SHA=$(tag_to_commit "$TAG")
+[ "$SOURCE" = "branch" ] || SHA=$(tag_to_commit "$TAG")
 
 # A moving major tag (v4) points at some exact release (v4.2.1). Prefer the most
 # specific tag name on the same commit so the comment says which version was pinned.
-SPECIFIC=$(gh api "repos/$FULL/tags?per_page=100" \
+SPECIFIC=""
+[ "$SOURCE" = "branch" ] || SPECIFIC=$(gh api "repos/$FULL/tags?per_page=100" \
   --jq "[.[] | select(.commit.sha==\"$SHA\") | .name] | sort_by(length) | last // empty" 2>/dev/null) || SPECIFIC=""
 if [ -n "$SPECIFIC" ] && [ "$SPECIFIC" != "$TAG" ]; then
   TAG="$SPECIFIC"

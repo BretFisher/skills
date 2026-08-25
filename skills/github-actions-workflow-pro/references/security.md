@@ -6,6 +6,7 @@ The full rule set behind the security lines of the SKILL.md checklist, each with
 
 - Start every workflow with `permissions: {}` at the top level, then grant per job. The token starts with nothing, and each job's block documents exactly what it can touch, so a compromised step inherits only that job's grants. Default token permissions vary by org and repo setting; the empty block makes the workflow independent of them.
 - `actions/checkout` needs `contents: read`, even under `permissions: {}`. A job that only calls an API and never checks out can stay at zero grants.
+- `actions/checkout` sets `persist-credentials: false` unless a later step in that job pushes or pulls with the token. By default it writes the token into `.git/config`, where any later step, cached artifact, or uploaded workspace can read it. zizmor reports the default as `artipacked`, so leaving it out costs a validate-and-fix cycle every time.
 - Look up each action's README for the permissions it needs before granting. When the README is silent and you are still unsure, ask the user about that specific grant rather than widening it. An unexplained `write` grant is how `write-all` creeps back in.
 - When you meet `permissions: write-all` (or a broad top-level `write`), enumerate what each job actually does and replace it with per-job grants. The rewrite is the finding, so show the before and after.
 
@@ -15,17 +16,20 @@ The full rule set behind the security lines of the SKILL.md checklist, each with
 - Choose a release that is at least 7 days old. Compromised releases are usually caught and yanked within days; the wait lets the ecosystem catch a bad one before this repo adopts it.
 - Run `scripts/pin-action.sh owner/repo` to do the lookup. It picks the newest release that passes the age rule, dereferences annotated tags, and prints the `uses:` value. Pass `@vX` to resolve a specific tag, `--line` for a paste-ready line, `--help` for the rest.
 - Same-owner actions and reusable workflows may use a tag or a SHA. A branch ref such as `@main` is the one form to replace: it moves on every push to that repo, so a compromise there runs here on the next commit with no release step between (gasa reports this at medium).
-- Dependabot keeps SHA pins current. If `.github/dependabot.yml` exists without a `github-actions` entry, or the entry lacks a daily schedule or a cooldown of at least 7 days, recommend:
+- When the same-owner repo has no tags or releases, `pin-action.sh` pins the default branch HEAD and comments `# main YYYY-MM-DD`. That makes the ref immutable but leaves Dependabot unable to bump it, so the durable fix is for the owner to tag releases; put that choice to the user.
+- Dependabot keeps SHA pins current. If `.github/dependabot.yml` exists without a `github-actions` entry, or the entry lacks a daily schedule or a cooldown of at least 7 days, recommend the entry below (wrap it in `version: 2` / `updates:` when the file does not exist yet):
 
 ```yaml
-- package-ecosystem: "github-actions"
-  directory: "/"
-  schedule:
-    interval: "daily"
-  cooldown:
-    default-days: 7
-  commit-message:
-    prefix: "[actions] "
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    cooldown:
+      default-days: 7
+    commit-message:
+      prefix: "[actions] "
 ```
 
   Without `cooldown`, Dependabot proposes the fresh SHA on release day and quietly undoes the 7-day rule.
