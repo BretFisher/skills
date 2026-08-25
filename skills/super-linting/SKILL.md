@@ -17,11 +17,11 @@ A git **pre-commit hook** is a stronger, harder gate (it blocks the actual `git 
 
 Only wire up `.githooks/` + a `make hooks` target (or a `.pre-commit-config.yaml`) if the user opts in. The point is to not surprise the user with git hooks they didn't request.
 
-The goal is a tight local feedback loop: catch lint problems while code is being written, not in CI. This skill is **not** about building CI workflows (use the `github-actions-workflow-pro` skill for that). It is about equipping the agent and the human with the linters that fit *this* project, drawn from the [super-linter](https://github.com/super-linter/super-linter) project's curated list so the recommendations stay current.
+The goal is a tight local feedback loop: catch lint problems while code is being written, not in CI. This skill is **not** about building CI workflows (use the `github-actions-workflow-pro` skill for that). It is about equipping the agent and the human with the linters that fit _this_ project, drawn from the [super-linter](https://github.com/super-linter/super-linter) project's curated list so the recommendations stay current.
 
 ## Why super-linter as the source
 
-super-linter aggregates the popular, well-maintained linters the community actually uses, organized by language. Rather than guessing or relying on a stale memory of "the Python linter," consult super-linter's live list so recommendations track what the ecosystem has moved to (for example, ruff's rise in Python). super-linter is the *catalog*; this skill turns that catalog into concrete local install + run commands and bakes them into the project's agent guide.
+super-linter aggregates the popular, well-maintained linters the community actually uses, organized by language. Rather than guessing or relying on a stale memory of "the Python linter," consult super-linter's live list so recommendations track what the ecosystem has moved to (for example, ruff's rise in Python). super-linter is the _catalog_; this skill turns that catalog into concrete local install + run commands and bakes them into the project's agent guide.
 
 ## Workflow
 
@@ -45,7 +45,7 @@ If the fetch fails or is unavailable, fall back to the snapshot in `references/l
 
 For each language, recommend **one primary linter** to install and run now — the canonical, lowest-friction choice (e.g. Python → `ruff`, Go → `golangci-lint`, Shell → `shellcheck`, YAML → `yamllint`, Dockerfile → `hadolint`, Markdown → `markdownlint`). `references/linter-commands.md` marks the primary pick per language.
 
-List the *other* linters super-linter runs for that language as **optional extras** the user can add later, but don't install everything by default — a wall of linters is the fastest way to get linting abandoned. Note any formatter (e.g. `black`, `prettier`, `terraform fmt`) separately, since formatting and linting are different jobs.
+List the _other_ linters super-linter runs for that language as **optional extras** the user can add later, but don't install everything by default — a wall of linters is the fastest way to get linting abandoned. Note any formatter (e.g. `black`, `prettier`, `terraform fmt`) separately, since formatting and linting are different jobs.
 
 ### 4. Check what's installed, then propose installs
 
@@ -64,11 +64,11 @@ Use this structure:
 
 Before committing, lint every file type you changed and fix what the linter reports. Commits should be made only after the relevant linters pass. Run `make lint` to check everything at once.
 
-| File type | Linter | Run |
-| --- | --- | --- |
-| Python (`.py`) | ruff | `ruff check <files>` |
-| Shell (`.sh`) | shellcheck | `shellcheck <files>` |
-| YAML (`.yml`, `.yaml`) | yamllint | `yamllint <files>` |
+| File type              | Linter     | Run                  |
+| ---------------------- | ---------- | -------------------- |
+| Python (`.py`)         | ruff       | `ruff check <files>` |
+| Shell (`.sh`)          | shellcheck | `shellcheck <files>` |
+| YAML (`.yml`, `.yaml`) | yamllint   | `yamllint <files>`   |
 
 Optional extra linters available for this project: <list, or "none">.
 ```

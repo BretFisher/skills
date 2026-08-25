@@ -14,7 +14,7 @@ These rules assume **BuildKit** is the builder (the default in modern Docker Eng
 1. Inspect the repo before writing. Detect the language/runtime, package manager, lockfiles, build output dir, and any existing Docker files so your output matches reality instead of a generic template.
 2. Prefer the smallest correct change, but don't preserve legacy patterns (no `version:` in compose, secrets baked into layers, `apt-get` without cache mounts) when you're already editing that file.
 3. Never invent base image tags, package names, ports, or build commands as facts. If the repo doesn't reveal a value, use a clearly-marked placeholder and say so. Image tags in particular drift — when you're unsure a tag exists, tell the user to confirm against the registry's catalog rather than asserting it.
-4. Explain the *why* when you hand work back. These files are read far more than they're written; the reasoning is what lets the user maintain them later.
+4. Explain the _why_ when you hand work back. These files are read far more than they're written; the reasoning is what lets the user maintain them later.
 
 ## Dockerfile Layout
 
@@ -52,7 +52,7 @@ ARG NODE_VERSION=22
 ARG ALPINE_VERSION=3.22
 ```
 
-A global `ARG` is in scope for `FROM` lines. To also use it *inside* a stage (e.g. in a `RUN`), re-declare a bare `ARG NODE_VERSION` (no default) inside that stage — global args don't automatically cross into stage bodies. The payoff: bumping a version is a one-line edit at the top, and any value is overridable at build time with `--build-arg NODE_VERSION=20` without touching the file.
+A global `ARG` is in scope for `FROM` lines. To also use it _inside_ a stage (e.g. in a `RUN`), redeclare a bare `ARG NODE_VERSION` (no default) inside that stage — global args don't automatically cross into stage bodies. The payoff: bumping a version is a one-line edit at the top, and any value is overridable at build time with `--build-arg NODE_VERSION=20` without touching the file.
 
 ### 3. All FROM stages at the top, each named with AS
 
@@ -125,7 +125,7 @@ Distroless final stages have no shell, so `ENTRYPOINT`/`CMD` must use exec form 
 
 ## Pin Every External Image by Digest
 
-Pin every external image reference — both `FROM` lines and `COPY --from=<image>` that pull a registry image — to a **tag *and* a digest**. A tag like `node:24` or `:latest` is mutable: the registry can repoint it to new content at any time, so two builds of the "same" Dockerfile can produce different images. The `@sha256:...` digest is immutable content-addressing, so it makes the build reproducible and closes a supply-chain hole (you get exactly the bytes you reviewed, not whatever was pushed since). Keep the human-readable tag alongside the digest so a reader can still see *what* the image is:
+Pin every external image reference — both `FROM` lines and `COPY --from=<image>` that pull a registry image — to a **tag _and_ a digest**. A tag like `node:24` or `:latest` is mutable: the registry can repoint it to new content at any time, so two builds of the "same" Dockerfile can produce different images. The `@sha256:...` digest is immutable content-addressing, so it makes the build reproducible and closes a supply-chain hole (you get exactly the bytes you reviewed, not whatever was pushed since). Keep the human-readable tag alongside the digest so a reader can still see _what_ the image is:
 
 ```dockerfile
 FROM node:24.11.1@sha256:9a2ed90cd91b1f3412affe080b62e69b057ba8661d9844e143a6bbd76a23260f
@@ -149,7 +149,7 @@ FROM node:${NODE_VERSION}@${NODE_DIGEST} AS build
 
 Two clarifications so this doesn't backfire:
 
-- It applies only to **external image URIs**. A `COPY --from=build` that references a *named internal stage* needs no digest — it's resolved within the build, not pulled from a registry.
+- It applies only to **external image URIs**. A `COPY --from=build` that references a _named internal stage_ needs no digest — it's resolved within the build, not pulled from a registry.
 - A digest pin freezes the image, which is the point — but it also means you stop getting upstream security patches until the pin is refreshed. Tell the user to let automation (Dependabot/Renovate's Docker support) bump these digests on a schedule, the same way they'd update any dependency, rather than hand-editing hashes or, worse, reverting to bare tags to "stay current."
 
 ## Always Create a .dockerignore
@@ -208,7 +208,7 @@ target "app" {
 }
 ```
 
-Build with `docker buildx bake` (the `default` group) or `docker buildx bake app`. Override variables at runtime (`TAG=v2 docker buildx bake`) or per-target (`--set app.platforms=linux/arm64`). Use `inherits` to share a base target's settings and `matrix` to fan one target into variants. Note that `docker buildx bake` with no `-f` auto-discovers `compose.yaml` *before* `docker-bake.hcl` and turns service `build:` blocks into targets — so if a repo has both, point CI at the file you mean with `-f docker-bake.hcl`.
+Build with `docker buildx bake` (the `default` group) or `docker buildx bake app`. Override variables at runtime (`TAG=v2 docker buildx bake`) or per-target (`--set app.platforms=linux/arm64`). Use `inherits` to share a base target's settings and `matrix` to fan one target into variants. Note that `docker buildx bake` with no `-f` auto-discovers `compose.yaml` _before_ `docker-bake.hcl` and turns service `build:` blocks into targets — so if a repo has both, point CI at the file you mean with `-f docker-bake.hcl`.
 
 ## Compose for Local Dev
 
@@ -218,7 +218,7 @@ Conventions:
 
 - **Name it `compose.yaml`** (the canonical Compose Spec filename), not `docker-compose.yml`.
 - **No top-level `version:` key.** It's obsolete in Compose V2 and now emits a warning — remove it from any file you touch.
-- **Prefer file sync over bind mounts for source code.** A classic bind mount (`./src:/app/src`) couples container paths to host layout and can be slow or permission-fraught. The modern `develop.watch` mechanism instead *syncs* changed files into the container, which is faster, cross-platform, and lets you choose what each path change should do.
+- **Prefer file sync over bind mounts for source code.** A classic bind mount (`./src:/app/src`) couples container paths to host layout and can be slow or permission-fraught. The modern `develop.watch` mechanism instead _syncs_ changed files into the container, which is faster, cross-platform, and lets you choose what each path change should do.
 
 ```yaml
 services:

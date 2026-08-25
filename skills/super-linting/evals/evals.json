@@ -8,13 +8,34 @@
       "expected_output": "Detects Python/Shell/Dockerfile/YAML, consults super-linter for current linters, recommends primary linters (ruff, shellcheck, hadolint, yamllint), asks before installing, writes a ## Linting section into AGENTS.md/CLAUDE.md requiring lint-before-commit, adds a `make lint` target, documents it in README.",
       "files": ["app.py", "deploy.sh", "Dockerfile", "config.yml", "README.md"],
       "assertions": [
-        {"id": "linting_section_in_guide", "text": "An AGENTS.md or CLAUDE.md file contains a '## Linting' section"},
-        {"id": "requires_lint_before_commit", "text": "The Linting section states linters must run/pass before committing"},
-        {"id": "correct_primary_linters", "text": "Recommends ruff (Python), shellcheck (Shell), hadolint (Dockerfile), yamllint (YAML)"},
-        {"id": "make_lint_target", "text": "A Makefile defines a `lint` target that runs the chosen linters"},
-        {"id": "readme_documents_lint", "text": "README.md documents how to run the linters (e.g. `make lint`)"},
-        {"id": "consulted_super_linter", "text": "Output indicates super-linter was consulted as the source of linter choices"},
-        {"id": "no_unrequested_git_hook", "text": "Enforcement uses AGENTS.md instructions + make lint, without installing an unrequested git pre-commit hook or pre-commit framework"}
+        {
+          "id": "linting_section_in_guide",
+          "text": "An AGENTS.md or CLAUDE.md file contains a '## Linting' section"
+        },
+        {
+          "id": "requires_lint_before_commit",
+          "text": "The Linting section states linters must run/pass before committing"
+        },
+        {
+          "id": "correct_primary_linters",
+          "text": "Recommends ruff (Python), shellcheck (Shell), hadolint (Dockerfile), yamllint (YAML)"
+        },
+        {
+          "id": "make_lint_target",
+          "text": "A Makefile defines a `lint` target that runs the chosen linters"
+        },
+        {
+          "id": "readme_documents_lint",
+          "text": "README.md documents how to run the linters (e.g. `make lint`)"
+        },
+        {
+          "id": "consulted_super_linter",
+          "text": "Output indicates super-linter was consulted as the source of linter choices"
+        },
+        {
+          "id": "no_unrequested_git_hook",
+          "text": "Enforcement uses AGENTS.md instructions + make lint, without installing an unrequested git pre-commit hook or pre-commit framework"
+        }
       ]
     },
     {
@@ -24,12 +45,30 @@
       "expected_output": "Scopes to Terraform and Shell (does not try to lint every file type in the repo), uses super-linter to pick tflint and shellcheck, gives install + run commands, writes the lint-before-commit expectation into the agent guide, adds make lint. Mentions optional extras (checkov/trivy) without forcing them.",
       "files": ["main.py", "README.md"],
       "assertions": [
-        {"id": "linting_section_in_guide", "text": "An AGENTS.md or CLAUDE.md file contains a '## Linting' section requiring lint-before-commit"},
-        {"id": "correct_scoped_linters", "text": "Chooses tflint (Terraform) and shellcheck (Shell)"},
-        {"id": "scoping_discipline", "text": "Scopes to Terraform + Shell only; does NOT add Python/Markdown linters for the existing main.py/README.md"},
-        {"id": "make_lint_target", "text": "A Makefile defines a `lint` target running tflint and shellcheck"},
-        {"id": "optional_extras_not_forced", "text": "Mentions optional security extras (checkov/trivy) without installing them by default"},
-        {"id": "no_unrequested_git_hook", "text": "Enforcement uses AGENTS.md instructions + make lint, without an unrequested git hook / pre-commit framework"}
+        {
+          "id": "linting_section_in_guide",
+          "text": "An AGENTS.md or CLAUDE.md file contains a '## Linting' section requiring lint-before-commit"
+        },
+        {
+          "id": "correct_scoped_linters",
+          "text": "Chooses tflint (Terraform) and shellcheck (Shell)"
+        },
+        {
+          "id": "scoping_discipline",
+          "text": "Scopes to Terraform + Shell only; does NOT add Python/Markdown linters for the existing main.py/README.md"
+        },
+        {
+          "id": "make_lint_target",
+          "text": "A Makefile defines a `lint` target running tflint and shellcheck"
+        },
+        {
+          "id": "optional_extras_not_forced",
+          "text": "Mentions optional security extras (checkov/trivy) without installing them by default"
+        },
+        {
+          "id": "no_unrequested_git_hook",
+          "text": "Enforcement uses AGENTS.md instructions + make lint, without an unrequested git hook / pre-commit framework"
+        }
       ]
     },
     {
@@ -39,10 +78,22 @@
       "expected_output": "Fetches super-linter to confirm the current Python linter (ruff), explains why, gives install + run command, and edits the existing CLAUDE.md to add a linting expectation that the agent runs the linter before commits. Should not over-install or add unrelated linters.",
       "files": ["CLAUDE.md", "main.py", "utils.py"],
       "assertions": [
-        {"id": "claude_md_linting_section", "text": "The existing CLAUDE.md is edited to add a Linting section requiring the linter run before commits"},
-        {"id": "identifies_ruff", "text": "Identifies ruff as the current best Python linter"},
-        {"id": "python_only_scope", "text": "Scopes to Python only; adds no unrelated linters"},
-        {"id": "no_over_install", "text": "Does not install or require a wall of extra linters beyond the primary pick"}
+        {
+          "id": "claude_md_linting_section",
+          "text": "The existing CLAUDE.md is edited to add a Linting section requiring the linter run before commits"
+        },
+        {
+          "id": "identifies_ruff",
+          "text": "Identifies ruff as the current best Python linter"
+        },
+        {
+          "id": "python_only_scope",
+          "text": "Scopes to Python only; adds no unrelated linters"
+        },
+        {
+          "id": "no_over_install",
+          "text": "Does not install or require a wall of extra linters beyond the primary pick"
+        }
       ]
     }
   ]
