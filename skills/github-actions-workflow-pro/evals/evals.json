@@ -39,6 +39,60 @@
         "The answer recommends or implements AWS OIDC instead of long-lived AWS access key secrets.",
         "The corrected workflow includes concurrency, caching, and timeouts where appropriate."
       ]
+    },
+    {
+      "id": 3,
+      "prompt": "Audit this workflow (.github/workflows/ci.yml, attached) for security problems. Give me a report of what is wrong and a corrected version.",
+      "expected_output": "An audit report that separates hard findings from opinions, identifies pull_request_target with untrusted checkout, write-all permissions, unpinned actions, template injection of the PR title, and static AWS keys, and a corrected workflow that passes actionlint and zizmor.",
+      "files": [
+        "evals/fixtures/insecure-ci.yml"
+      ],
+      "expectations": [
+        "The report identifies pull_request_target combined with checking out the PR head as a critical risk and moves the workflow to pull_request or isolates the untrusted checkout.",
+        "The report identifies the PR title interpolated directly into a run: block as template injection, and the corrected workflow no longer interpolates it into a shell (passed through env, or the step removed).",
+        "The corrected workflow replaces permissions: write-all with permissions: {} at the top and explicit per-job grants.",
+        "The corrected workflow pins actions/checkout and actions/setup-node to full commit SHAs with a version comment.",
+        "The report recommends OIDC for AWS instead of the static access key secrets.",
+        "The report separates tool-backed or rule-backed hard findings from opinion or style items under distinct headings.",
+        "The answer states that actionlint and zizmor were run on the corrected file, or names them as not installed."
+      ]
+    },
+    {
+      "id": 4,
+      "prompt": "Our CI (.github/workflows/ci.yml, attached) takes about 25 minutes on every push and people have started ignoring it. Speed it up without dropping real coverage.",
+      "expected_output": "A faster workflow that adds concurrency cancellation, npm caching, timeouts, drops the redundant fetch-depth: 0 and duplicate matrix cell, runs lint and test in parallel, adds Buildx cache for the image build, keeps the existing pins and permissions, and explains why each change helps.",
+      "files": [
+        "evals/fixtures/slow-ci.yml"
+      ],
+      "expectations": [
+        "The workflow gains a concurrency block with cancel-in-progress for superseded runs.",
+        "setup-node gains cache: npm or an equivalent package-manager cache.",
+        "The redundant matrix cell is removed or explained: ubuntu-latest and ubuntu-24.04 are the same runner, so the matrix shrinks without losing coverage.",
+        "fetch-depth: 0 is removed from jobs that do not need history, or its removal is proposed with the reason.",
+        "Lint and test no longer run strictly sequentially, or the answer justifies keeping needs: lint.",
+        "Jobs gain timeout-minutes.",
+        "The docker build step moves to docker/setup-buildx-action and docker/build-push-action with type=gha cache, or the answer recommends that change.",
+        "The existing SHA pins and permissions block are preserved, not loosened.",
+        "Each speed change is explained with the reason it saves time."
+      ]
+    },
+    {
+      "id": 5,
+      "prompt": "Add a job to my CI workflow (.github/workflows/ci.yml, attached) that runs `npm run lint`. Keep everything else as it is.",
+      "expected_output": "The same workflow with one new lint job that matches the existing job's conventions: permissions block, same pinned checkout and setup-node with version comments, persist-credentials: false, npm cache, timeout, friendly name, running in parallel with the test job. No unrelated changes.",
+      "files": [
+        "evals/fixtures/good-ci.yml"
+      ],
+      "expectations": [
+        "The new lint job has its own permissions block with contents: read.",
+        "The new lint job uses the same full-SHA pins and version comments for actions/checkout and actions/setup-node as the existing test job.",
+        "The new lint job sets persist-credentials: false on checkout and cache: npm on setup-node, matching the existing job.",
+        "The new lint job has a timeout-minutes and a human-friendly name.",
+        "The lint job runs in parallel with the test job rather than being chained with needs, or the answer justifies chaining.",
+        "The existing test job, triggers, permissions, and concurrency block are unchanged.",
+        "No path filters, workflow_dispatch, or other unrequested triggers are added.",
+        "The answer states that actionlint and zizmor were run, or names them as not installed."
+      ]
     }
   ]
 }
