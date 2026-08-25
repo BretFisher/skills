@@ -43,7 +43,7 @@ lint-actions: ## actionlint + zizmor + poutine on this repo's workflows; actionl
 	actionlint .github/workflows/*.y*ml \
 	  skills/github-actions-workflow-pro/evals/fixtures/good-ci.yml \
 	  skills/github-actions-workflow-pro/evals/fixtures/slow-ci.yml
-	zizmor --no-progress --collect=all .
+	zizmor --no-progress --collect=all .github/workflows .github/dependabot.yml
 	poutine analyze_local . --quiet --disable-version-check --fail-on-violation >/dev/null
 
 eval-benchmark: ## Aggregate the latest eval iteration into benchmark.json/.md (SKILL=, ITER=)
