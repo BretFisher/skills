@@ -47,7 +47,7 @@ skill folder and commit just that — do not commit the rest of `.evals/`.
 
 ## Before committing
 
-Run `make lint`. It runs `markdownlint` (config in `.markdownlint.yaml`), `shellcheck` on every
+Run `make lint`. It runs `markdownlint` and `yamllint` (configs in `.github/linters/`, the same files super-linter reads in CI), `shellcheck` on every
 `skills/*/scripts/*.sh`, and `actionlint` on this repo's workflows and the well-formed eval fixtures.
 Tools are never installed by the Makefile; a missing one prints its `brew install` formula.
 

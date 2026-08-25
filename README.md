@@ -30,7 +30,7 @@ Installable via `npx skills add https://github.com/bretfisher/skills` and mark t
 
 | Target | What it does |
 | --- | --- |
-| `make lint` | Pre-commit gate: `markdownlint` (config in `.markdownlint.yaml`), `shellcheck` on `skills/*/scripts/*.sh`, `actionlint` on this repo's workflows and the well-formed eval fixtures |
+| `make lint` | Pre-commit gate: `markdownlint` and `yamllint` (configs in `.github/linters/`, the same files super-linter reads in CI), `shellcheck` on `skills/*/scripts/*.sh`, `actionlint` on this repo's workflows and the well-formed eval fixtures |
 | `make eval-benchmark [SKILL=… ITER=…]` | Aggregate the latest `.evals/<skill>/iteration-N/` into `benchmark.json` + `benchmark.md` via the skill-creator plugin |
 | `make eval-view [SKILL=… ITER=…]` | Open the skill-creator review viewer on that iteration |
 | `make pin ACTION=owner/repo[@ref]` | Print a SHA-pinned `uses:` line for an action, newest release at least 7 days old |

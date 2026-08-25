@@ -11,18 +11,22 @@ EVAL_DIR       = .evals/$(SKILL)/iteration-$(ITER)
 # `need` fails with an install hint when a tool is absent.
 need = command -v $(1) >/dev/null 2>&1 || { echo "missing: $(1)  ->  brew install $(2)"; exit 1; }
 
-.PHONY: help lint lint-md lint-sh lint-actions eval-benchmark eval-view pin
+.PHONY: help lint lint-md lint-yaml lint-sh lint-actions eval-benchmark eval-view pin
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
 	@echo
 	@echo "Variables: SKILL=$(SKILL)  ITER=$(ITER)  SKILL_CREATOR=$(SKILL_CREATOR)"
 
-lint: lint-md lint-sh lint-actions ## Run every linter (pre-commit gate)
+lint: lint-md lint-yaml lint-sh lint-actions ## Run every linter (pre-commit gate)
 
-lint-md: ## markdownlint on all Markdown (config: .markdownlint.yaml)
+lint-md: ## markdownlint on all Markdown (config: .github/linters/.markdown-lint.yml, shared with CI)
 	@$(call need,markdownlint,markdownlint-cli)
-	markdownlint '**/*.md' --ignore node_modules --ignore .evals --ignore CLAUDE.md
+	markdownlint -c .github/linters/.markdown-lint.yml '**/*.md' --ignore node_modules --ignore .evals --ignore CLAUDE.md
+
+lint-yaml: ## yamllint on all YAML (config: .github/linters/.yaml-lint.yml, shared with CI)
+	@$(call need,yamllint,yamllint)
+	yamllint -c .github/linters/.yaml-lint.yml .github/ skills/
 
 lint-sh: ## shellcheck on every skill script
 	@$(call need,shellcheck,shellcheck)
