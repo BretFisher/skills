@@ -9,6 +9,7 @@ Before reading any YAML:
 - Locate the files: every `.github/workflows/*.yml` and `*.yaml`, or the files the user pointed at. No files is a finding in itself: say so and stop.
 - Check the tools: `command -v actionlint shellcheck zizmor poutine gasa gh`. For each one missing, ask the user before going on: install it now (`brew install actionlint shellcheck zizmor poutine`; gasa from <https://github.com/bretfisher/gasa>), or skip it and have the report say "absent" for that tool. Installing is their call, so wait for the answer; when the user is unavailable, skip and report absent. (Running the scanners from their container images with the repo bind-mounted is planned; see the root `PLAN.md`.) `actionlint` runs shellcheck on `run:` blocks only when shellcheck is installed, so a clean actionlint without shellcheck says less than it looks.
 - `gasa` and `scripts/run-stats.py` work through the GitHub API (both infer `owner/repo` from the remote) and need `gh auth status` to pass. If auth fails or the repo has no remote, run the file-level tools only and say which steps were skipped.
+- Ask now, in the same message as any tool question, how the user wants the report delivered: in the chat reply, as an HTML dashboard (one self-contained file, ranked tables sortable, findings grouped by section), as a Markdown file in the repo (suggest `docs/actions-audit-YYYY-MM-DD.md`), or a combination. Asking here, before the work, means the answer shapes the output instead of forcing a rewrite at the end. When the user is unavailable, write one line at the top of the report: "Delivered in chat by default; an HTML dashboard or a Markdown file is available on request."
 
 ## 2. Run history: failures and speed
 
@@ -65,9 +66,9 @@ Two precedence rules:
 
 Skip anything a tool already enforces and reports cleanly; the reader has the tool output.
 
-## 5. Ask how to deliver, then report
+## 5. Report
 
-Before presenting, ask the user which they want: the report in the chat reply, an HTML dashboard (a single self-contained file, the ranked tables as sortable tables, findings grouped by section), a Markdown file in the repo (suggest `docs/actions-audit-YYYY-MM-DD.md`), or a combination. When the user is unavailable, default to the chat reply and say the other formats are available. Whatever the medium, the content follows this shape; empty sections stay in with "none".
+Deliver in the format the user chose in step 1 (or the stated chat default). Whatever the medium, the content follows this shape; empty sections stay in with "none".
 
 ```markdown
 ## Do first
@@ -105,7 +106,7 @@ Ordering matters when settings findings and workflow findings interact: turning 
 
 ## 6. Done when
 
-- The user has been asked (or the default stated) for the delivery format, and about troubleshooting any still-failing workflow, before the full report lands.
+- The delivery format was asked in step 1, or the report's first line states the chat default and the alternatives; any still-failing workflow got the troubleshoot question before the full report landed.
 - Every listed finding names a rule id, is under Correctness with its evidence, or is labelled opinion; the Do-first list has at most five items.
 - Every workflow in scope appears in the speed ranking, or the run-stats step is marked skipped with the reason.
 - The proposed YAML passes `actionlint`, `zizmor`, and `poutine` (re-run them on the corrected copy; include the result in Tools).
