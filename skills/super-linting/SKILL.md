@@ -17,7 +17,7 @@ A git **pre-commit hook** is a stronger, harder gate (it blocks the actual `git 
 
 Only wire up `.githooks/` + a `make hooks` target (or a `.pre-commit-config.yaml`) if the user opts in. The point is to not surprise the user with git hooks they didn't request.
 
-The goal is a tight local feedback loop: catch lint problems while code is being written, not in CI. This skill is **not** about building CI workflows (use the `github-action-workflow` skill for that). It is about equipping the agent and the human with the linters that fit *this* project, drawn from the [super-linter](https://github.com/super-linter/super-linter) project's curated list so the recommendations stay current.
+The goal is a tight local feedback loop: catch lint problems while code is being written, not in CI. This skill is **not** about building CI workflows (use the `github-actions-workflow-pro` skill for that). It is about equipping the agent and the human with the linters that fit *this* project, drawn from the [super-linter](https://github.com/super-linter/super-linter) project's curated list so the recommendations stay current.
 
 ## Why super-linter as the source
 
