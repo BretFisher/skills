@@ -1,0 +1,18 @@
+# markdownlint config for this repo (used by `make lint-md`).
+default: true
+
+# Long lines are the house style for skill prose: one sentence per line reads
+# well for agents and diffs cleanly.
+MD013: false
+
+# Skills open with YAML frontmatter and then prose, no H1 (Matt Pocock style).
+# Treat the frontmatter `name:` as the title so MD041 is satisfied.
+MD041:
+  front_matter_title: "^\\s*name\\s*[:=]"
+
+# Makefile snippets need literal tabs inside fenced code.
+MD010:
+  code_blocks: false
+
+# `<placeholder>` tokens in agent instructions look like inline HTML.
+MD033: false
