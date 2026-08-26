@@ -11,18 +11,28 @@ EVAL_DIR       = .evals/$(SKILL)/iteration-$(ITER)
 # `need` fails with an install hint when a tool is absent.
 need = command -v $(1) >/dev/null 2>&1 || { echo "missing: $(1)  ->  brew install $(2)"; exit 1; }
 
-.PHONY: help lint lint-md lint-yaml lint-sh lint-py lint-actions lint-pins eval-benchmark eval-view pin run-stats
+.PHONY: help lint lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins fmt eval-benchmark eval-view pin run-stats
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
 	@echo
 	@echo "Variables: SKILL=$(SKILL)  ITER=$(ITER)  SKILL_CREATOR=$(SKILL_CREATOR)"
 
-lint: lint-md lint-yaml lint-sh lint-py lint-actions lint-pins ## Run every linter (pre-commit gate)
+lint: lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins ## Run every linter (pre-commit gate)
 
 lint-md: ## markdownlint on all Markdown (config: .github/linters/.markdown-lint.yml, shared with CI)
 	@$(call need,markdownlint,markdownlint-cli)
 	markdownlint -c .github/linters/.markdown-lint.yml '**/*.md' --ignore node_modules --ignore .evals --ignore CLAUDE.md
+
+PRETTIER_FILES = "**/*.md" "**/*.json" "!.evals/**" "!.agents/**" "!node_modules/**" "!CLAUDE.md"
+
+lint-fmt: ## prettier --check on Markdown and JSON (super-linter runs the same check in CI)
+	@$(call need,prettier,prettier)
+	prettier --check $(PRETTIER_FILES)
+
+fmt: ## prettier --write on Markdown and JSON
+	@$(call need,prettier,prettier)
+	prettier --write $(PRETTIER_FILES)
 
 lint-yaml: ## yamllint on all YAML (config: .github/linters/.yaml-lint.yml, shared with CI)
 	@$(call need,yamllint,yamllint)

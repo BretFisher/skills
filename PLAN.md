@@ -8,13 +8,13 @@ Open work for this repo, in rough priority order. Done items move to the changel
 
 **Verified images (2026-08-25):**
 
-| Tool | Image | Example |
-| --- | --- | --- |
-| actionlint | `rhysd/actionlint:latest` (Docker Hub, official; docs/usage.md "Docker") | `docker run --rm -v "$PWD:/repo:ro" --workdir /repo rhysd/actionlint:latest -color` |
-| zizmor | `ghcr.io/zizmorcore/zizmor:latest` (official; docs/installation.md "Docker") | `docker run --rm -v "$PWD:/src:ro" -e GH_TOKEN ghcr.io/zizmorcore/zizmor:latest --collect=all /src` |
-| poutine | `ghcr.io/boostsecurityio/poutine:latest` (official; README) | `docker run --rm -v "$PWD:/repo:ro" ghcr.io/boostsecurityio/poutine:latest analyze_local /repo --format json --quiet --disable-version-check` |
-| gasa | `ghcr.io/bretfisher/gasa:latest` (official; README; pin `:vX.Y.Z`) | `docker run --rm -e GITHUB_TOKEN ghcr.io/bretfisher/gasa:latest run owner/repo --format json` (API-only, no mount needed) |
-| pinact | **none** (Homebrew core, aqua, mise, GitHub Releases binaries; Go, single static binary) | would need our image (below) or a generic Go/Alpine image plus the release tarball |
+| Tool       | Image                                                                                    | Example                                                                                                                                       |
+| ---------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| actionlint | `rhysd/actionlint:latest` (Docker Hub, official; docs/usage.md "Docker")                 | `docker run --rm -v "$PWD:/repo:ro" --workdir /repo rhysd/actionlint:latest -color`                                                           |
+| zizmor     | `ghcr.io/zizmorcore/zizmor:latest` (official; docs/installation.md "Docker")             | `docker run --rm -v "$PWD:/src:ro" -e GH_TOKEN ghcr.io/zizmorcore/zizmor:latest --collect=all /src`                                           |
+| poutine    | `ghcr.io/boostsecurityio/poutine:latest` (official; README)                              | `docker run --rm -v "$PWD:/repo:ro" ghcr.io/boostsecurityio/poutine:latest analyze_local /repo --format json --quiet --disable-version-check` |
+| gasa       | `ghcr.io/bretfisher/gasa:latest` (official; README; pin `:vX.Y.Z`)                       | `docker run --rm -e GITHUB_TOKEN ghcr.io/bretfisher/gasa:latest run owner/repo --format json` (API-only, no mount needed)                     |
+| pinact     | **none** (Homebrew core, aqua, mise, GitHub Releases binaries; Go, single static binary) | would need our image (below) or a generic Go/Alpine image plus the release tarball                                                            |
 
 Pin image tags (or digests, per `docker-pro`) once the option lands; `latest` is only for the table above.
 

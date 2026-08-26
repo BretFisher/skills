@@ -56,9 +56,7 @@
       "id": 3,
       "prompt": "Audit this workflow (.github/workflows/ci.yml, attached) for security problems. Give me a report of what is wrong and a corrected version.",
       "expected_output": "An audit report that separates hard findings from opinions, identifies pull_request_target with untrusted checkout, write-all permissions, unpinned actions, template injection of the PR title, and static AWS keys, and a corrected workflow that passes actionlint and zizmor.",
-      "files": [
-        "evals/fixtures/insecure-ci.yml"
-      ],
+      "files": ["evals/fixtures/insecure-ci.yml"],
       "expectations": [
         "The report identifies pull_request_target combined with checking out the PR head as a critical risk and moves the workflow to pull_request or isolates the untrusted checkout.",
         "The report identifies the PR title interpolated directly into a run: block as template injection, and the corrected workflow no longer interpolates it into a shell (passed through env, or the step removed).",
@@ -74,9 +72,7 @@
       "id": 4,
       "prompt": "Our CI (.github/workflows/ci.yml, attached) takes about 25 minutes on every push and people have started ignoring it. Speed it up without dropping real coverage.",
       "expected_output": "A faster workflow that adds concurrency cancellation, npm caching, timeouts, drops the redundant fetch-depth: 0 and duplicate matrix cell, runs lint and test in parallel, adds Buildx cache for the image build, keeps the existing pins and permissions, and explains why each change helps.",
-      "files": [
-        "evals/fixtures/slow-ci.yml"
-      ],
+      "files": ["evals/fixtures/slow-ci.yml"],
       "expectations": [
         "The workflow gains a concurrency block with cancel-in-progress for superseded runs.",
         "setup-node gains cache: npm or an equivalent package-manager cache.",
@@ -95,9 +91,7 @@
       "id": 5,
       "prompt": "Add a job to my CI workflow (.github/workflows/ci.yml, attached) that runs `npm run lint`. Keep everything else as it is.",
       "expected_output": "The same workflow with one new lint job that matches the existing job's conventions: permissions block, same pinned checkout and setup-node with version comments, persist-credentials: false, npm cache, timeout, friendly name, running in parallel with the test job. No unrelated changes.",
-      "files": [
-        "evals/fixtures/good-ci.yml"
-      ],
+      "files": ["evals/fixtures/good-ci.yml"],
       "expectations": [
         "The new lint job has its own permissions block with contents: read.",
         "The new lint job uses the same full-SHA pins and version comments for actions/checkout and actions/setup-node as the existing test job.",
@@ -134,9 +128,7 @@
       "id": 7,
       "prompt": "Harden my deploy workflow (.github/workflows/deploy.yml, attached). We deploy a static site to S3 and CloudFront from main.",
       "expected_output": "A hardened deploy workflow using OIDC instead of static AWS keys, a non-cancelling concurrency group, an environment scoping the secrets, set -euo pipefail in the multi-line run block, persist-credentials: false, a timeout, an offer of the Dependabot snippet, and placeholders listed.",
-      "files": [
-        "evals/fixtures/deploy-static-keys.yml"
-      ],
+      "files": ["evals/fixtures/deploy-static-keys.yml"],
       "expectations": [
         "The corrected workflow replaces AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY with aws-actions/configure-aws-credentials using role-to-assume and id-token: write.",
         "The deploy job's concurrency no longer cancels in-progress runs (cancel-in-progress: false or a queue), with the reason given.",
