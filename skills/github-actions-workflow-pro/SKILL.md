@@ -23,21 +23,21 @@ Apply these defaults proactively to every workflow you touch, unless the reposit
 
 ## Auditing an existing workflow
 
-When the user hands you workflows to review, harden, secure, or speed up, or asks what is wrong with their CI, read `references/audit.md` and follow it. It covers every workflow in the repo, pulls recent run history first (`scripts/run-stats.py`: failures, and workflows and jobs ranked by duration), then the linters (`actionlint`, `zizmor`, `gasa`), sorts findings into correctness, hard, speed, and opinion, opens with a Do-first list, and asks how the user wants the report delivered.
+When the user hands you workflows to review, harden, secure, or speed up, or asks what is wrong with their CI, read [audit.md](references/audit.md) and follow it. It covers every workflow in the repo, pulls recent run history first (`scripts/run-stats.py`: failures, and workflows and jobs ranked by duration), then the linters (`actionlint`, `zizmor`, `gasa`), sorts findings into correctness, hard, speed, and opinion, opens with a Do-first list, and asks how the user wants the report delivered.
 
 ## Checklist
 
 Every workflow you create or edit meets these. The linked reference carries the full rule and its reason; read it when a line needs more than the summary.
 
-- `permissions: {}` at the top level, then **least-privilege** grants per job. `actions/checkout` still needs `contents: read`, and sets `persist-credentials: false` unless a later step pushes with the token. → `references/security.md`
-- Every third-party `uses:` is **pinned** to a full commit SHA with a `# vX.Y.Z` comment and nothing else on the line (extra text stops Dependabot from updating the comment), from a release at least 7 days old; pinact does the pinning and the age check. Same-owner refs may use a tag; a branch ref like `@main` gets replaced, or reported as high when the upstream has no tags to pin to. → `references/security.md`
-- Cloud credentials come from OIDC (`id-token: write`), third-party secrets live in a repository environment the job names, and `${{ github.event.* }}` values reach `run:` only through `env:`. → `references/security.md`
-- `pull_request` for PR triggers. `pull_request_target` appears only where external PRs cannot reach it: a repo whose pull request access is Collaborators only, or a private repo with the untrusted checkout isolated in its own zero-grant job; never in a public repo that accepts outside PRs. → `references/security.md`
-- If `.github/dependabot.yml` exists, it has a `github-actions` entry with a daily schedule and a 7-day cooldown; recommend the snippet when it is missing. → `references/security.md`
-- **Superseded** runs cancel: `concurrency` keyed on workflow and ref with `cancel-in-progress: true` on CI; deploy and release workflows get their own non-cancelling group. → `references/speed.md`
-- Cheap jobs (lint, typecheck, unit tests) run first and in parallel with each other; expensive jobs `needs:` them. → `references/speed.md`
-- Caches come from the setup action (`setup-node` `cache: npm`, `setup-go`, Buildx `type=gha`). `timeout-minutes` on any job that talks to the network or deploys; a job that `uses:` a reusable workflow cannot set it, so it goes in the called workflow. → `references/speed.md`
-- New CI workflows ship without path filters; add one later only when it is obviously correct and the workflow is not a required check. Security, release, and deploy workflows stay unfiltered. → `references/speed.md`
+- `permissions: {}` at the top level, then **least-privilege** grants per job. `actions/checkout` still needs `contents: read`, and sets `persist-credentials: false` unless a later step pushes with the token. → [security.md](references/security.md)
+- Every third-party `uses:` is **pinned** to a full commit SHA with a `# vX.Y.Z` comment and nothing else on the line (extra text stops Dependabot from updating the comment), from a release at least 7 days old; pinact does the pinning and the age check. Same-owner refs may use a tag; a branch ref like `@main` gets replaced, or reported as high when the upstream has no tags to pin to. → [security.md](references/security.md)
+- Cloud credentials come from OIDC (`id-token: write`), third-party secrets live in a repository environment the job names, and `${{ github.event.* }}` values reach `run:` only through `env:`. → [security.md](references/security.md)
+- `pull_request` for PR triggers. `pull_request_target` appears only where external PRs cannot reach it: a repo whose pull request access is Collaborators only, or a private repo with the untrusted checkout isolated in its own zero-grant job; never in a public repo that accepts outside PRs. → [security.md](references/security.md)
+- If `.github/dependabot.yml` exists, it has a `github-actions` entry with a daily schedule and a 7-day cooldown; recommend the snippet when it is missing. → [security.md](references/security.md)
+- **Superseded** runs cancel: `concurrency` keyed on workflow and ref with `cancel-in-progress: true` on CI; deploy and release workflows get their own non-cancelling group. → [speed.md](references/speed.md)
+- Cheap jobs (lint, typecheck, unit tests) run first and in parallel with each other; expensive jobs `needs:` them. → [speed.md](references/speed.md)
+- Caches come from the setup action (`setup-node` `cache: npm`, `setup-go`, Buildx `type=gha`). `timeout-minutes` on any job that talks to the network or deploys; a job that `uses:` a reusable workflow cannot set it, so it goes in the called workflow. → [speed.md](references/speed.md)
+- New CI workflows ship without path filters; add one later only when it is obviously correct and the workflow is not a required check. Security, release, and deploy workflows stay unfiltered. → [speed.md](references/speed.md)
 - Manual and remote triggers (`workflow_dispatch`, `repository_dispatch`) are added only after the user says yes.
 
 ## Maintainable YAML
