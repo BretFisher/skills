@@ -1,6 +1,6 @@
 ---
 name: github-actions-workflow-pro
-description: Create, edit, audit, and speed up GitHub Actions workflows using Bret Fisher's opinionated DevOps rules. Use it when the user asks to create a workflow or CI/CD pipeline, edit or add a job to an existing `.github/workflows/*` file (even a one-line change), review or harden a workflow for security, speed up slow CI, publish a container image from CI, automate releases, or mentions GitHub Actions, GHA, action pinning, or findings from gasa, zizmor, poutine, or actionlint. Not for local linter setup (super-linting) or Dockerfile authoring (docker-pro).
+description: Create, edit, audit, and speed up GitHub Actions workflows using Bret Fisher's opinionated DevOps rules. Use it when the user asks to create a workflow or CI/CD pipeline, edit or add a job to an existing `.github/workflows/*` file (even a one-line change), review or harden a workflow for security, speed up slow CI, publish a container image from CI, automate releases, or mentions GitHub Actions, GHA, action pinning, or findings from gasa, zizmor, poutine, pinact, or actionlint. Not for local linter setup (super-linting) or Dockerfile authoring (docker-pro).
 ---
 
 # GitHub Actions Workflow Rules
@@ -18,7 +18,7 @@ Apply these defaults proactively to every workflow you touch, unless the reposit
 
 - Ask only about decisions the repo cannot answer: deploy target, registry, whether a needed secret already exists. Everything else you infer from the repo: the runtime version comes from its version file (`.nvmrc`, `.python-version`, `go.mod`) or `engines`, the lint and test commands from its scripts.
 - Use conventional filenames: `ci.yml`, `docker.yml`, `release.yml`, `deploy.yml`; `call-*.yaml` and `reusable-*.yaml` for reusable workflows.
-- Run `scripts/pin-action.sh --line owner/repo` for every third-party `uses:` (see **pinned** below); `--help` lists the rest.
+- Write each third-party `uses:` with the major you intend (`actions/checkout@v7`), then run `GITHUB_TOKEN=$(gh auth token) pinact run -update -min-age 7 <file>` to pin it to the newest release at least 7 days old (see **pinned** below).
 - For a Docker build workflow, or a lint workflow in a repo with no linter of its own, offer a reusable workflow before writing a bespoke one and ask whether the user already has one: Bret's are <https://github.com/BretFisher/docker-build-workflow> and <https://github.com/BretFisher/super-linter-workflow>. A repo that already defines `npm run lint` or equivalent runs that.
 
 ## Auditing an existing workflow
@@ -30,7 +30,7 @@ When the user hands you workflows to review, harden, secure, or speed up, or ask
 Every workflow you create or edit meets these. The linked reference carries the full rule and its reason; read it when a line needs more than the summary.
 
 - `permissions: {}` at the top level, then **least-privilege** grants per job. `actions/checkout` still needs `contents: read`, and sets `persist-credentials: false` unless a later step pushes with the token. → `references/security.md`
-- Every third-party `uses:` is **pinned** to a full commit SHA with a `# vX.Y.Z` comment, from a release at least 7 days old. Same-owner refs may use a tag; a branch ref like `@main` gets replaced. → `references/security.md`
+- Every third-party `uses:` is **pinned** to a full commit SHA with a `# vX.Y.Z` comment, from a release at least 7 days old; pinact does the pinning and the age check. Same-owner refs may use a tag; a branch ref like `@main` gets replaced. → `references/security.md`
 - Cloud credentials come from OIDC (`id-token: write`), third-party secrets live in a repository environment the job names, and `${{ github.event.* }}` values reach `run:` only through `env:`. → `references/security.md`
 - `pull_request` for PR triggers. `pull_request_target` appears only in a private repo with the untrusted checkout isolated in its own zero-grant job, and never in a public one. → `references/security.md`
 - If `.github/dependabot.yml` exists, it has a `github-actions` entry with a daily schedule and a 7-day cooldown; recommend the snippet when it is missing. → `references/security.md`
@@ -58,11 +58,11 @@ Publish images on **trusted refs** only (default branch, tags, releases); PRs bu
 
 ## Validate
 
-Run `actionlint`, `GH_TOKEN=$(gh auth token) zizmor` (offline without the token), and `poutine analyze_local . --quiet --disable-version-check` on every file you edited; fix what they report and run again until all three are clean. These scanners already check most of the security checklist (permissions, pinning, `persist-credentials`, injection, dangerous triggers, Dependabot cooldown), so they are the proof, not your reading. `gasa` audits a pushed repository through the API, so it belongs to the audit path, not to a local edit. Check `command -v` first; for a missing tool, ask whether to install it (`brew install actionlint shellcheck zizmor poutine`) or skip it, and wait for the answer. Hand back only when the validators are clean or reported absent by name.
+Run `actionlint`, `GH_TOKEN=$(gh auth token) zizmor` (offline without the token), `poutine analyze_local . --quiet --disable-version-check`, and `GITHUB_TOKEN=$(gh auth token) pinact run -check -verify-comment -min-age 7 -verify-min-age` on every file you edited; fix what they report and run again until all four are clean. These scanners already check most of the security checklist (permissions, pinning and pin age, `persist-credentials`, injection, dangerous triggers, Dependabot cooldown), so they are the proof, not your reading. `gasa` audits a pushed repository through the API, so it belongs to the audit path, not to a local edit. Check `command -v` first; for a missing tool, ask whether to install it (`brew install actionlint shellcheck zizmor poutine pinact`) or skip it, and wait for the answer. Hand back only when the validators are clean or reported absent by name.
 
 ## Done when
 
-- [ ] `actionlint`, `zizmor`, and `poutine` clean on every edited file, or reported absent by name
+- [ ] `actionlint`, `zizmor`, `poutine`, and `pinact -check` clean on every edited file, or reported absent by name
 - [ ] Every job has a `permissions:` block and the workflow starts with `permissions: {}`
 - [ ] Every third-party `uses:` is a full SHA with a version comment
 - [ ] Every placeholder is listed for the user to confirm

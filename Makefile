@@ -11,14 +11,14 @@ EVAL_DIR       = .evals/$(SKILL)/iteration-$(ITER)
 # `need` fails with an install hint when a tool is absent.
 need = command -v $(1) >/dev/null 2>&1 || { echo "missing: $(1)  ->  brew install $(2)"; exit 1; }
 
-.PHONY: help lint lint-md lint-yaml lint-sh lint-py lint-actions eval-benchmark eval-view pin run-stats
+.PHONY: help lint lint-md lint-yaml lint-sh lint-py lint-actions lint-pins eval-benchmark eval-view pin run-stats
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
 	@echo
 	@echo "Variables: SKILL=$(SKILL)  ITER=$(ITER)  SKILL_CREATOR=$(SKILL_CREATOR)"
 
-lint: lint-md lint-yaml lint-sh lint-py lint-actions ## Run every linter (pre-commit gate)
+lint: lint-md lint-yaml lint-sh lint-py lint-actions lint-pins ## Run every linter (pre-commit gate)
 
 lint-md: ## markdownlint on all Markdown (config: .github/linters/.markdown-lint.yml, shared with CI)
 	@$(call need,markdownlint,markdownlint-cli)
@@ -28,12 +28,12 @@ lint-yaml: ## yamllint on all YAML (config: .github/linters/.yaml-lint.yml, shar
 	@$(call need,yamllint,yamllint)
 	yamllint -c .github/linters/.yaml-lint.yml .github/ skills/
 
-lint-sh: ## shellcheck on every skill script
+lint-sh: ## shellcheck on every skill shell script (skips cleanly when there are none)
 	@$(call need,shellcheck,shellcheck)
-	shellcheck skills/*/scripts/*.sh
+	@files=$$(ls skills/*/scripts/*.sh 2>/dev/null); if [ -n "$$files" ]; then shellcheck $$files; else echo "lint-sh: no shell scripts under skills/*/scripts"; fi
 
-lint-py: ## byte-compile every skill Python script (ruff too, when installed)
-	python3 -m py_compile skills/*/scripts/*.py
+lint-py: ## byte-compile every skill Python script (ruff too, when installed; skips cleanly when there are none)
+	@files=$$(ls skills/*/scripts/*.py 2>/dev/null); if [ -n "$$files" ]; then python3 -m py_compile $$files; else echo "lint-py: no Python scripts under skills/*/scripts"; fi
 	@command -v ruff >/dev/null 2>&1 && ruff check skills/*/scripts/*.py || echo "ruff not installed (brew install ruff); py_compile only"
 
 lint-actions: ## actionlint + zizmor + poutine on this repo's workflows; actionlint on the well-formed eval fixtures
@@ -58,6 +58,10 @@ eval-view: ## Open the skill-creator review viewer on the latest iteration (SKIL
 run-stats: ## Rank this repo's workflows and jobs by duration over the last RUNS runs (REPO= for another repo)
 	@skills/github-actions-workflow-pro/scripts/run-stats.py --markdown --runs $(or $(RUNS),3) $(if $(REPO),--repo $(REPO),)
 
-pin: ## Resolve an action to a SHA-pinned uses: line, e.g. make pin ACTION=actions/checkout
-	@test -n "$(ACTION)" || { echo "usage: make pin ACTION=owner/repo[@ref]"; exit 1; }
-	@skills/github-actions-workflow-pro/scripts/pin-action.sh --line "$(ACTION)"
+pin: ## Pin this repo's workflows with pinact (newest release at least 7 days old); FILES= to limit
+	@$(call need,pinact,pinact)
+	GITHUB_TOKEN=$$(gh auth token) pinact run -update -min-age 7 $(FILES)
+
+lint-pins: ## pinact check: every uses: SHA-pinned, comment correct, pin at least 7 days old
+	@$(call need,pinact,pinact)
+	GITHUB_TOKEN=$$(gh auth token) pinact run -check -verify-comment -min-age 7 -verify-min-age

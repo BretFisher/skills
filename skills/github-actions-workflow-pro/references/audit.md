@@ -7,7 +7,7 @@ Read this when the user hands you one or more workflows to review, harden, secur
 Before reading any YAML:
 
 - Locate the files: every `.github/workflows/*.yml` and `*.yaml`, or the files the user pointed at. No files is a finding in itself: say so and stop.
-- Check the tools: `command -v actionlint shellcheck zizmor poutine gasa gh`. For each one missing, ask the user before going on: install it now (`brew install actionlint shellcheck zizmor poutine`; gasa from <https://github.com/bretfisher/gasa>), or skip it and have the report say "absent" for that tool. Installing is their call, so wait for the answer; when the user is unavailable, skip and report absent. (Running the scanners from their container images with the repo bind-mounted is planned; see the root `PLAN.md`.) `actionlint` runs shellcheck on `run:` blocks only when shellcheck is installed, so a clean actionlint without shellcheck says less than it looks.
+- Check the tools: `command -v actionlint shellcheck zizmor poutine pinact gasa gh`. For each one missing, ask the user before going on: install it now (`brew install actionlint shellcheck zizmor poutine pinact`; gasa from <https://github.com/bretfisher/gasa>), or skip it and have the report say "absent" for that tool. Installing is their call, so wait for the answer; when the user is unavailable, skip and report absent. (Running the scanners from their container images with the repo bind-mounted is planned; see the root `PLAN.md`.) `actionlint` runs shellcheck on `run:` blocks only when shellcheck is installed, so a clean actionlint without shellcheck says less than it looks.
 - `gasa` and `scripts/run-stats.py` work through the GitHub API (both infer `owner/repo` from the remote) and need `gh auth status` to pass. If auth fails or the repo has no remote, run the file-level tools only and say which steps were skipped.
 - Ask now, in the same message as any tool question, how the user wants the report delivered: in the chat reply, as an HTML dashboard (one self-contained file, ranked tables sortable, findings grouped by section), as a Markdown file in the repo (suggest `docs/actions-audit-YYYY-MM-DD.md`), or a combination. Asking here, before the work, means the answer shapes the output instead of forcing a rewrite at the end. When the user is unavailable, write one line at the top of the report: "Delivered in chat by default; an HTML dashboard or a Markdown file is available on request."
 
@@ -20,13 +20,14 @@ Run `scripts/run-stats.py --markdown` (JSON without the flag; `--runs N` for mor
 
 ## 3. Run the scanners, then read only for what they cannot see
 
-Four deterministic tools cover most of `security.md` and part of `speed.md`. They are the source of truth for those rules: run them, cite their rule ids, and spend your own reading only on the residual list below. Re-deriving a tool's finding by hand costs tokens and adds nothing.
+Five deterministic tools cover most of `security.md` and part of `speed.md`. They are the source of truth for those rules: run them, cite their rule ids, and spend your own reading only on the residual list below. Re-deriving a tool's finding by hand costs tokens and adds nothing.
 
 ```bash
 actionlint .github/workflows/*.y*ml
 GH_TOKEN=$(gh auth token) zizmor --persona auditor --collect=all --format json .   # token enables online audits; auditor = every audit; --collect all adds dependabot.yml
 poutine analyze_local . --format json --quiet --disable-version-check              # supply-chain rules; no token needed locally
 gasa run --format json                                                             # repo + settings via API; read-only, so a security audit runs it in full
+GITHUB_TOKEN=$(gh auth token) pinact run -check -verify-comment -min-age 7 -verify-min-age   # unpinned, wrong version comment, pin younger than 7 days; edits nothing
 ```
 
 What each one owns:
@@ -36,12 +37,12 @@ What each one owns:
 | `actionlint` | YAML schema and typos, expression typing, `needs:` cycles, duplicate matrix values, invalid runner labels, `shellcheck` on `run:` (when shellcheck is installed), script injection, deprecated `::set-output` and outdated action runtimes | Syntax correctness lives here; anything it reports is Hard or Correctness |
 | `zizmor` | `excessive-permissions`, `unpinned-uses`, `ref-version-mismatch`, `artipacked`, `template-injection`, `dangerous-triggers`, `secrets-outside-env`, `dependabot-cooldown`, `concurrency-limits`, `cache-poisoning`, `known-vulnerable-actions`, `impostor-commit`, `typosquat-uses`, `archived-uses`, `overprovisioned-secrets`, `unredacted-secrets`, `github-env`, `bot-conditions`, `unsound-condition`, `secrets-inherit`, `unpinned-images`, and the rest of its ~40 audits | Persona decides the bucket: `regular` findings are Hard; `pedantic`/`auditor`-only findings are Opinion, except `secrets-outside-env` (Hard), `concurrency-limits` (Speed), and `ref-version-mismatch` for a missing comment (Hard), because those are `security.md`/`speed.md` rules. Inline `# zizmor: ignore[...]` comments and `zizmor.yml` suppress; see the precedence rule in step 4 |
 | `poutine` | `injection`, `untrusted_checkout_exec`, `confused_deputy_auto_merge`, `default_permissions_on_risky_events`, `job_all_secrets`, `unverified_script_exec` (`curl \| bash`), `known_vulnerability_in_build_component`, `pr_runs_on_self_hosted`, `unpinnable_action`, `github_action_from_unverified_creator_used`, `if_always_true`, `debug_enabled` | Overlaps zizmor on injection and dangerous triggers; report each finding once, citing both ids. `error` is Hard, `warning` is Hard, `note` is Opinion |
+| `pinact` | unpinned `uses:` (prints the pin it would write), wrong or missing version comment (`-verify-comment`), pin younger than the minimum age (`-verify-min-age`, logged as `min-age violation`), branch refs it cannot pin (`action can't be pinned`) | The only tool that knows release age. Overlaps zizmor `unpinned-uses` and gasa on the bare "not a SHA" case; cite both. Its proposed pins go straight into the diff (`pinact run -update -min-age 7` on the scratch copy) |
 | `gasa` | `workflows/pull-request-target`, `workflows/action-version-pinning` (incl. same-owner branch refs), `workflows/workflow-permissions`, `workflows/write-all-permissions`, `updates/*` (Dependabot or Renovate present, `github-actions` ecosystem, cooldown, SHA-pin support), `actions/permissions/*` (repo settings: default token permissions, fork-PR approval, allowed actions, SHA-pin requirement, actions approving PRs) | The only tool that sees repository settings. Each finding carries `doc_url`; run `gasa rules` only when one does not |
 
 Then read each workflow once, top to bottom, for the **residual list**, the rules no tool checks:
 
 - Static cloud credentials where OIDC is available (`security.md: OIDC`). Tools flag secrets, not the choice of auth method.
-- Third-party pins that resolve to a release younger than 7 days (`scripts/pin-action.sh owner/repo@<tag>` tells you the age).
 - A job that checks out but grants nothing (fails at runtime; no linter models it), or a `write` grant no step in the job uses.
 - Deploy or release workflows sharing a `cancel-in-progress: true` group with CI; release, security, or deploy workflows with path filters; a required-check workflow with a path filter.
 - Cheap jobs chained behind each other, a cache the setup action would provide but does not, `fetch-depth: 0` where nothing reads history, no `timeout-minutes` on network or deploy jobs, matrix cells that alias the same runner (`ubuntu-latest` and `ubuntu-24.04`).
@@ -95,7 +96,7 @@ Deliver in the format the user chose in step 1 (or the stated chat default). Wha
 <unified diff, or the full corrected file when most lines change>
 
 ## Tools
-actionlint <version|absent>, shellcheck <version|absent>, zizmor <version|absent> (<online|offline>, persona auditor), poutine <version|absent>, gasa <version|absent|skipped: reason>, run-stats <N runs|skipped: reason>
+actionlint <version|absent>, shellcheck <version|absent>, zizmor <version|absent> (<online|offline>, persona auditor), poutine <version|absent>, pinact <version|absent>, gasa <version|absent|skipped: reason>, run-stats <N runs|skipped: reason>
 ```
 
 Severity comes from the tool that reported it. For `security.md` rules without a tool hit: critical for injection and `pull_request_target` in a public repo, high for an unpinned third-party action or `write-all`, medium for a same-owner branch ref (matches gasa) and everything else.
@@ -109,9 +110,9 @@ Ordering matters when settings findings and workflow findings interact: turning 
 - The delivery format was asked in step 1, or the report's first line states the chat default and the alternatives; any still-failing workflow got the troubleshoot question before the full report landed.
 - Every listed finding names a rule id, is under Correctness with its evidence, or is labelled opinion; the Do-first list has at most five items.
 - Every workflow in scope appears in the speed ranking, or the run-stats step is marked skipped with the reason.
-- The proposed YAML passes `actionlint`, `zizmor`, and `poutine` (re-run them on the corrected copy; include the result in Tools).
+- The proposed YAML passes `actionlint`, `zizmor`, `poutine`, and `pinact -check` (re-run them on the corrected copy; include the result in Tools).
 - No finding in the report restates something a tool already reported under its own id; each tool-detected item cites the id, and the residual list is the only place your own reading adds findings.
-- Every third-party `uses:` in the proposed YAML is a full SHA with a version comment from `scripts/pin-action.sh`. For a repo with no tags the script pins the default branch HEAD and comments `# main YYYY-MM-DD`; say in the report that Dependabot cannot bump that pin.
+- Every third-party `uses:` in the proposed YAML is a full SHA with a version comment, written by `pinact run -update -min-age 7` on the scratch copy and clean under `pinact run -check -verify-comment -verify-min-age`. For a same-owner repo with no tags, pin the default branch HEAD by hand with a `# main YYYY-MM-DD` comment and say in the report that Dependabot cannot bump that pin.
 - Placeholders you introduced (secret names, environment names, registries) are listed for the user to confirm.
 
 ## Why the sections stay separate
