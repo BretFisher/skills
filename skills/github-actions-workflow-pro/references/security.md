@@ -25,9 +25,28 @@ pinact run -check -verify-comment -min-age 7 -verify-min-age   # audit: report u
 
 `pinact run` without `-update` pins whatever the tag points at today, which can be a release from this week, so the `-update -min-age 7` form is the default for anything new. `pinact run -update` also crosses majors (v3 to v4) when the newest qualifying release is a new major; drop `-update` when the user wants to stay on the major they have.
 
-- Same-owner actions and reusable workflows may use a tag or a SHA. A branch ref such as `@main` is the one form to replace: it moves on every push to that repo, so a compromise there runs here on the next commit with no release step between. Detected by gasa `workflows/action-version-pinning` (medium) and zizmor `unpinned-uses`. `pinact run --branch-to-tag '^main$'` converts the branch to the latest stable tag's SHA when the repo has tags.
-- A repo can carry `.github/pinact.yaml` (`min_age`, `ignore_actions`, `rules`) to encode decisions like "our own org's actions may stay on a tag" or "this tagless reusable workflow stays on `main`"; read it before reporting a pin as a finding, and quote its reason next to the finding (audit precedence rule).
-- When the same-owner repo has no tags or releases, pinact reports "action can't be pinned". Pin the default branch HEAD by hand (`gh api repos/O/R/commits/main --jq .sha`) with a `# main YYYY-MM-DD` comment. That makes the ref immutable but leaves Dependabot unable to bump it, so the durable fix is for the owner to tag releases; put that choice to the user.
+- Keep the comment after a SHA pin to the version alone: `# v7.0.1`, nothing after it. Dependabot rewrites that comment when it bumps the SHA only when the comment is exactly the old version; with any other text on it (`# v7.0.1 # zizmor: ignore[artipacked]`, `# v7.0.1 # needed for release`) it bumps the SHA and leaves the comment as it was, on purpose, so the comment goes stale on the first update and zizmor `ref-version-mismatch` and pinact `-verify-comment` fire on every bump after that. When you meet extra text on a `uses:` line, recommend removing it: a note moves to a `#` line above the step, and a `# zizmor: ignore[...]` moves into `.github/zizmor.yml`, which zizmor reads from the repo root and which keeps the reason next to the exception (`rules.<audit>.ignore` takes `file.yml`, `file.yml:line`, or `file.yml:line:col`):
+
+```yaml
+# zizmor configuration: https://docs.zizmor.sh/configuration/
+# Ignores live here, not as inline comments on SHA-pinned `uses:` lines,
+# so Dependabot can keep rewriting the version comment.
+rules:
+  artipacked:
+    # release.yml checkout must persist credentials: the release job pushes the tag.
+    ignore:
+      - release.yml
+  unpinned-uses:
+    # lint.yml calls our reusable super-linter workflow by @main; see the Hard finding.
+    ignore:
+      - lint.yml
+```
+
+No scanner flags the extra text itself; the damage shows up one Dependabot PR later, so this one is yours to check.
+
+- Same-owner actions and reusable workflows may use a tag or a SHA. A branch ref such as `@main` is the one form to replace, whoever owns it: the branch moves on every push, so a compromise there runs here on the next event with no release step and no review in this repo in between. A reusable workflow multiplies that: every caller inherits the same moving target, so one bad push cascades into every downstream repo at once, each with its own permissions and secrets. Rate it high when the ref is a reusable workflow or a shared action; gasa says medium, the blast radius says otherwise. Detected by gasa `workflows/action-version-pinning` and zizmor `unpinned-uses`. When the repo has tags, `pinact run --branch-to-tag '^main$'` converts the branch to the latest stable tag's SHA.
+- When the repo has no tags or releases, pinact reports "action can't be pinned" because there is nothing it can verify against. The fix is upstream: the owner tags a release (`gh release create v1.0.0 --generate-notes` in that repo), then `pinact run --branch-to-tag` pins every caller. Report the finding with the cascading reason and put that choice to the user. Hand-pinning the branch HEAD or adding an `ignore_actions` entry only quiets the tools: the pin fails `pinact -check` forever and Dependabot cannot bump it, and the ignore hides the finding from the one tool that tracks it.
+- A repo can carry `.github/pinact.yaml` (`min_age`, `ignore_actions`, `rules`). Read it before reporting a pin: an `ignore_actions` entry means the owner recorded the decision, so quote its reason next to the finding. The finding stays in Hard, because the config changes who knows about the risk, not the risk.
 - Dependabot keeps SHA pins current. If `.github/dependabot.yml` exists without a `github-actions` entry, or the entry lacks a daily schedule or a cooldown of at least 7 days, recommend the entry below (wrap it in `version: 2` / `updates:` when the file does not exist yet):
 
 ```yaml

@@ -15,8 +15,9 @@ Which assertion in `evals.json` proves each rule the skill states. Two kinds of 
 | `checkout` needs `contents: read`              | agent (runtime failure, no scanner)                                    | e5#1, and any eval whose output checks out and passes mech     |
 | `persist-credentials: false`                   | scanner (zizmor `artipacked`)                                          | mech; e5#3 e7#5                                                |
 | Third-party `uses:` SHA + version comment      | scanner (zizmor `unpinned-uses`, `ref-version-mismatch`; gasa)         | mech; e3#4 e5#2                                                |
+| Version comment alone on the line              | agent (Dependabot behaviour, no scanner)                               | not asserted; candidate for e3 (fixture has no such line yet)  |
 | Release at least 7 days old                    | scanner (pinact `-verify-min-age`)                                     | mech (pinact `-min-age 7 -verify-min-age` in the grader's run) |
-| Same-owner `@main` replaced                    | scanner (gasa, zizmor)                                                 | mech                                                           |
+| Same-owner `@main` replaced, or reported high  | scanner (gasa, zizmor)                                                 | mech; tagless-upstream case not asserted (needs a live repo)   |
 | OIDC over static cloud keys                    | agent                                                                  | e2#4 e3#5 e7#1                                                 |
 | Secrets scoped to an environment               | scanner (zizmor `secrets-outside-env`, auditor) + agent                | e7#3                                                           |
 | `github.event.*` through `env:`                | scanner (actionlint, zizmor, poutine)                                  | mech; e3#2                                                     |

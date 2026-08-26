@@ -44,6 +44,7 @@ Then read each workflow once, top to bottom, for the **residual list**, the rule
 
 - Static cloud credentials where OIDC is available (`security.md: OIDC`). Tools flag secrets, not the choice of auth method.
 - A job that checks out but grants nothing (fails at runtime; no linter models it), or a `write` grant no step in the job uses.
+- Extra text after the version comment on a SHA-pinned `uses:` line (`# v7.0.1 # zizmor: ignore[...]`): Dependabot then stops updating the comment (`security.md: pinned`). Propose the `.github/zizmor.yml` move for ignores and a line above the step for notes.
 - Deploy or release workflows sharing a `cancel-in-progress: true` group with CI; release, security, or deploy workflows with path filters; a required-check workflow with a path filter.
 - Cheap jobs chained behind each other, a cache the setup action would provide but does not, `fetch-depth: 0` where nothing reads history, no `timeout-minutes` on network or deploy jobs, matrix cells that alias the same runner (`ubuntu-latest` and `ubuntu-24.04`).
 - Multi-line `run:` without `set -euo pipefail`; names that are not human-friendly; a reusable workflow whose inputs cannot express what its callers need; images built with plain `docker build` instead of Buildx with `type=gha` cache.
@@ -108,7 +109,7 @@ Deliver in the format the user chose in step 1 (or the stated chat default). Wha
 actionlint <version|absent>, shellcheck <version|absent>, zizmor <version|absent> (<online|offline>, persona auditor), poutine <version|absent>, pinact <version|absent>, gasa <version|absent|skipped: reason>, run-stats <N runs|skipped: reason>
 ```
 
-Severity comes from the tool that reported it. For `security.md` rules without a tool hit: critical for injection and `pull_request_target` in a public repo, high for an unpinned third-party action or `write-all`, medium for a same-owner branch ref (matches gasa) and everything else.
+Severity comes from the tool that reported it, with one override: a branch ref to a reusable workflow or shared action is high even though gasa says medium, because a compromise there cascades into every caller. For `security.md` rules without a tool hit: critical for injection and `pull_request_target` in a public repo, high for an unpinned third-party action or `write-all`, medium for other same-owner branch refs and everything else.
 
 An audit reports; it does not edit. Leave the workflow files untouched unless the user asks you to apply or fix, and validate the corrected version on a copy in a scratch directory. A user who wants the files changed says so, and then the SKILL.md Validate step runs on the real files.
 
@@ -119,9 +120,9 @@ Ordering matters when settings findings and workflow findings interact: turning 
 - The delivery format was asked in step 1, or the report's first line states the chat default and the alternatives; any still-failing workflow got the troubleshoot question before the full report landed.
 - Every listed finding names a rule id, is under Correctness with its evidence, or is labelled opinion; the Do-first list has at most five items.
 - Every workflow in scope appears in the speed ranking, or the run-stats step is marked skipped with the reason.
-- The proposed YAML passes `actionlint`, `zizmor`, `poutine`, and `pinact -check` (re-run them on the corrected copy; include the result in Tools).
+- The proposed YAML passes `actionlint`, `zizmor`, `poutine`, and `pinact -check` (re-run them on the corrected copy; include the result in Tools). The one report allowed to remain is pinact's `action can't be pinned` on a branch ref to a tagless repo, which the report carries in Hard with the upstream fix.
 - No finding in the report restates something a tool already reported under its own id; each tool-detected item cites the id, and the residual list is the only place your own reading adds findings.
-- Every third-party `uses:` in the proposed YAML is a full SHA with a version comment, written by `pinact run -update -min-age 7` on the scratch copy and clean under `pinact run -check -verify-comment -verify-min-age`. For a same-owner repo with no tags, pin the default branch HEAD by hand with a `# main YYYY-MM-DD` comment and say in the report that Dependabot cannot bump that pin.
+- Every third-party `uses:` in the proposed YAML is a full SHA with a version comment and nothing else on the line, written by `pinact run -update -min-age 7` on the scratch copy and clean under `pinact run -check -verify-comment -verify-min-age`. A branch ref to a tagless repo stays as written in the proposed YAML (there is no verifiable pin to write) and appears in Hard with the upstream fix: tag a release, then `pinact run --branch-to-tag`.
 - Placeholders you introduced (secret names, environment names, registries) are listed for the user to confirm.
 
 ## Why the sections stay separate
