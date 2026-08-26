@@ -49,6 +49,7 @@ Then read each workflow once, top to bottom, for the **residual list**, the rule
 
 - Static cloud credentials where OIDC is available (`security.md: OIDC`). Tools flag secrets, not the choice of auth method.
 - A job that checks out but grants nothing (fails at runtime; no linter models it), or a `write` grant no step in the job uses.
+- A same-owner branch ref whose only pinnable tag is far behind the default branch (`gh api repos/O/R/compare/<tag>...<default> --jq .ahead_by`): pinact pins it happily, so the distance is your call to report (`security.md: pinned`).
 - Extra text after the version comment on a SHA-pinned `uses:` line (`# v7.0.1 # zizmor: ignore[...]`): Dependabot then stops updating the comment (`security.md: pinned`). Propose the `.github/zizmor.yml` move for ignores and a line above the step for notes.
 - Deploy or release workflows sharing a `cancel-in-progress: true` group with CI; release, security, or deploy workflows with path filters; a required-check workflow with a path filter.
 - Cheap jobs chained behind each other, a cache the setup action would provide but does not, `fetch-depth: 0` where nothing reads history, no `timeout-minutes` on network or deploy jobs, matrix cells that alias the same runner (`ubuntu-latest` and `ubuntu-24.04`).
@@ -127,7 +128,7 @@ Ordering matters when settings findings and workflow findings interact: turning 
 - Every workflow file in scope appears in the speed ranking, the Disabled list, or the not-listed list with a sentence explaining it, or the run-stats step is marked skipped with the reason.
 - The proposed YAML passes `actionlint`, `zizmor`, `poutine`, and `pinact -check` (re-run them on the corrected copy; include the result in Tools). The one report allowed to remain is pinact's `action can't be pinned` on a branch ref to a tagless repo, which the report carries in Hard with the upstream fix.
 - No finding in the report restates something a tool already reported under its own id; each tool-detected item cites the id, and the residual list is the only place your own reading adds findings.
-- Every third-party `uses:` in the proposed YAML is a full SHA with a version comment and nothing else on the line, written by `pinact run -update -min-age 7` on the scratch copy and clean under `pinact run -check -verify-comment -verify-min-age`. A branch ref to a tagless repo stays as written in the proposed YAML (there is no verifiable pin to write) and appears in Hard with the upstream fix: tag a release, then `pinact run --branch-to-tag`.
+- Every third-party `uses:` in the proposed YAML is a full SHA with a version comment and nothing else on the line, written by `pinact run -update -min-age 7` on the scratch copy and clean under `pinact run -check -verify-comment -verify-min-age`. A branch ref to a tagless repo stays as written in the proposed YAML (there is no verifiable pin to write) and appears in Hard with the upstream fix: tag a release, then `pinact run --branch-to-tag` once the tag is current.
 - Placeholders you introduced (secret names, environment names, registries) are listed for the user to confirm.
 
 ## Why the sections stay separate

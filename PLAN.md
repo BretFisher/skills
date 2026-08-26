@@ -29,6 +29,16 @@ Pin image tags (or digests, per `docker-pro`) once the option lands; `latest` is
 
 **Not in scope.** Building our own images; running `gh` itself in a container (it stays local for auth).
 
+## Milestone: action inventory with pin drift
+
+**Why.** No scanner or update bot measures the gap between what a workflow pins and where the action's repo actually is. Dependabot and Renovate chase the latest tag; pinact resolves a ref to a SHA and checks the comment; zizmor's `archived-uses` catches only the formally archived case. The real-repo audits (2026-08-25) hit the gap twice: `docker-build-workflow`'s only tag was 264 commits and three years behind `main`, so `pinact --branch-to-tag` "fixed" a caller onto dead code with a clean exit, and `super-linter-workflow` has no tags at all. A latest tag that trails the default branch by months is a signal in its own right: a dying action, an owner who stopped releasing, or a repo where something is wrong, and a pin to it inherits whatever that is.
+
+**Scope.**
+
+1. `scripts/action-inventory.py` (stdlib + `gh`, like `run-stats.py`): for every `uses:` across the workflows in scope, one row: action, ref as written, resolved SHA, version comment, latest release tag, date of the pinned commit, date of the latest default-branch commit, and the deltas (commits and days) pinned→latest tag and latest tag→default branch. JSON and `--markdown`. Cache API calls per action; the same action appears in many files.
+2. `references/audit.md` step 3 runs it and the report gains an **Actions** section: the table, plus a finding per action whose pinned version trails the latest release (with the release date) and per action whose latest tag trails the default branch by a long stretch (state the numbers; no fixed threshold, the reader judges against what the caller depends on). Interim rule, already in `security.md: pinned`: check `compare/<tag>...<default>` by hand before `--branch-to-tag`.
+3. Evals: a fixture repo whose `uses:` lines include a current pin, a pin two releases behind, and a same-owner ref whose only tag is far behind; assertions on the table rows and on the two findings. Needs the live-repo eval harness noted in `evals/coverage.md`.
+
 ## Milestone: description trigger optimization
 
 Run the skill-creator description loop (`scripts/run_loop.py`, 20 queries with near-miss negatives: Dockerfile questions, local lint setup, GitLab CI, Jenkins) on `github-actions-workflow-pro` once its content is stable. Never run yet.
