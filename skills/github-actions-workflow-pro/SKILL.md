@@ -1,6 +1,6 @@
 ---
 name: github-actions-workflow-pro
-description: Create, edit, audit, and speed up GitHub Actions workflows using Bret Fisher's opinionated DevOps rules. Use it when the user asks to create a workflow or CI/CD pipeline, edit or add a job to an existing `.github/workflows/*` file (even a one-line change), review or harden a workflow for security, speed up slow CI, publish a container image from CI, automate releases, or mentions GitHub Actions, GHA, action pinning, or findings from gasa, zizmor, poutine, pinact, or actionlint. Not for local linter setup (super-linting) or Dockerfile authoring (docker-pro).
+description: Create, edit, audit, and speed up GitHub Actions workflows using Bret Fisher's opinionated DevOps rules. Use it when the user asks to create a workflow or CI/CD pipeline, edit or add a job to an existing `.github/workflows/*` file (even a one-line change), review or harden a workflow for security, speed up slow CI, publish a container image from CI, automate releases, or mentions GHA, action pinning, or findings from gasa, zizmor, poutine, pinact, or actionlint, even if they don't say "GitHub Actions".
 ---
 
 # GitHub Actions Workflow Rules

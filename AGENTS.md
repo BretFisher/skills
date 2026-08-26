@@ -59,9 +59,10 @@ Anthropic's skill-creator and docs, then other sources. The rules below are the 
 - **Pushy description, third person.** The description does two jobs: say what the skill does, then
   list the situations that should activate it, one "when" per branch on specific topics (create a
   workflow, edit a job, harden, speed up, publish an image, findings from a named scanner), and end
-  the list with "even if they don't say 'X'" so the model triggers on the task, not the keyword. Add one
-  non-trigger for the neighbouring skill that should win instead. Write it in third person; the body
-  carries identity, the description carries the trigger.
+  the list with "even if they don't say 'X'" so the model triggers on the task, not the keyword. Add a
+  non-trigger only when another skill genuinely competes for the same prompts; otherwise it is a sentence
+  the model reads on every turn for nothing. Write it in third person; the body carries identity, the
+  description carries the trigger.
 - **Positive rules with a why.** Say what to do, not what to avoid: `pull_request` for PR triggers, rather
   than "never use pull_request_target". No caps-lock MUST/NEVER; a prohibition drags the banned behaviour
   into context, and a shouted rule reads as louder, not clearer. Every rule ends with the reason it exists,
