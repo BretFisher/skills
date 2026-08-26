@@ -33,6 +33,8 @@ GITHUB_TOKEN=$(gh auth token) pinact run -check -verify-comment -min-age 7 -veri
 
 Every tool above scopes itself to `.github/workflows` except zizmor, which scans whatever paths it is given: with `.` it walks the whole tree, so a repo's test fixtures land in the same JSON as its real workflows (on a scanner's own repo, 35 of 44 findings came from `testdata/`). The explicit path list keeps them out; a missing path is an error, hence the `ls` for `dependabot.yml`. Workflow files that live elsewhere on purpose (`templates/`, `testdata/`, `evals/fixtures/`) are a separate scope: scan them only when the gate put them in scope, and report them under their own heading so a deliberately bad fixture never reads as a finding against the repo.
 
+Each tool also reads a config that can hide findings, so list them before running: `ls .github/zizmor.yml zizmor.yml .gasa.yml .gasa.yaml .poutine.yml .github/poutine.yml .github/pinact.yaml .github/actionlint.yaml 2>/dev/null`, then `git check-ignore` each hit. zizmor's `rules.<id>.ignore|disable|remap` and inline `# zizmor: ignore[...]`, gasa's `rules.exclude` and `rule_options` (`ignore_same_owner_*`), poutine's `skip:` by rule, path, or level, pinact's `ignore_actions`, and actionlint's `paths.<glob>.ignore` all remove findings from the output. A committed config is the repo's decision: read it, run the tool normally, and quote its reason next to any finding it suppresses. A gitignored or user-local config (gasa auto-loads `.gasa.yaml` from the working directory, and a scanner author's own checkout had one hiding 2 of 3 findings) is one person's view: run the stock form as well (`zizmor --no-config --no-ignores`, `gasa run --no-config`, `actionlint -config-file /dev/null`; poutine and pinact have no bypass, so read the file) and report the stock findings, with a line naming the local file that hides them. Either way the report states the count: "N findings hidden by `<file>`".
+
 What each one owns:
 
 | Tool         | Owns (rule ids you will cite)                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Notes                                                                                                                                                                                                                                                                                                                                                                                       |
@@ -67,7 +69,7 @@ Within each section, order by severity, then by how many workflows the fix touch
 Two precedence rules:
 
 - A suppression in one tool does not cancel a finding from another. A `# zizmor: ignore[unpinned-uses]` comment silences zizmor; if gasa still fires on that line, report it and quote the ignore's stated reason so the reader can judge whether it covers this failure mode.
-- A hard finding the repo has consciously accepted (documented in a comment, `dependabot.yml`, or `.gasa.yml`) is still reported. State the repo's reason next to it and hand the decision back; deciding is the user's job, hiding the finding is not yours.
+- A hard finding the repo has consciously accepted (documented in a comment, `dependabot.yml`, or a committed tool config: `.github/zizmor.yml`, `.gasa.yaml`, `.poutine.yml`, `.github/pinact.yaml`) is still reported. State the repo's reason next to it and hand the decision back; deciding is the user's job, hiding the finding is not yours.
 
 Skip anything a tool already enforces and reports cleanly; the reader has the tool output.
 
@@ -109,12 +111,12 @@ Deliver in the format the user chose in step 1 (or the stated chat default). Wha
 
 ## Tools
 
-actionlint <version|absent>, shellcheck <version|absent>, zizmor <version|absent> (<online|offline>, persona auditor), poutine <version|absent>, pinact <version|absent>, gasa <version|absent|skipped: reason>, run-stats <N runs|skipped: reason>
+actionlint <version|absent>, shellcheck <version|absent>, zizmor <version|absent> (<online|offline>, persona auditor), poutine <version|absent>, pinact <version|absent>, gasa <version|absent|skipped: reason>, run-stats <N runs|skipped: reason>, configs <files read, each committed|gitignored, N findings hidden|none>
 ```
 
 Severity comes from the tool that reported it, with one override: a branch ref to a reusable workflow or shared action is high even though gasa says medium, because a compromise there cascades into every caller. For `security.md` rules without a tool hit: critical for injection and `pull_request_target` in a public repo, high for an unpinned third-party action or `write-all`, medium for other same-owner branch refs and everything else.
 
-An audit reports; it does not edit. Leave the workflow files untouched unless the user asks you to apply or fix, and validate the corrected version on a copy in a scratch directory. A user who wants the files changed says so, and then the SKILL.md Validate step runs on the real files.
+An audit reports; it does not edit. Leave the workflow files untouched unless the user asks you to apply or fix, and validate the corrected version on a copy that mirrors the repo: `scratch/.github/workflows/` plus the repo's `.github/*.yml` tool configs and `dependabot.yml`, then `git init` there, so the same ignores and Dependabot collection apply. A flat directory of workflow files reports findings the repo itself never sees (an `artipacked` the repo's `zizmor.yml` ignores, with its reason) and hides `dependabot-cooldown`. A user who wants the files changed says so, and then the SKILL.md Validate step runs on the real files.
 
 Ordering matters when settings findings and workflow findings interact: turning on "require SHA pinning" in repo settings before the `@main` ref is fixed stops the workflow from running. Say which fix goes first.
 
