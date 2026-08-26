@@ -2,8 +2,8 @@
 # Auto-discovered here; `make pin` and `make lint-pins` use it.
 version: 3
 min_age:
-  value: 7      # never adopt a release younger than 7 days (supply-chain cooldown)
-  always: true  # verify existing pins against it on every run, not only with -verify-min-age
+  value: 7 # never adopt a release younger than 7 days (supply-chain cooldown)
+  always: true # verify existing pins against it on every run, not only with -verify-min-age
 ignore_actions:
   # Same-owner reusable workflow with no tags or releases yet, so it cannot be
   # pinned to a version; tracked in PLAN.md (tag releases upstream).

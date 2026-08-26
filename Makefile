@@ -11,6 +11,9 @@ EVAL_DIR       = .evals/$(SKILL)/iteration-$(ITER)
 # `need` fails with an install hint when a tool is absent.
 need = command -v $(1) >/dev/null 2>&1 || { echo "missing: $(1)  ->  brew install $(2)"; exit 1; }
 
+# scan.sh sets the GitHub token inside its own process; never inline `gh auth token` in a recipe
+SCAN := skills/github-actions-workflow-pro/scripts/scan.sh
+
 .PHONY: help lint lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins fmt eval-benchmark eval-view pin run-stats
 
 help: ## Show this help
@@ -24,7 +27,7 @@ lint-md: ## markdownlint on all Markdown (config: .github/linters/.markdown-lint
 	@$(call need,markdownlint,markdownlint-cli)
 	markdownlint -c .github/linters/.markdown-lint.yml '**/*.md' --ignore node_modules --ignore .evals --ignore CLAUDE.md
 
-PRETTIER_FILES = "**/*.md" "**/*.json" "!.evals/**" "!.agents/**" "!node_modules/**" "!CLAUDE.md"
+PRETTIER_FILES = "**/*.md" "**/*.json" "!.evals/**" "!.agents/**" "!node_modules/**" "!CLAUDE.md" '.github/**/*.y*ml'
 
 lint-fmt: ## prettier --check on Markdown and JSON (super-linter runs the same check in CI)
 	@$(call need,prettier,prettier)
@@ -42,9 +45,8 @@ lint-sh: ## shellcheck on every skill shell script (skips cleanly when there are
 	@$(call need,shellcheck,shellcheck)
 	@files=$$(ls skills/*/scripts/*.sh 2>/dev/null); if [ -n "$$files" ]; then shellcheck $$files; else echo "lint-sh: no shell scripts under skills/*/scripts"; fi
 
-lint-py: ## byte-compile every skill Python script (ruff too, when installed; skips cleanly when there are none)
+lint-py: ## byte-compile every skill Python script (no Python linter in CI either, by choice; skips cleanly when there are none)
 	@files=$$(ls skills/*/scripts/*.py 2>/dev/null); if [ -n "$$files" ]; then python3 -m py_compile $$files; else echo "lint-py: no Python scripts under skills/*/scripts"; fi
-	@command -v ruff >/dev/null 2>&1 && ruff check skills/*/scripts/*.py || echo "ruff not installed (brew install ruff); py_compile only"
 
 lint-actions: ## actionlint + zizmor + poutine on this repo's workflows; actionlint on the well-formed eval fixtures
 	@$(call need,actionlint,actionlint)
@@ -53,7 +55,7 @@ lint-actions: ## actionlint + zizmor + poutine on this repo's workflows; actionl
 	actionlint .github/workflows/*.y*ml \
 	  skills/github-actions-workflow-pro/evals/fixtures/good-ci.yml \
 	  skills/github-actions-workflow-pro/evals/fixtures/slow-ci.yml
-	zizmor --no-progress --collect=all .github/workflows .github/dependabot.yml
+	$(SCAN) zizmor --no-progress --collect=all .github/workflows .github/dependabot.yml
 	poutine analyze_local . --quiet --disable-version-check --fail-on-violation >/dev/null
 
 eval-benchmark: ## Aggregate the latest eval iteration into benchmark.json/.md (SKILL=, ITER=)
@@ -70,8 +72,8 @@ run-stats: ## Rank this repo's workflows and jobs by duration over the last RUNS
 
 pin: ## Pin this repo's workflows with pinact (newest release at least 7 days old); FILES= to limit
 	@$(call need,pinact,pinact)
-	GITHUB_TOKEN=$$(gh auth token) pinact run -update -min-age 7 $(FILES)
+	$(SCAN) pinact run -update -min-age 7 $(FILES)
 
 lint-pins: ## pinact check: every uses: SHA-pinned, comment correct, pin at least 7 days old
 	@$(call need,pinact,pinact)
-	GITHUB_TOKEN=$$(gh auth token) pinact run -check -verify-comment -min-age 7 -verify-min-age
+	$(SCAN) pinact run -check -verify-comment -min-age 7 -verify-min-age

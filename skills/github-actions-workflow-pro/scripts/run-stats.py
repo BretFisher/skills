@@ -44,7 +44,7 @@ import os
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import datetime
 
 
 def die(code, msg):

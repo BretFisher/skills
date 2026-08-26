@@ -23,7 +23,7 @@ Pin image tags (or digests, per `docker-pro`) once the option lands; `latest` is
 **Scope.**
 
 1. `references/audit.md` gate and `SKILL.md` Validate: when a scanner is missing, the question becomes "install with Homebrew, run from a container, or skip and report absent?" Prefer the container when Docker is running and the user has not said otherwise.
-2. A `scripts/scan.sh` wrapper that picks local binary or container per tool (per-tool images, or the single image above), bind-mounts the repo read-only, passes `GH_TOKEN`/`GITHUB_TOKEN` through only to zizmor, pinact, and gasa, and prints the same output either way, so `audit.md` calls one command per tool regardless of how it runs.
+2. Extend `scripts/scan.sh` (exists since 2026-08-26; today it only sets the token inside its own process and exec's the local binary) to pick local binary or container per tool (per-tool images, or the single image above), bind-mount the repo read-only, and print the same output either way, so `audit.md` keeps calling one command per tool. Token handling stays inside the wrapper: `docker run -e GH_TOKEN …` with the variable _name only_ forwards the value from the wrapper's environment without putting it on the command line (verified: a `set -x` trace shows `-e GH_TOKEN`, the container sees the value), so the agent never sees the token in either mode. gasa in a container has no `gh` login to fall back on, so the wrapper pipes the token to `gasa run --token-stdin` there.
 3. `make lint-actions` uses the same wrapper so `make lint` works on a machine with only Docker.
 4. Eval: an audit run on a machine with no scanners installed but Docker present must still produce the full Tools section with versions.
 
@@ -49,6 +49,4 @@ Run the skill-creator description loop (`scripts/run_loop.py`, 20 queries with n
 
 ## Small items
 
-- This repo's `call-super-linter.yaml`: `filter-regex-exclude: ^\.agents/` never matches (super-linter tests the absolute `/github/workspace/` path); 5 of 5 recent runs are red. Fix: `(^|/)\.agents/`.
-- `bretfisher/super-linter-workflow` has no tags, so callers can only pin a branch SHA that Dependabot cannot bump; tag releases there.
 - A CLI eval runner (`claude -p` per eval, with and without the skill) would replace hand-spawned subagents; scope before building.
