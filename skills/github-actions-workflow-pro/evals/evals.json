@@ -12,7 +12,7 @@
         "The workflow defines concurrency with cancel-in-progress for superseded branch or PR runs.",
         "The Node setup uses npm caching or an equivalent package-manager cache.",
         "The test job has a timeout and clear names for the workflow, job, and key steps.",
-        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output.",
+        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset).",
         "The answer states that actionlint, zizmor, and poutine were run on the result, or names by tool which ones were not installed.",
         "The hand-back explains, in one line each, the reason for every opinionated default it applied.",
         "The answer asks only about decisions the repo cannot answer (or states none were needed); it does not ask the user for facts it could look up.",
@@ -30,7 +30,7 @@
         "The workflow logs in to ghcr.io only when the event is not pull_request and pushes only for non-PR events.",
         "The image publishing job grants packages: write without granting broad write-all permissions.",
         "The workflow uses Buildx cache and enables provenance and SBOM for published images.",
-        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output.",
+        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset).",
         "The answer states that actionlint, zizmor, and poutine were run on the result, or names by tool which ones were not installed.",
         "The hand-back explains, in one line each, the reason for every opinionated default it applied.",
         "Image pushes, provenance, and SBOM happen only on trusted refs (default branch, tags); the PR path builds without pushing.",
@@ -48,7 +48,7 @@
         "The corrected workflow replaces raw docker build and docker push shell commands with Buildx-oriented Docker actions.",
         "The answer recommends or implements AWS OIDC instead of long-lived AWS access key secrets.",
         "The corrected workflow includes concurrency, caching, and timeouts where appropriate.",
-        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output.",
+        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset).",
         "The answer states that actionlint, zizmor, and poutine were run on the result, or names by tool which ones were not installed.",
         "The hand-back explains, in one line each, the reason for every opinionated default it applied.",
         "Every placeholder the answer introduced (role ARN, region, registry, environment name) is listed for the user to confirm.",
@@ -68,7 +68,7 @@
         "The report recommends OIDC for AWS instead of the static access key secrets.",
         "The report separates tool-backed or rule-backed hard findings from opinion or style items under distinct headings.",
         "The answer states that actionlint and zizmor were run on the corrected file, or names them as not installed.",
-        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output.",
+        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset).",
         "The transcript shows every commit SHA written into a `uses:` line came from running `pinact run` on the file; no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`) or other hand lookup produced a SHA that was then typed into the YAML."
       ]
     },
@@ -87,7 +87,7 @@
         "The docker build step moves to docker/setup-buildx-action and docker/build-push-action with type=gha cache, or the answer recommends that change.",
         "The existing SHA pins are preserved exactly (same SHAs and version comments, including setup-node `# v4.4.0`; a whole-file `pinact -update` would have bumped it) and the permissions block is not loosened.",
         "Each speed change is explained with the reason it saves time.",
-        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output.",
+        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset).",
         "The answer states that actionlint, zizmor, and poutine were run on the result, or names by tool which ones were not installed.",
         "The transcript shows every commit SHA written into a `uses:` line came from running `pinact run` on the file; no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`) or other hand lookup produced a SHA that was then typed into the YAML."
       ]
@@ -106,7 +106,7 @@
         "The existing test job, triggers, permissions, and concurrency block are unchanged byte for byte, including the setup-node SHA and `# v4.4.0` comment (a whole-file `pinact -update` would have bumped it).",
         "No path filters, workflow_dispatch, or other unrequested triggers are added.",
         "The answer states that actionlint and zizmor were run, or names them as not installed.",
-        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output.",
+        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset).",
         "The transcript shows every commit SHA written into a `uses:` line came from running `pinact run` on the file; no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`) or other hand lookup produced a SHA that was then typed into the YAML."
       ]
     },
@@ -127,7 +127,7 @@
         "The report asks how the user wants it delivered (chat, HTML dashboard, Markdown file, or combination) or explicitly states it defaulted to chat because the user was unavailable.",
         "The speed section covers all three workflows and names the deploy workflow's cancel-in-progress concurrency as a risk for deploys.",
         "The workflow files in the repo are left unmodified; fixes appear as a proposed diff.",
-        "The proposed corrected YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output.",
+        "The proposed corrected YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset).",
         "The transcript shows every commit SHA written into a `uses:` line came from running `pinact run` on the file; no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`) or other hand lookup produced a SHA that was then typed into the YAML."
       ]
     },
@@ -144,7 +144,7 @@
         "actions/checkout sets persist-credentials: false and the job has timeout-minutes.",
         "The answer recommends a Dependabot github-actions entry (daily, cooldown 7) because none exists, as a complete file.",
         "Every placeholder introduced (role ARN, environment name, region) is listed for the user to confirm.",
-        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output.",
+        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset).",
         "The transcript shows every commit SHA written into a `uses:` line came from running `pinact run` on the file; no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`) or other hand lookup produced a SHA that was then typed into the YAML."
       ]
     },
@@ -166,7 +166,7 @@
         "Workflow files use the conventional names ci.yml and docker.yml.",
         "No workflow_dispatch, repository_dispatch, or path filters are added.",
         "The hand-back explains, in one line each, the reason for every opinionated default it applied.",
-        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output.",
+        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset).",
         "The transcript shows every commit SHA written into a `uses:` line came from running `pinact run` on the file; no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`) or other hand lookup produced a SHA that was then typed into the YAML."
       ]
     }
