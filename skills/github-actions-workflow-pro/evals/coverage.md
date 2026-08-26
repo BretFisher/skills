@@ -66,6 +66,7 @@ Which assertion in `evals.json` proves each rule the skill states. Two kinds of 
 | --------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------ |
 | Covers every workflow in the repo                                     | agent   | e6#6                                                                     |
 | Run history: failures documented, still-failing → ask to troubleshoot | agent   | not asserted (fixture repos have no remote). Gap: needs a live-repo eval |
+| Disabled workflows and unlisted files reported as Correctness         | agent   | not asserted; same live-repo gap (example-voting-app is the canary)      |
 | Speed ranking, spread ratio, one-sentence fix or ask                  | agent   | e6#6 partial                                                             |
 | Scanners run, rule ids cited, no restating                            | agent   | e6#2 e6#4                                                                |
 | Residual-only reading                                                 | agent   | e6#2 (negative form)                                                     |

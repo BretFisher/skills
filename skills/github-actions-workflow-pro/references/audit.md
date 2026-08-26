@@ -13,9 +13,10 @@ Before reading any YAML:
 
 ## 2. Run history: failures and speed
 
-Run `scripts/run-stats.py --markdown` (JSON without the flag; `--runs N` for more than the default 3 completed runs per workflow; `--branch main` to ignore PR runs). It ranks workflows and jobs by mean duration, longest first, flags inconsistent timing, and lists recent failures with whether the latest run is still failing.
+Run `scripts/run-stats.py --markdown` (JSON without the flag; `--runs N` for more than the default 3 completed runs per workflow; `--branch main` to ignore PR runs). It ranks workflows and jobs by mean duration, longest first, flags inconsistent timing, lists recent failures with whether the latest run is still failing, and lists disabled workflows and workflow files the API does not know about.
 
 - **Failures.** Record every failed run in the report (workflow, run id, title, date, URL). For any workflow whose latest run is still failing, read the failed log (`gh run view <id> --log-failed`) far enough to name the failing step, then **ask the user whether they want you to troubleshoot it** before going deeper. A workflow that does not run has no security or speed to audit, so this question comes before the rest of the report.
+- **Disabled.** Each workflow under `Disabled workflows` is a Correctness finding, severity high: the YAML may be fine and nothing runs. `disabled_inactivity` is GitHub's rule for scheduled workflows after 60 days without repo activity; the fix is `gh workflow enable <name>`, with a note that a schedule-only workflow will be disabled again after the next idle stretch. `disabled_manually` means a person chose it, so report it and ask instead of proposing to re-enable. Give each file under `Workflow files GitHub does not list` a sentence too (only on a branch, or never run).
 - **Speed.** A `spread_ratio` above about 1.5 means the runs disagree with each other; say so and name the slow run rather than optimizing an average that hides a cache miss or a queue wait. For each of the slowest workflows and jobs, write one sentence: the fix when it is obvious from the YAML (no cache, serial cheap jobs, `fetch-depth: 0`, duplicate matrix cells, plain `docker build`), or "needs a look at the run log to say" when it is not. **Ask before doing that deeper research**; the user may already know the cause.
 
 ## 3. Run the scanners, then read only for what they cannot see
@@ -119,7 +120,7 @@ Ordering matters when settings findings and workflow findings interact: turning 
 
 - The delivery format was asked in step 1, or the report's first line states the chat default and the alternatives; any still-failing workflow got the troubleshoot question before the full report landed.
 - Every listed finding names a rule id, is under Correctness with its evidence, or is labelled opinion; the Do-first list has at most five items.
-- Every workflow in scope appears in the speed ranking, or the run-stats step is marked skipped with the reason.
+- Every workflow file in scope appears in the speed ranking, the Disabled list, or the not-listed list with a sentence explaining it, or the run-stats step is marked skipped with the reason.
 - The proposed YAML passes `actionlint`, `zizmor`, `poutine`, and `pinact -check` (re-run them on the corrected copy; include the result in Tools). The one report allowed to remain is pinact's `action can't be pinned` on a branch ref to a tagless repo, which the report carries in Hard with the upstream fix.
 - No finding in the report restates something a tool already reported under its own id; each tool-detected item cites the id, and the residual list is the only place your own reading adds findings.
 - Every third-party `uses:` in the proposed YAML is a full SHA with a version comment and nothing else on the line, written by `pinact run -update -min-age 7` on the scratch copy and clean under `pinact run -check -verify-comment -verify-min-age`. A branch ref to a tagless repo stays as written in the proposed YAML (there is no verifiable pin to write) and appears in Hard with the upstream fix: tag a release, then `pinact run --branch-to-tag`.
