@@ -14,7 +14,7 @@ A new push to the same PR or branch makes the running build stale; cancelling it
 
 ## Order jobs cheap to expensive
 
-Lint, typecheck, and unit tests run first; build, integration, and deploy jobs declare `needs:` on them. A broken import fails in thirty seconds instead of after a ten-minute image build, and the expensive jobs never start on a red commit.
+Lint, typecheck, and unit tests run first; build, integration, and deploy jobs declare `needs:` on them. A broken import fails in thirty seconds instead of after a ten-minute image build, and the expensive jobs never start on a red commit. Cheap jobs that do not depend on each other run in parallel; `needs:` is for a job that would waste runner time on a red predecessor, not for ordering the fast ones.
 
 ## Cache through the setup action
 
@@ -25,6 +25,8 @@ Use the cache the official setup action provides: `actions/setup-node` with `cac
 ## Time-box jobs that can hang
 
 Set `timeout-minutes` on jobs that talk to the network, run integration suites, or deploy. The default is 360 minutes: a hung job burns six hours of runner time and, with concurrency on, blocks the next run in its group. Ten to thirty minutes covers most jobs; pick a value near twice the normal run time.
+
+A job that `uses:` a reusable workflow cannot set `timeout-minutes` (GitHub rejects it), so the timeout belongs in the called workflow's jobs. A reusable workflow with unknown callers hardcodes a generous value or exposes `timeout-minutes` as an input.
 
 ## Path filters only when obviously correct
 
@@ -38,7 +40,7 @@ on:
       - "docs/**"
 ```
 
-Security, release, and deploy workflows stay unfiltered: a workflow that runs on "relevant" paths is a workflow that silently stops running when someone moves a file. Path-filtered jobs that are also required status checks block the PR forever, because a skipped workflow never reports; keep required checks unfiltered or add a no-op job that always reports.
+Security, release, and deploy workflows stay unfiltered: a workflow that runs on "relevant" paths is a workflow that silently stops running when someone moves a file. Path-filtered jobs that are also required status checks block the PR forever, because a skipped workflow never reports; keep required checks unfiltered or add a no-op job that always reports. A new CI workflow is the likeliest future required check, so ship it unfiltered and offer the filter as a follow-up once the user knows which checks are required.
 
 ## Fan out only for confidence
 
