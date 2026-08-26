@@ -26,7 +26,7 @@ Output (JSON, stdout):
    "workflows": [ {name, path, state, branch, runs:[{id,url,conclusion,event,branch,title,started,duration_s}],
                    mean_s, min_s, max_s, spread_ratio, failures, latest_failing} ... ],   # longest mean first
    "jobs":      [ {workflow, job, n, mean_s, max_s, failures} ... ],                      # longest mean first
-   "failures":  [ {workflow, run_id, url, title, started, still_failing} ... ],
+   "failures":  [ {workflow, run_id, url, title, started, conclusion, jobs, still_failing} ... ],   # jobs 0 = startup_failure, nothing to read
    "disabled":  [ {workflow, path, state, last_run} ... ],      # state: disabled_inactivity | disabled_manually
    "files_not_listed": [ ".github/workflows/x.yml" ... ]}       # on disk here, unknown to the GitHub API (null with --repo)
   state: `gh workflow list` hides disabled workflows by default; this script asks for
@@ -122,9 +122,12 @@ def main():
                     entry["latest_failing"] = True
                 result["failures"].append({"workflow": w["name"], "run_id": r["databaseId"], "url": r["url"],
                                            "title": r["displayTitle"], "started": r["startedAt"],
-                                           "conclusion": r["conclusion"], "still_failing": False})
-            for j in gh("run", "view", *repo_flag, str(r["databaseId"]), "--json", "jobs",
-                        "--jq", "[.jobs[] | {name, conclusion, startedAt, completedAt}]"):
+                                           "conclusion": r["conclusion"], "jobs": 0, "still_failing": False})
+            run_jobs = gh("run", "view", *repo_flag, str(r["databaseId"]), "--json", "jobs",
+                          "--jq", "[.jobs[] | {name, conclusion, startedAt, completedAt}]")
+            if result["failures"] and result["failures"][-1]["run_id"] == r["databaseId"]:
+                result["failures"][-1]["jobs"] = len(run_jobs)
+            for j in run_jobs:
                 jd = seconds(j.get("startedAt"), j.get("completedAt"))
                 if jd is not None:
                     job_acc.setdefault((w["name"], j["name"]), []).append((jd, j.get("conclusion")))
@@ -183,7 +186,8 @@ def main():
         print("\n## Recent failures\n")
         for f in result["failures"]:
             flag = " (still failing on latest run)" if f["still_failing"] else ""
-            print(f"- {f['workflow']}: run {f['run_id']} \"{f['title']}\" {f['started'][:10]} {f['conclusion']}{flag} — {f['url']}")
+            shape = " (no jobs: died before scheduling, no log to read)" if f["jobs"] == 0 else ""
+            print(f"- {f['workflow']}: run {f['run_id']} \"{f['title']}\" {f['started'][:10]} {f['conclusion']}{shape}{flag} — {f['url']}")
     if result["disabled"]:
         print("\n## Disabled workflows (nothing runs, whatever the YAML says)\n")
         for d in result["disabled"]:
