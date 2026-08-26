@@ -76,9 +76,11 @@ Skip anything a tool already enforces and reports cleanly; the reader has the to
 
 ## 5. Report
 
-Deliver in the format the user chose in step 1 (or the stated chat default). Whatever the medium, the content follows this shape; empty sections stay in with "none".
+Deliver in the format the user chose in step 1 (or the stated chat default). Whatever the medium, the report is titled `GH Actions Audit: <owner/repo>` with the date (the chat heading, the Markdown H1, the HTML `<title>` and H1), so a reader can tell what produced it and find it later; invented names read as a different tool. The content follows this shape; empty sections stay in with "none".
 
 ```markdown
+# GH Actions Audit: <owner/repo> — <YYYY-MM-DD>
+
 ## Do first
 
 1. <the one thing to fix today, with its section and file:line>
