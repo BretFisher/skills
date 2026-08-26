@@ -81,7 +81,33 @@ Which assertion in `evals.json` proves each rule the skill states. Two kinds of 
 ## Known gaps
 
 - Process assertions (the transcript ones) are graded from `run-N/transcript.md`, the skill-creator grader's `transcript_path`, which the executor writes as it works (every shell command with its result). It is self-reported, so a raw tool-call log from the harness would be stronger; in iteration-4 every old-skill run nevertheless logged its `gh api` lookups and failed the assertion. They exist because agents follow fewer instructions as the rule count grows; the eval, not the rule, is what catches a hand `gh api` SHA lookup.
-- Grader critiques from iteration-4 (trivial assertions to cut, outcomes with no assertion: trusted-refs push gating, deploy-by-digest, unrequested trigger narrowing, intent preservation in audits) are collected in `.evals/github-actions-workflow-pro/iteration-4/grader-feedback.md` for the next evals pass.
-
 - Run-history behaviors (failures documented, troubleshoot question, ranking from real runs) need a repo with a remote and run history; candidate: a throwaway fork with seeded runs.
 - Reusable-workflow caller cases (`timeout-minutes` on a `uses:` job, inputs vs callers).
+
+## Next evals pass (grader backlog from iteration-4)
+
+Each of the 18 iteration-4 graders was asked which assertions are trivially satisfied and which outcomes no assertion checks. Their answers, deduplicated; none acted on yet. The pass is a PLAN.md milestone: change `evals.json`, then re-grade the saved iteration-4 outputs against the new and changed assertions only (graders, no executors).
+
+Cut or sharpen (pass on any output, so they measure nothing):
+
+- Every eval: "the answer states that actionlint and zizmor were run" passes on one sentence; the mechanical scanner assertion does the real work. Cut it, or make it "the Tools line names each scanner with its version, or absent".
+- e0 #1 (triggers), e1 #2 (action names), e8 #5 (filenames): dictated verbatim by the prompt, so they cannot fail. Cut.
+- e5 #4: "human-friendly name" passes for any `name:`. Sharpen to "names a person would search for in the Actions tab (no `build-1`, no filenames)".
+- e1 #3 and #9 overlap almost completely; merge.
+- e4 #3 passes when a distinct runner (`ubuntu-22.04`) is dropped along with the duplicate alias; say "only the alias is removed".
+
+Add (real outcomes that a worse output would get wrong today):
+
+- Trusted-refs gating (e1, e2, e3, e8): the PR job builds with `push: false` and holds no `packages: write`; publish or deploy runs only on `push` to the default branch or on tags. A single job with `push: ${{ event != PR }}` and `packages: write` everywhere passes every current assertion.
+- Deploy consumes the image by digest from the build job's outputs (e2).
+- Cloud credentials are configured after `npm ci`/build so lifecycle scripts never see them (e7).
+- The lint job runs `npm ci` then `npm run lint` (e5); a copied test job passes today.
+- Prompt literals: `npm ci` and `npm test` present (e0); saved as `docker.yml` and image named after the repository (e1).
+- Triggers unchanged unless the prompt asks (e4): both iteration-4 runs narrowed `on: push` to `branches: [main]`, dropping CI on non-PR branch pushes, and nothing noticed.
+- Audit intent preservation (e3, e6): the proposed YAML still does what the original did (PR comment kept, deploy still deploys); a gutted scanner-clean file passes today. And Correctness catches the fixture's always-broken steps (`gh pr comment` on `push`; `s3 sync ./dist` with nothing building `dist`); every audit run found them, no assertion rewards it.
+- Hand-back completeness (e8 #7 failed on both configurations): a one-line reason for `provenance`/`sbom`/`cache: npm` too, or narrow the assertion to the defaults the checklist names.
+
+Harness:
+
+- `transcript.md` is executor-authored; a raw tool-call log from the harness would make the process assertions verifiable rather than self-reported.
+- Graders must not embed a `timing` object in `grading.json` (it breaks `aggregate_benchmark`) and must not use `set -x` around commands that carry a token.
