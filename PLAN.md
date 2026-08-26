@@ -39,6 +39,12 @@ Pin image tags (or digests, per `docker-pro`) once the option lands; `latest` is
 2. `references/audit.md` step 3 runs it and the report gains an **Actions** section: the table, plus a finding per action whose pinned version trails the latest release (with the release date) and per action whose latest tag trails the default branch by a long stretch (state the numbers; no fixed threshold, the reader judges against what the caller depends on). Interim rule, already in `security.md: pinned`: check `compare/<tag>...<default>` by hand before `--branch-to-tag`.
 3. Evals: a fixture repo whose `uses:` lines include a current pin, a pin two releases behind, and a same-owner ref whose only tag is far behind; assertions on the table rows and on the two findings. Needs the live-repo eval harness noted in `evals/coverage.md`.
 
+## Milestone: evals pass 2 (grader backlog)
+
+**Why.** Iteration-4 (2026-08-26) scored the rebuilt skill 87/88 against the old snapshot's 66/88, but the graders also reported which assertions are trivially satisfied and which real outcomes nothing checks (trusted-refs push gating, deploy-by-digest, unrequested trigger narrowing, intent preservation in audit output). Until those are assertions, a worse output can still score 100%.
+
+**Scope.** The full list lives in `skills/github-actions-workflow-pro/evals/coverage.md`, section "Next evals pass". Apply it to `evals.json`, update the coverage rows, then re-grade the saved iteration-4 outputs (`.evals/github-actions-workflow-pro/iteration-4/`) against the new and changed assertions only: graders, no executors, so the cost is a fraction of a full iteration. Any new assertion the with-skill outputs fail is the next skill rule to write (eval-driven development, per AGENTS.md). After that, the cheaper-model pass: same evals on Sonnet and Haiku, failing assertion ids mapped back through `coverage.md` to the rule lines a smaller model drops.
+
 ## Milestone: description trigger optimization
 
 Run the skill-creator description loop (`scripts/run_loop.py`, 20 queries with near-miss negatives: Dockerfile questions, local lint setup, GitLab CI, Jenkins) on `github-actions-workflow-pro` once its content is stable. Never run yet.
