@@ -25,11 +25,13 @@ Five deterministic tools cover most of `security.md` and part of `speed.md`. The
 
 ```bash
 actionlint .github/workflows/*.y*ml
-GH_TOKEN=$(gh auth token) zizmor --persona auditor --collect=all --format json .   # token enables online audits; auditor = every audit; --collect all adds dependabot.yml
-poutine analyze_local . --format json --quiet --disable-version-check              # supply-chain rules; no token needed locally
+GH_TOKEN=$(gh auth token) zizmor --persona auditor --collect=all --format json .github/workflows $(ls .github/dependabot.yml 2>/dev/null)   # explicit paths, see below; token enables online audits; auditor = every audit
+poutine analyze_local . --format json --quiet --disable-version-check              # supply-chain rules; no token needed locally; reads .github/workflows only
 gasa run --format json                                                             # repo + settings via API; read-only, so a security audit runs it in full
 GITHUB_TOKEN=$(gh auth token) pinact run -check -verify-comment -min-age 7 -verify-min-age   # unpinned, wrong version comment, pin younger than 7 days; edits nothing
 ```
+
+Every tool above scopes itself to `.github/workflows` except zizmor, which scans whatever paths it is given: with `.` it walks the whole tree, so a repo's test fixtures land in the same JSON as its real workflows (on a scanner's own repo, 35 of 44 findings came from `testdata/`). The explicit path list keeps them out; a missing path is an error, hence the `ls` for `dependabot.yml`. Workflow files that live elsewhere on purpose (`templates/`, `testdata/`, `evals/fixtures/`) are a separate scope: scan them only when the gate put them in scope, and report them under their own heading so a deliberately bad fixture never reads as a finding against the repo.
 
 What each one owns:
 
