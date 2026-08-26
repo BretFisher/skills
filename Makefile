@@ -45,9 +45,8 @@ lint-sh: ## shellcheck on every skill shell script (skips cleanly when there are
 	@$(call need,shellcheck,shellcheck)
 	@files=$$(ls skills/*/scripts/*.sh 2>/dev/null); if [ -n "$$files" ]; then shellcheck $$files; else echo "lint-sh: no shell scripts under skills/*/scripts"; fi
 
-lint-py: ## byte-compile every skill Python script (ruff too, when installed; skips cleanly when there are none)
+lint-py: ## byte-compile every skill Python script (no Python linter in CI either, by choice; skips cleanly when there are none)
 	@files=$$(ls skills/*/scripts/*.py 2>/dev/null); if [ -n "$$files" ]; then python3 -m py_compile $$files; else echo "lint-py: no Python scripts under skills/*/scripts"; fi
-	@command -v ruff >/dev/null 2>&1 && ruff check skills/*/scripts/*.py || echo "ruff not installed (brew install ruff); py_compile only"
 
 lint-actions: ## actionlint + zizmor + poutine on this repo's workflows; actionlint on the well-formed eval fixtures
 	@$(call need,actionlint,actionlint)
