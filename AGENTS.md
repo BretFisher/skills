@@ -54,9 +54,41 @@ Tools are never installed by the Makefile; a missing one prints its `brew instal
 ## Writing skills
 
 When advice on skill structure conflicts, prefer Matt Pocock's `writing-for-agents` rules, then
-Anthropic's skill-creator and docs, then other sources. In practice: the description is the trigger
-(one clause per branch, plus a non-trigger), inline only what every branch needs and push the rest
-to `references/` with a "read when" clause at the point of use, phrase rules positively with the
-reason attached, co-locate a gotcha with its rule instead of a separate Gotchas section, and end
-steps in a checkable done-when list. Run the skill on real tasks and read the transcripts before
-touching evals; evals are the regression contract, not the design tool.
+Anthropic's skill-creator and docs, then other sources. The rules below are the ones we have settled on.
+
+- **Pushy description, third person.** The description does two jobs: say what the skill does, then
+  list the situations that should activate it, one "when" per branch on specific topics (create a
+  workflow, edit a job, harden, speed up, publish an image, findings from a named scanner), and end
+  the list with "even if they don't say 'X'" so the model triggers on the task, not the keyword. Add a
+  non-trigger only when another skill genuinely competes for the same prompts; otherwise it is a sentence
+  the model reads on every turn for nothing. Write it in third person; the body carries identity, the
+  description carries the trigger.
+- **Positive rules with a why.** Say what to do, not what to avoid: `pull_request` for PR triggers, rather
+  than "never use pull_request_target". No caps-lock MUST/NEVER; a prohibition drags the banned behaviour
+  into context, and a shouted rule reads as louder, not clearer. Every rule ends with the reason it exists,
+  so the model can tell when the rule applies and when the situation is different.
+- **Inline what every branch needs; disclose the rest.** SKILL.md stays under about 100 lines of body;
+  once a section is read by only some tasks, move it to `references/<topic>.md` with a "read when" clause
+  at the sentence where that branch is decided (the specs allow up to 500 lines; we split far earlier
+  because every inline line is paid for on every call). Co-locate a gotcha with its rule instead of a
+  separate Gotchas section, and end steps in a checkable done-when list.
+- **Link the skill's own files; backtick everything else.** Pointers to files the skill ships are markdown
+  links with the filename as the text: `read [audit.md](references/audit.md) and follow it`,
+  `→ [security.md](references/security.md)`. Backticks are for paths in the user's repo
+  (`.github/dependabot.yml`), for scripts the skill runs rather than reads (`scripts/run-stats.py`), and for
+  rule-id citations a report prints (`security.md: pinned`). No `@file` imports in a skill: that is a
+  CLAUDE.md feature and would inline the file, defeating progressive disclosure.
+- **Prefer tools over prompts.** When a deterministic linter or scanner already checks a rule (actionlint,
+  zizmor, poutine, pinact, gasa), the skill runs the tool and cites its rule id instead of restating the
+  rule; a tool call is cheaper and more predictable than a paragraph the model has to apply by reading.
+  The skill's own text covers only the residual list the tools cannot see, and says which tool owns each
+  rule it does mention.
+- **Eval-driven development.** Start on the strongest model. Run the skill on real tasks and read the
+  transcripts, then for each failure or judgment you want to lock in: write the eval assertion that fails,
+  write the rule in the skill, run until the assertion passes. Repeat until every rule you want has an
+  assertion and the output is what you would ship. Then run the same evals on a cheaper model and refactor
+  the rules that fail there. Once the evals are green on every model you need, look for assertions that
+  pass on every model _without_ the skill: those rules are candidates to delete, so remove them and re-run
+  everything to confirm they were not carrying weight. `evals/coverage.md` in each skill maps every rule
+  line to the assertion that proves it or names the gap; a rule with no row is untested. Eval definitions
+  are the regression contract; the design tool is the transcript.

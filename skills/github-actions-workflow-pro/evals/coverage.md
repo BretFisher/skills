@@ -2,7 +2,7 @@
 
 Which assertion in `evals.json` proves each rule the skill states. Two kinds of proof:
 
-- **Scanner** — the rule is owned by actionlint, zizmor, poutine, or gasa. One mechanical assertion per eval ("passes actionlint, zizmor regular, poutine, and pinact -check -verify-comment with zero findings", graded by running the tools on the output) covers every scanner-owned rule at once. No agent-written assertion is needed for these.
+- **Scanner** — the rule is owned by actionlint, zizmor, poutine, or gasa. One mechanical assertion per eval ("passes actionlint, zizmor regular, poutine, and pinact -check -verify-comment with zero findings", graded by running the tools on the output) covers every scanner-owned rule at once. It carries two exceptions: poutine `default_permissions_on_risky_events` on a job with an explicit `permissions: {}`, a known false positive (see `references/audit.md`, poutine row), and zizmor `dangerous-triggers` on a `pull_request_target` the answer keeps for a stated reason (see `references/security.md`). No agent-written assertion is needed for these.
 - **Agent** — no scanner checks the rule, so a named assertion reads the output for it.
 
 `eN#k` = eval N, assertion k (1-based, order in `evals.json`). "mech" = the mechanical scanner assertion present on every eval.
@@ -15,8 +15,9 @@ Which assertion in `evals.json` proves each rule the skill states. Two kinds of 
 | `checkout` needs `contents: read`              | agent (runtime failure, no scanner)                                    | e5#1, and any eval whose output checks out and passes mech     |
 | `persist-credentials: false`                   | scanner (zizmor `artipacked`)                                          | mech; e5#3 e7#5                                                |
 | Third-party `uses:` SHA + version comment      | scanner (zizmor `unpinned-uses`, `ref-version-mismatch`; gasa)         | mech; e3#4 e5#2                                                |
+| Version comment alone on the line              | agent (Dependabot behaviour, no scanner)                               | not asserted; candidate for e3 (fixture has no such line yet)  |
 | Release at least 7 days old                    | scanner (pinact `-verify-min-age`)                                     | mech (pinact `-min-age 7 -verify-min-age` in the grader's run) |
-| Same-owner `@main` replaced                    | scanner (gasa, zizmor)                                                 | mech                                                           |
+| Same-owner `@main` replaced, or reported high  | scanner (gasa, zizmor)                                                 | mech; tagless-upstream case not asserted (needs a live repo)   |
 | OIDC over static cloud keys                    | agent                                                                  | e2#4 e3#5 e7#1                                                 |
 | Secrets scoped to an environment               | scanner (zizmor `secrets-outside-env`, auditor) + agent                | e7#3                                                           |
 | `github.event.*` through `env:`                | scanner (actionlint, zizmor, poutine)                                  | mech; e3#2                                                     |
@@ -32,13 +33,15 @@ Which assertion in `evals.json` proves each rule the skill states. Two kinds of 
 
 ## Building a workflow
 
-| Line                                            | Proof   | Assertions                                                                   |
-| ----------------------------------------------- | ------- | ---------------------------------------------------------------------------- |
-| Ask only about decisions; infer facts           | agent   | e0#9 e8#4                                                                    |
-| Runtime version from `.nvmrc` / `engines`       | agent   | e8#1                                                                         |
-| Conventional filenames                          | agent   | e8#5 (e0/e1 name the file in the prompt)                                     |
-| pinact for every third-party `uses:`            | scanner | mech (pinact `-check` clean means every pin is a SHA with a correct comment) |
-| Reusable-workflow offer; repo's own linter wins | agent   | e8#2 e8#3                                                                    |
+| Line                                             | Proof   | Assertions                                                                             |
+| ------------------------------------------------ | ------- | -------------------------------------------------------------------------------------- |
+| Ask only about decisions; infer facts            | agent   | e0#9 e8#4                                                                              |
+| Runtime version from `.nvmrc` / `engines`        | agent   | e8#1                                                                                   |
+| Conventional filenames                           | agent   | e8#5 (e0/e1 name the file in the prompt)                                               |
+| pinact for every third-party `uses:`             | scanner | mech (pinact `-check` clean means every pin is a SHA with a correct comment)           |
+| SHAs come from `pinact run`, never a hand lookup | agent   | every eval, last assertion (transcript); iteration-4: 9/9 pass with skill, 0/9 without |
+| `-update` scoped on an already-pinned file       | agent   | e4#4 e5#6 (setup-node `# v4.4.0` must survive)                                         |
+| Reusable-workflow offer; repo's own linter wins  | agent   | e8#2 e8#3                                                                              |
 
 ## Maintainable YAML and Container images
 
@@ -65,6 +68,7 @@ Which assertion in `evals.json` proves each rule the skill states. Two kinds of 
 | --------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------ |
 | Covers every workflow in the repo                                     | agent   | e6#6                                                                     |
 | Run history: failures documented, still-failing → ask to troubleshoot | agent   | not asserted (fixture repos have no remote). Gap: needs a live-repo eval |
+| Disabled workflows and unlisted files reported as Correctness         | agent   | not asserted; same live-repo gap (example-voting-app is the canary)      |
 | Speed ranking, spread ratio, one-sentence fix or ask                  | agent   | e6#6 partial                                                             |
 | Scanners run, rule ids cited, no restating                            | agent   | e6#2 e6#4                                                                |
 | Residual-only reading                                                 | agent   | e6#2 (negative form)                                                     |
@@ -75,6 +79,9 @@ Which assertion in `evals.json` proves each rule the skill states. Two kinds of 
 | Proposed YAML passes scanners                                         | scanner | e6#8                                                                     |
 
 ## Known gaps
+
+- Process assertions (the transcript ones) are graded from `run-N/transcript.md`, the skill-creator grader's `transcript_path`, which the executor writes as it works (every shell command with its result). It is self-reported, so a raw tool-call log from the harness would be stronger; in iteration-4 every old-skill run nevertheless logged its `gh api` lookups and failed the assertion. They exist because agents follow fewer instructions as the rule count grows; the eval, not the rule, is what catches a hand `gh api` SHA lookup.
+- Grader critiques from iteration-4 (trivial assertions to cut, outcomes with no assertion: trusted-refs push gating, deploy-by-digest, unrequested trigger narrowing, intent preservation in audits) are collected in `.evals/github-actions-workflow-pro/iteration-4/grader-feedback.md` for the next evals pass.
 
 - Run-history behaviors (failures documented, troubleshoot question, ranking from real runs) need a repo with a remote and run history; candidate: a throwaway fork with seeded runs.
 - Reusable-workflow caller cases (`timeout-minutes` on a `uses:` job, inputs vs callers).
