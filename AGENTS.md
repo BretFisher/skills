@@ -20,12 +20,12 @@ skills/<skill-name>/          # SOURCE — committed
 
 There are two different things, and they live in two different places:
 
-- **Eval definitions** — the prompts and assertions that *define* each test.
+- **Eval definitions** — the prompts and assertions that _define_ each test.
   These live next to the skill at `skills/<skill-name>/evals/evals.json` and **are committed**.
   They are the contract for the skill: a reviewer reads them to know what behavior must hold,
   and they let anyone re-run the evals later to catch regressions.
 
-- **Eval run artifacts** — the *output* of executing those evals (transcripts, gradings,
+- **Eval run artifacts** — the _output_ of executing those evals (transcripts, gradings,
   timings, `benchmark.json`/`benchmark.md`, viewer logs).
   These go in **`.evals/<skill-name>/iteration-N/`** at the repo root, which is **gitignored**.
   They are regenerated on every run and are machine-specific, so they are not source of truth.
@@ -47,7 +47,7 @@ skill folder and commit just that — do not commit the rest of `.evals/`.
 
 ## Before committing
 
-Run `make lint`. It runs `markdownlint` and `yamllint` (configs in `.github/linters/`, the same files super-linter reads in CI), `shellcheck` on every
+Run `make lint` (and `make fmt` first if prettier complains). It runs `markdownlint`, `prettier --check`, and `yamllint` (configs in `.github/linters/`, the same files super-linter reads in CI), `shellcheck` on every
 `skills/*/scripts/*.sh`, `py_compile` on `skills/*/scripts/*.py`, and `actionlint` + `zizmor` + `poutine` + `pinact -check` on this repo's workflows (actionlint also on the well-formed eval fixtures).
 Tools are never installed by the Makefile; a missing one prints its `brew install` formula.
 

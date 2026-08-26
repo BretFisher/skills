@@ -32,13 +32,13 @@ GITHUB_TOKEN=$(gh auth token) pinact run -check -verify-comment -min-age 7 -veri
 
 What each one owns:
 
-| Tool | Owns (rule ids you will cite) | Notes |
-| --- | --- | --- |
-| `actionlint` | YAML schema and typos, expression typing, `needs:` cycles, duplicate matrix values, invalid runner labels, `shellcheck` on `run:` (when shellcheck is installed), script injection, deprecated `::set-output` and outdated action runtimes | Syntax correctness lives here; anything it reports is Hard or Correctness |
-| `zizmor` | `excessive-permissions`, `unpinned-uses`, `ref-version-mismatch`, `artipacked`, `template-injection`, `dangerous-triggers`, `secrets-outside-env`, `dependabot-cooldown`, `concurrency-limits`, `cache-poisoning`, `known-vulnerable-actions`, `impostor-commit`, `typosquat-uses`, `archived-uses`, `overprovisioned-secrets`, `unredacted-secrets`, `github-env`, `bot-conditions`, `unsound-condition`, `secrets-inherit`, `unpinned-images`, and the rest of its ~40 audits | Persona decides the bucket: `regular` findings are Hard; `pedantic`/`auditor`-only findings are Opinion, except `secrets-outside-env` (Hard), `concurrency-limits` (Speed), and `ref-version-mismatch` for a missing comment (Hard), because those are `security.md`/`speed.md` rules. Inline `# zizmor: ignore[...]` comments and `zizmor.yml` suppress; see the precedence rule in step 4 |
-| `poutine` | `injection`, `untrusted_checkout_exec`, `confused_deputy_auto_merge`, `default_permissions_on_risky_events`, `job_all_secrets`, `unverified_script_exec` (`curl \| bash`), `known_vulnerability_in_build_component`, `pr_runs_on_self_hosted`, `unpinnable_action`, `github_action_from_unverified_creator_used`, `if_always_true`, `debug_enabled` | Overlaps zizmor on injection and dangerous triggers; report each finding once, citing both ids. `error` is Hard, `warning` is Hard, `note` is Opinion |
-| `pinact` | unpinned `uses:` (prints the pin it would write), wrong or missing version comment (`-verify-comment`), pin younger than the minimum age (`-verify-min-age`, logged as `min-age violation`), branch refs it cannot pin (`action can't be pinned`) | The only tool that knows release age. Overlaps zizmor `unpinned-uses` and gasa on the bare "not a SHA" case; cite both. Its proposed pins go straight into the diff (`pinact run -update -min-age 7` on the scratch copy) |
-| `gasa` | `workflows/pull-request-target`, `workflows/action-version-pinning` (incl. same-owner branch refs), `workflows/workflow-permissions`, `workflows/write-all-permissions`, `updates/*` (Dependabot or Renovate present, `github-actions` ecosystem, cooldown, SHA-pin support), `actions/permissions/*` (repo settings: default token permissions, fork-PR approval, allowed actions, SHA-pin requirement, actions approving PRs) | The only tool that sees repository settings. Each finding carries `doc_url`; run `gasa rules` only when one does not |
+| Tool         | Owns (rule ids you will cite)                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Notes                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `actionlint` | YAML schema and typos, expression typing, `needs:` cycles, duplicate matrix values, invalid runner labels, `shellcheck` on `run:` (when shellcheck is installed), script injection, deprecated `::set-output` and outdated action runtimes                                                                                                                                                                                                                                      | Syntax correctness lives here; anything it reports is Hard or Correctness                                                                                                                                                                                                                                                                                                                   |
+| `zizmor`     | `excessive-permissions`, `unpinned-uses`, `ref-version-mismatch`, `artipacked`, `template-injection`, `dangerous-triggers`, `secrets-outside-env`, `dependabot-cooldown`, `concurrency-limits`, `cache-poisoning`, `known-vulnerable-actions`, `impostor-commit`, `typosquat-uses`, `archived-uses`, `overprovisioned-secrets`, `unredacted-secrets`, `github-env`, `bot-conditions`, `unsound-condition`, `secrets-inherit`, `unpinned-images`, and the rest of its ~40 audits | Persona decides the bucket: `regular` findings are Hard; `pedantic`/`auditor`-only findings are Opinion, except `secrets-outside-env` (Hard), `concurrency-limits` (Speed), and `ref-version-mismatch` for a missing comment (Hard), because those are `security.md`/`speed.md` rules. Inline `# zizmor: ignore[...]` comments and `zizmor.yml` suppress; see the precedence rule in step 4 |
+| `poutine`    | `injection`, `untrusted_checkout_exec`, `confused_deputy_auto_merge`, `default_permissions_on_risky_events`, `job_all_secrets`, `unverified_script_exec` (`curl \| bash`), `known_vulnerability_in_build_component`, `pr_runs_on_self_hosted`, `unpinnable_action`, `github_action_from_unverified_creator_used`, `if_always_true`, `debug_enabled`                                                                                                                             | Overlaps zizmor on injection and dangerous triggers; report each finding once, citing both ids. `error` is Hard, `warning` is Hard, `note` is Opinion                                                                                                                                                                                                                                       |
+| `pinact`     | unpinned `uses:` (prints the pin it would write), wrong or missing version comment (`-verify-comment`), pin younger than the minimum age (`-verify-min-age`, logged as `min-age violation`), branch refs it cannot pin (`action can't be pinned`)                                                                                                                                                                                                                               | The only tool that knows release age. Overlaps zizmor `unpinned-uses` and gasa on the bare "not a SHA" case; cite both. Its proposed pins go straight into the diff (`pinact run -update -min-age 7` on the scratch copy)                                                                                                                                                                   |
+| `gasa`       | `workflows/pull-request-target`, `workflows/action-version-pinning` (incl. same-owner branch refs), `workflows/workflow-permissions`, `workflows/write-all-permissions`, `updates/*` (Dependabot or Renovate present, `github-actions` ecosystem, cooldown, SHA-pin support), `actions/permissions/*` (repo settings: default token permissions, fork-PR approval, allowed actions, SHA-pin requirement, actions approving PRs)                                                 | The only tool that sees repository settings. Each finding carries `doc_url`; run `gasa rules` only when one does not                                                                                                                                                                                                                                                                        |
 
 Then read each workflow once, top to bottom, for the **residual list**, the rules no tool checks:
 
@@ -73,29 +73,38 @@ Deliver in the format the user chose in step 1 (or the stated chat default). Wha
 
 ```markdown
 ## Do first
+
 1. <the one thing to fix today, with its section and file:line>
-...
+   ...
 
 ## Correctness
+
 - high <file>:<line> — <what is broken, with the evidence: run id, log line>. Fix: <the change>.
 
 ## Recent failures
+
 - <workflow>: run <id> "<title>" <date> <conclusion> (still failing on latest run?) — <url>
 
 ## Hard findings
+
 - <severity> `<rule id>` <file>:<line> — <what is wrong in one line>. Fix: <the change>.
 
 ## Speed
+
 <ranked workflow table> <ranked job table>
+
 - <workflow / job> — <mean over N runs, spread> — <one-sentence fix, or "needs run-log research; want me to?">
 
 ## Opinions
+
 - <file> — <convention>, opinion. <one-line why it helps>.
 
 ## Proposed diff
+
 <unified diff, or the full corrected file when most lines change>
 
 ## Tools
+
 actionlint <version|absent>, shellcheck <version|absent>, zizmor <version|absent> (<online|offline>, persona auditor), poutine <version|absent>, pinact <version|absent>, gasa <version|absent|skipped: reason>, run-stats <N runs|skipped: reason>
 ```
 

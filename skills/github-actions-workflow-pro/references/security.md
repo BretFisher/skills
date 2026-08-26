@@ -23,7 +23,7 @@ pinact run <file>                             # keep the version as written, jus
 pinact run -check -verify-comment -min-age 7 -verify-min-age   # audit: report unpinned, wrong comments, too-fresh pins; edits nothing
 ```
 
-  `pinact run` without `-update` pins whatever the tag points at today, which can be a release from this week, so the `-update -min-age 7` form is the default for anything new. `pinact run -update` also crosses majors (v3 to v4) when the newest qualifying release is a new major; drop `-update` when the user wants to stay on the major they have.
+`pinact run` without `-update` pins whatever the tag points at today, which can be a release from this week, so the `-update -min-age 7` form is the default for anything new. `pinact run -update` also crosses majors (v3 to v4) when the newest qualifying release is a new major; drop `-update` when the user wants to stay on the major they have.
 
 - Same-owner actions and reusable workflows may use a tag or a SHA. A branch ref such as `@main` is the one form to replace: it moves on every push to that repo, so a compromise there runs here on the next commit with no release step between. Detected by gasa `workflows/action-version-pinning` (medium) and zizmor `unpinned-uses`. `pinact run --branch-to-tag '^main$'` converts the branch to the latest stable tag's SHA when the repo has tags.
 - A repo can carry `.github/pinact.yaml` (`min_age`, `ignore_actions`, `rules`) to encode decisions like "our own org's actions may stay on a tag" or "this tagless reusable workflow stays on `main`"; read it before reporting a pin as a finding, and quote its reason next to the finding (audit precedence rule).
@@ -43,7 +43,7 @@ updates:
       prefix: "[actions] "
 ```
 
-  Without `cooldown`, Dependabot proposes the fresh SHA on release day and quietly undoes the 7-day rule. Detected by zizmor `dependabot-cooldown` (`--collect all`) and gasa `updates/update-tool-configuration`, `updates/update-tool-actions-cooldown`, `updates/update-tool-actions-pinning`.
+Without `cooldown`, Dependabot proposes the fresh SHA on release day and quietly undoes the 7-day rule. Detected by zizmor `dependabot-cooldown` (`--collect all`) and gasa `updates/update-tool-configuration`, `updates/update-tool-actions-cooldown`, `updates/update-tool-actions-pinning`.
 
 ## Credentials: OIDC over static secrets
 
