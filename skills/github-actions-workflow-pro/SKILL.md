@@ -1,6 +1,6 @@
 ---
 name: github-actions-workflow-pro
-description: Create, edit, audit, and speed up GitHub Actions workflows using Bret Fisher's opinionated DevOps rules. Use it when the user asks to create a workflow or CI/CD pipeline, edit or add a job to an existing `.github/workflows/*` file (even a one-line change), review or harden a workflow for security, speed up slow CI, publish a container image from CI, automate releases, or mentions GitHub Actions, GHA, action pinning, or findings from gasa, zizmor, or actionlint. Not for local linter setup (super-linting) or Dockerfile authoring (docker-pro).
+description: Create, edit, audit, and speed up GitHub Actions workflows using Bret Fisher's opinionated DevOps rules. Use it when the user asks to create a workflow or CI/CD pipeline, edit or add a job to an existing `.github/workflows/*` file (even a one-line change), review or harden a workflow for security, speed up slow CI, publish a container image from CI, automate releases, or mentions GitHub Actions, GHA, action pinning, or findings from gasa, zizmor, poutine, or actionlint. Not for local linter setup (super-linting) or Dockerfile authoring (docker-pro).
 ---
 
 # GitHub Actions Workflow Rules
@@ -23,7 +23,7 @@ Apply these defaults proactively to every workflow you touch, unless the reposit
 
 ## Auditing an existing workflow
 
-When the user hands you workflows to review, harden, secure, or speed up, or asks what is wrong with their CI, read `references/audit.md` and follow it. It runs the tools first (`actionlint`, `zizmor`, `gasa`), then sorts findings into hard, speed, and opinion, and ends in a fixed report shape.
+When the user hands you workflows to review, harden, secure, or speed up, or asks what is wrong with their CI, read `references/audit.md` and follow it. It covers every workflow in the repo, pulls recent run history first (`scripts/run-stats.py`: failures, and workflows and jobs ranked by duration), then the linters (`actionlint`, `zizmor`, `gasa`), sorts findings into correctness, hard, speed, and opinion, opens with a Do-first list, and asks how the user wants the report delivered.
 
 ## Checklist
 
@@ -58,11 +58,11 @@ Publish images on **trusted refs** only (default branch, tags, releases); PRs bu
 
 ## Validate
 
-Run `actionlint` and then `GH_TOKEN=$(gh auth token) zizmor` on every file you edited (zizmor stays offline without the token); fix what they report and run again until both are clean. `gasa` audits a pushed repository through the API, so it belongs to the audit path, not to a local edit. Name any tool that is not installed and recommend it; do not install it. Hand back only when the validators are clean or reported absent.
+Run `actionlint`, `GH_TOKEN=$(gh auth token) zizmor` (offline without the token), and `poutine analyze_local . --quiet --disable-version-check` on every file you edited; fix what they report and run again until all three are clean. These scanners already check most of the security checklist (permissions, pinning, `persist-credentials`, injection, dangerous triggers, Dependabot cooldown), so they are the proof, not your reading. `gasa` audits a pushed repository through the API, so it belongs to the audit path, not to a local edit. Check `command -v` first; for a missing tool, ask whether to install it (`brew install actionlint shellcheck zizmor poutine`) or skip it, and wait for the answer. Hand back only when the validators are clean or reported absent by name.
 
 ## Done when
 
-- [ ] `actionlint` and `zizmor` clean on every edited file, or reported absent by name
+- [ ] `actionlint`, `zizmor`, and `poutine` clean on every edited file, or reported absent by name
 - [ ] Every job has a `permissions:` block and the workflow starts with `permissions: {}`
 - [ ] Every third-party `uses:` is a full SHA with a version comment
 - [ ] Every placeholder is listed for the user to confirm
