@@ -12,11 +12,22 @@ The full rule set behind the security lines of the SKILL.md checklist, each with
 
 ## Third-party actions: pinned
 
-- Pin every action outside the user's or org's scope to a full commit SHA with the version as a trailing comment: `uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1`. Tags move; a SHA is immutable. The comment keeps the version readable for humans and lets Dependabot update the pin. Detected by zizmor `unpinned-uses` (missing SHA) and `ref-version-mismatch` (comment wrong or missing), gasa `workflows/action-version-pinning`, poutine `unpinnable_action`.
-- Choose a release that is at least 7 days old. Compromised releases are usually caught and yanked within days; the wait lets the ecosystem catch a bad one before this repo adopts it. No scanner checks release age; `scripts/pin-action.sh` does.
-- Run `scripts/pin-action.sh owner/repo` to do the lookup. It picks the newest release that passes the age rule, dereferences annotated tags, and prints the `uses:` value. Pass `@vX` to resolve a specific tag, `--line` for a paste-ready line, `--help` for the rest.
-- Same-owner actions and reusable workflows may use a tag or a SHA. A branch ref such as `@main` is the one form to replace: it moves on every push to that repo, so a compromise there runs here on the next commit with no release step between. Detected by gasa `workflows/action-version-pinning` (medium) and zizmor `unpinned-uses`.
-- When the same-owner repo has no tags or releases, `pin-action.sh` pins the default branch HEAD and comments `# main YYYY-MM-DD`. That makes the ref immutable but leaves Dependabot unable to bump it, so the durable fix is for the owner to tag releases; put that choice to the user.
+- Pin every action outside the user's or org's scope to a full commit SHA with the version as a trailing comment: `uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1`. Tags move; a SHA is immutable. The comment keeps the version readable for humans and lets Dependabot update the pin. Detected by zizmor `unpinned-uses` (missing SHA) and `ref-version-mismatch` (comment wrong or missing), gasa `workflows/action-version-pinning`, poutine `unpinnable_action`, and pinact `-check -verify-comment`.
+- Choose a release that is at least 7 days old. Compromised releases are usually caught and yanked within days; the wait lets the ecosystem catch a bad one before this repo adopts it. pinact enforces this: `-update -min-age 7` skips releases inside the window, `-verify-min-age` flags existing pins that are inside it.
+- `pinact` does the pinning; write the `uses:` line with the major you intend (`actions/checkout@v7`) and let the tool resolve it:
+
+```bash
+export GITHUB_TOKEN=$(gh auth token)          # unauthenticated API calls rate-limit fast
+pinact run -update -min-age 7 <file>          # new or edited workflow: newest release at least 7 days old, SHA + comment
+pinact run <file>                             # keep the version as written, just pin it (a specific older tag the user chose)
+pinact run -check -verify-comment -min-age 7 -verify-min-age   # audit: report unpinned, wrong comments, too-fresh pins; edits nothing
+```
+
+  `pinact run` without `-update` pins whatever the tag points at today, which can be a release from this week, so the `-update -min-age 7` form is the default for anything new. `pinact run -update` also crosses majors (v3 to v4) when the newest qualifying release is a new major; drop `-update` when the user wants to stay on the major they have.
+
+- Same-owner actions and reusable workflows may use a tag or a SHA. A branch ref such as `@main` is the one form to replace: it moves on every push to that repo, so a compromise there runs here on the next commit with no release step between. Detected by gasa `workflows/action-version-pinning` (medium) and zizmor `unpinned-uses`. `pinact run --branch-to-tag '^main$'` converts the branch to the latest stable tag's SHA when the repo has tags.
+- A repo can carry `.github/pinact.yaml` (`min_age`, `ignore_actions`, `rules`) to encode decisions like "our own org's actions may stay on a tag" or "this tagless reusable workflow stays on `main`"; read it before reporting a pin as a finding, and quote its reason next to the finding (audit precedence rule).
+- When the same-owner repo has no tags or releases, pinact reports "action can't be pinned". Pin the default branch HEAD by hand (`gh api repos/O/R/commits/main --jq .sha`) with a `# main YYYY-MM-DD` comment. That makes the ref immutable but leaves Dependabot unable to bump it, so the durable fix is for the owner to tag releases; put that choice to the user.
 - Dependabot keeps SHA pins current. If `.github/dependabot.yml` exists without a `github-actions` entry, or the entry lacks a daily schedule or a cooldown of at least 7 days, recommend the entry below (wrap it in `version: 2` / `updates:` when the file does not exist yet):
 
 ```yaml

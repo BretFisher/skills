@@ -9,7 +9,7 @@ Read this before creating, editing, or evaluating a skill.
 skills/<skill-name>/          # SOURCE — committed
   SKILL.md                    #   the skill itself: description, working style, checklist, validate, done-when
   references/*.md             #   detail read only when a branch needs it (rules + why, procedures)
-  scripts/*.sh                #   deterministic helpers the skill runs (shellcheck-clean, --help, JSON out)
+  scripts/*                   #   deterministic helpers the skill runs (linted, --help, structured output)
   evals/evals.json            #   eval DEFINITIONS (prompts + assertions) — committed, this is the test contract
   evals/fixtures/             #   input files some evals hand to the agent
 .evals/<skill-name>/          # RUN ARTIFACTS — gitignored, never committed
@@ -48,7 +48,7 @@ skill folder and commit just that — do not commit the rest of `.evals/`.
 ## Before committing
 
 Run `make lint`. It runs `markdownlint` and `yamllint` (configs in `.github/linters/`, the same files super-linter reads in CI), `shellcheck` on every
-`skills/*/scripts/*.sh`, and `actionlint` on this repo's workflows and the well-formed eval fixtures.
+`skills/*/scripts/*.sh`, `py_compile` on `skills/*/scripts/*.py`, and `actionlint` + `zizmor` + `poutine` + `pinact -check` on this repo's workflows (actionlint also on the well-formed eval fixtures).
 Tools are never installed by the Makefile; a missing one prints its `brew install` formula.
 
 ## Writing skills

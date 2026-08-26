@@ -2,7 +2,7 @@
 
 Which assertion in `evals.json` proves each rule the skill states. Two kinds of proof:
 
-- **Scanner** — the rule is owned by actionlint, zizmor, poutine, or gasa. One mechanical assertion per eval ("passes actionlint, zizmor regular, poutine with zero findings", graded by running the tools on the output) covers every scanner-owned rule at once. No agent-written assertion is needed for these.
+- **Scanner** — the rule is owned by actionlint, zizmor, poutine, or gasa. One mechanical assertion per eval ("passes actionlint, zizmor regular, poutine, and pinact -check -verify-comment with zero findings", graded by running the tools on the output) covers every scanner-owned rule at once. No agent-written assertion is needed for these.
 - **Agent** — no scanner checks the rule, so a named assertion reads the output for it.
 
 `eN#k` = eval N, assertion k (1-based, order in `evals.json`). "mech" = the mechanical scanner assertion present on every eval.
@@ -15,7 +15,7 @@ Which assertion in `evals.json` proves each rule the skill states. Two kinds of 
 | `checkout` needs `contents: read` | agent (runtime failure, no scanner) | e5#1, and any eval whose output checks out and passes mech |
 | `persist-credentials: false` | scanner (zizmor `artipacked`) | mech; e5#3 e7#5 |
 | Third-party `uses:` SHA + version comment | scanner (zizmor `unpinned-uses`, `ref-version-mismatch`; gasa) | mech; e3#4 e5#2 |
-| Release at least 7 days old | agent/script (no scanner) | not asserted directly; `pin-action.sh` enforces it and manual runs confirmed use. Gap: add a fixture pinned to a fresh release |
+| Release at least 7 days old | scanner (pinact `-verify-min-age`) | mech (pinact `-min-age 7 -verify-min-age` in the grader's run) |
 | Same-owner `@main` replaced | scanner (gasa, zizmor) | mech |
 | OIDC over static cloud keys | agent | e2#4 e3#5 e7#1 |
 | Secrets scoped to an environment | scanner (zizmor `secrets-outside-env`, auditor) + agent | e7#3 |
@@ -37,7 +37,7 @@ Which assertion in `evals.json` proves each rule the skill states. Two kinds of 
 | Ask only about decisions; infer facts | agent | e0#9 e8#4 |
 | Runtime version from `.nvmrc` / `engines` | agent | e8#1 |
 | Conventional filenames | agent | e8#5 (e0/e1 name the file in the prompt) |
-| `pin-action.sh` for every third-party `uses:` | agent/script | covered by mech (pins are correct); not asserted that the script was the means |
+| pinact for every third-party `uses:` | scanner | mech (pinact `-check` clean means every pin is a SHA with a correct comment) |
 | Reusable-workflow offer; repo's own linter wins | agent | e8#2 e8#3 |
 
 ## Maintainable YAML and Container images
@@ -76,6 +76,5 @@ Which assertion in `evals.json` proves each rule the skill states. Two kinds of 
 
 ## Known gaps
 
-- 7-day release age on a fresh pin (needs a fixture that references a release under 7 days old; ages out as a fixture, so it would have to be generated at run time).
 - Run-history behaviors (failures documented, troubleshoot question, ranking from real runs) need a repo with a remote and run history; candidate: a throwaway fork with seeded runs.
 - Reusable-workflow caller cases (`timeout-minutes` on a `uses:` job, inputs vs callers).
