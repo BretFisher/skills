@@ -70,7 +70,7 @@ actionlint <version|absent>, shellcheck <version|absent>, zizmor <version|absent
 
 Severity comes from the tool that reported it. For `security.md` rules without a tool hit: critical for injection and `pull_request_target` in a public repo, high for an unpinned third-party action or `write-all`, medium for a same-owner branch ref (matches gasa) and everything else.
 
-When the user asked you not to edit, copy the workflows to a scratch directory, apply the diff there, and validate the copy.
+An audit reports; it does not edit. Leave the workflow files untouched unless the user asks you to apply or fix, and validate the corrected version on a copy in a scratch directory. A user who wants the files changed says so, and then the SKILL.md Validate step runs on the real files.
 
 Ordering matters when settings findings and workflow findings interact: turning on "require SHA pinning" in repo settings before the `@main` ref is fixed stops the workflow from running. Say which fix goes first.
 
