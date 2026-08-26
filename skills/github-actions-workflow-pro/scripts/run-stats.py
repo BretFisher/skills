@@ -14,12 +14,16 @@ Usage:
 
   --runs N          completed runs to inspect per workflow (default 3)
   --repo owner/repo repo to inspect (default: the one the current directory belongs to)
-  --branch NAME     only runs on this branch (default: all branches)
+  --branch NAME     runs on this branch (default: the repo's default branch; "all" for every
+                    branch). PR runs from Dependabot or forks fail for reasons of their own
+                    (no repo secrets), so the default branch is the honest failure count.
+                    A workflow with no runs on that branch falls back to all branches
+                    and says so (branch: "all (none on <default>)").
   --markdown        print ranked tables instead of JSON
 
 Output (JSON, stdout):
-  {"repo": "...", "runs_per_workflow": 3,
-   "workflows": [ {name, path, state, runs:[{id,url,conclusion,event,branch,title,started,duration_s}],
+  {"repo": "...", "runs_per_workflow": 3, "branch": "main",
+   "workflows": [ {name, path, state, branch, runs:[{id,url,conclusion,event,branch,title,started,duration_s}],
                    mean_s, min_s, max_s, spread_ratio, failures, latest_failing} ... ],   # longest mean first
    "jobs":      [ {workflow, job, n, mean_s, max_s, failures} ... ],                      # longest mean first
    "failures":  [ {workflow, run_id, url, title, started, still_failing} ... ],
@@ -83,22 +87,27 @@ def main():
 
     repo_flag = ["-R", a.repo] if a.repo else []
     repo_name = a.repo or gh("repo", "view", "--json", "nameWithOwner", "--jq", ".nameWithOwner", raw=True)
+    branch = a.branch or gh("repo", "view", *repo_flag, "--json", "defaultBranchRef", "--jq", ".defaultBranchRef.name", raw=True)
+    if branch == "all":
+        branch = None
 
     workflows = [w for w in gh("workflow", "list", "--all", *repo_flag, "--json", "name,id,path,state", "--limit", "100")
                  if w["path"].startswith(".github/workflows/")]
 
-    result = {"repo": repo_name, "runs_per_workflow": a.runs, "workflows": [], "jobs": [], "failures": [],
-              "disabled": [], "files_not_listed": None}
+    result = {"repo": repo_name, "runs_per_workflow": a.runs, "branch": branch or "all", "workflows": [], "jobs": [],
+              "failures": [], "disabled": [], "files_not_listed": None}
     job_acc = {}  # (workflow, job) -> list of (duration, conclusion)
 
     for w in workflows:
         args = ["run", "list", *repo_flag, "--workflow", str(w["id"]), "--status", "completed",
                 "--limit", str(a.runs), "--json", "databaseId,conclusion,startedAt,updatedAt,event,headBranch,url,displayTitle"]
-        if a.branch:
-            args += ["--branch", a.branch]
-        runs = gh(*args)
-        entry = {"name": w["name"], "path": w["path"], "state": w["state"], "runs": [], "failures": 0,
-                 "latest_failing": False}
+        runs = gh(*args, "--branch", branch) if branch else gh(*args)
+        wf_branch = branch or "all"
+        if branch and not runs:  # pull_request-only or tag-only workflow: show what it does have
+            runs = gh(*args)
+            wf_branch = f"all (none on {branch})"
+        entry = {"name": w["name"], "path": w["path"], "state": w["state"], "branch": wf_branch, "runs": [],
+                 "failures": 0, "latest_failing": False}
         durations = []
         for i, r in enumerate(runs):
             d = seconds(r["startedAt"], r["updatedAt"])
@@ -153,17 +162,17 @@ def main():
     def mmss(s):
         return "-" if s is None else f"{s // 60}m{s % 60:02d}s"
 
-    print(f"# Run history: {repo_name} (last {a.runs} completed runs per workflow)\n")
+    print(f"# Run history: {repo_name} (last {a.runs} completed runs per workflow on {result['branch']})\n")
     print("## Workflows, longest mean first\n")
-    print("| Workflow | Mean | Min | Max | Spread | Fails/runs | Latest |")
-    print("|---|---|---|---|---|---|---|")
+    print("| Workflow | Branch | Mean | Min | Max | Spread | Fails/runs | Latest |")
+    print("|---|---|---|---|---|---|---|---|")
     for e in result["workflows"]:
         if e["state"] != "active":
             latest = "DISABLED (" + e["state"].replace("disabled_", "").replace("inactivity", "60 idle days") + ")"
         else:
             latest = "FAILING" if e["latest_failing"] else ("ok" if e["runs"] else "no runs")
         spread = "-" if e["spread_ratio"] is None else f"{e['spread_ratio']}x"
-        print(f"| {e['name']} (`{e['path'].split('/')[-1]}`) | {mmss(e['mean_s'])} | {mmss(e['min_s'])} | "
+        print(f"| {e['name']} (`{e['path'].split('/')[-1]}`) | {e['branch']} | {mmss(e['mean_s'])} | {mmss(e['min_s'])} | "
               f"{mmss(e['max_s'])} | {spread} | {e['failures']}/{len(e['runs'])} | {latest} |")
     print("\n## Jobs, longest mean first\n")
     print("| Workflow | Job | Mean | Max | Runs | Fails |")
