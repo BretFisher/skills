@@ -1,4 +1,4 @@
-# Bret's DevOps and *Ops Skills
+# Bret's DevOps and \*Ops Skills
 
 A bunch of skills for daily work in DevOps, found in `./skills/`
 

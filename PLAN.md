@@ -49,6 +49,4 @@ Run the skill-creator description loop (`scripts/run_loop.py`, 20 queries with n
 
 ## Small items
 
-- This repo's `call-super-linter.yaml`: `filter-regex-exclude: ^\.agents/` never matches (super-linter tests the absolute `/github/workspace/` path); 5 of 5 recent runs are red. Fix: `(^|/)\.agents/`.
-- `bretfisher/super-linter-workflow` has no tags, so callers can only pin a branch SHA that Dependabot cannot bump; tag releases there.
 - A CLI eval runner (`claude -p` per eval, with and without the skill) would replace hand-spawned subagents; scope before building.

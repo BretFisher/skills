@@ -27,7 +27,7 @@ lint-md: ## markdownlint on all Markdown (config: .github/linters/.markdown-lint
 	@$(call need,markdownlint,markdownlint-cli)
 	markdownlint -c .github/linters/.markdown-lint.yml '**/*.md' --ignore node_modules --ignore .evals --ignore CLAUDE.md
 
-PRETTIER_FILES = "**/*.md" "**/*.json" "!.evals/**" "!.agents/**" "!node_modules/**" "!CLAUDE.md"
+PRETTIER_FILES = "**/*.md" "**/*.json" "!.evals/**" "!.agents/**" "!node_modules/**" "!CLAUDE.md" '.github/**/*.y*ml'
 
 lint-fmt: ## prettier --check on Markdown and JSON (super-linter runs the same check in CI)
 	@$(call need,prettier,prettier)
