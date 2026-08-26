@@ -33,13 +33,15 @@ Which assertion in `evals.json` proves each rule the skill states. Two kinds of 
 
 ## Building a workflow
 
-| Line                                            | Proof   | Assertions                                                                   |
-| ----------------------------------------------- | ------- | ---------------------------------------------------------------------------- |
-| Ask only about decisions; infer facts           | agent   | e0#9 e8#4                                                                    |
-| Runtime version from `.nvmrc` / `engines`       | agent   | e8#1                                                                         |
-| Conventional filenames                          | agent   | e8#5 (e0/e1 name the file in the prompt)                                     |
-| pinact for every third-party `uses:`            | scanner | mech (pinact `-check` clean means every pin is a SHA with a correct comment) |
-| Reusable-workflow offer; repo's own linter wins | agent   | e8#2 e8#3                                                                    |
+| Line                                             | Proof   | Assertions                                                                        |
+| ------------------------------------------------ | ------- | --------------------------------------------------------------------------------- |
+| Ask only about decisions; infer facts            | agent   | e0#9 e8#4                                                                         |
+| Runtime version from `.nvmrc` / `engines`        | agent   | e8#1                                                                              |
+| Conventional filenames                           | agent   | e8#5 (e0/e1 name the file in the prompt)                                          |
+| pinact for every third-party `uses:`             | scanner | mech (pinact `-check` clean means every pin is a SHA with a correct comment)      |
+| SHAs come from `pinact run`, never a hand lookup | agent   | every eval, last assertion (transcript); ungraded until runs save `transcript.md` |
+| `-update` scoped on an already-pinned file       | agent   | e4#4 e5#6 (setup-node `# v4.4.0` must survive)                                    |
+| Reusable-workflow offer; repo's own linter wins  | agent   | e8#2 e8#3                                                                         |
 
 ## Maintainable YAML and Container images
 
@@ -77,6 +79,8 @@ Which assertion in `evals.json` proves each rule the skill states. Two kinds of 
 | Proposed YAML passes scanners                                         | scanner | e6#8                                                                     |
 
 ## Known gaps
+
+- Process assertions (the transcript ones) need `run-N/transcript.md`, the skill-creator grader's `transcript_path`: the executor writes every shell command it ran and its result there. Iteration-3 runs saved only `outputs/`, so those assertions are ungraded until the next iteration's executor prompt asks for the file. They exist because agents follow fewer instructions as the rule count grows; the eval, not the rule, is what catches a hand `gh api` SHA lookup.
 
 - Run-history behaviors (failures documented, troubleshoot question, ranking from real runs) need a repo with a remote and run history; candidate: a throwaway fork with seeded runs.
 - Reusable-workflow caller cases (`timeout-minutes` on a `uses:` job, inputs vs callers).
