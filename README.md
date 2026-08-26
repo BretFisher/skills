@@ -15,14 +15,14 @@ Installable via `npx skills add https://github.com/bretfisher/skills` and mark t
 
 ## Repo layout
 
-| Path                             | What                                                                                            | Committed?    |
-| -------------------------------- | ----------------------------------------------------------------------------------------------- | ------------- |
-| `skills/<name>/SKILL.md`         | The skill itself: description (the trigger), working style, checklist, validate step, done-when | ✅ yes        |
-| `skills/<name>/references/*.md`  | Detail the skill reads only when a branch needs it (rules + the why, audit procedure)           | ✅ yes        |
-| `skills/<name>/scripts/*`        | Deterministic helpers the skill runs instead of re-deriving (e.g. `run-stats.py`)               | ✅ yes        |
-| `skills/<name>/evals/evals.json` | Eval **definitions** (prompts + assertions) — the test contract                                 | ✅ yes        |
-| `skills/<name>/evals/fixtures/`  | Input files some evals hand to the agent (a deliberately insecure or slow workflow)             | ✅ yes        |
-| `.evals/<name>/iteration-N/`     | Eval **run artifacts** (transcripts, gradings, timings, benchmarks)                             | ❌ gitignored |
+| Path                             | What                                                                                                                                                                                                              | Committed?    |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------- |
+| `skills/<name>/SKILL.md`         | The skill itself: description (the trigger), working style, checklist, validate step, done-when                                                                                                                   | ✅ yes        |
+| `skills/<name>/references/*.md`  | Detail the skill reads only when a branch needs it (rules + the why, audit procedure)                                                                                                                             | ✅ yes        |
+| `skills/<name>/scripts/*`        | Deterministic helpers the skill runs instead of re-deriving (`run-stats.py`; `scan.sh` runs zizmor/pinact with the GitHub token set inside its own process, so `gh auth token` never appears in a command or log) | ✅ yes        |
+| `skills/<name>/evals/evals.json` | Eval **definitions** (prompts + assertions) — the test contract                                                                                                                                                   | ✅ yes        |
+| `skills/<name>/evals/fixtures/`  | Input files some evals hand to the agent (a deliberately insecure or slow workflow)                                                                                                                               | ✅ yes        |
+| `.evals/<name>/iteration-N/`     | Eval **run artifacts** (transcripts, gradings, timings, benchmarks)                                                                                                                                               | ❌ gitignored |
 
 ## Makefile
 

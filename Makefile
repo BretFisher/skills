@@ -11,6 +11,9 @@ EVAL_DIR       = .evals/$(SKILL)/iteration-$(ITER)
 # `need` fails with an install hint when a tool is absent.
 need = command -v $(1) >/dev/null 2>&1 || { echo "missing: $(1)  ->  brew install $(2)"; exit 1; }
 
+# scan.sh sets the GitHub token inside its own process; never inline `gh auth token` in a recipe
+SCAN := skills/github-actions-workflow-pro/scripts/scan.sh
+
 .PHONY: help lint lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins fmt eval-benchmark eval-view pin run-stats
 
 help: ## Show this help
@@ -53,7 +56,7 @@ lint-actions: ## actionlint + zizmor + poutine on this repo's workflows; actionl
 	actionlint .github/workflows/*.y*ml \
 	  skills/github-actions-workflow-pro/evals/fixtures/good-ci.yml \
 	  skills/github-actions-workflow-pro/evals/fixtures/slow-ci.yml
-	zizmor --no-progress --collect=all .github/workflows .github/dependabot.yml
+	$(SCAN) zizmor --no-progress --collect=all .github/workflows .github/dependabot.yml
 	poutine analyze_local . --quiet --disable-version-check --fail-on-violation >/dev/null
 
 eval-benchmark: ## Aggregate the latest eval iteration into benchmark.json/.md (SKILL=, ITER=)
@@ -70,8 +73,8 @@ run-stats: ## Rank this repo's workflows and jobs by duration over the last RUNS
 
 pin: ## Pin this repo's workflows with pinact (newest release at least 7 days old); FILES= to limit
 	@$(call need,pinact,pinact)
-	GITHUB_TOKEN=$$(gh auth token) pinact run -update -min-age 7 $(FILES)
+	$(SCAN) pinact run -update -min-age 7 $(FILES)
 
 lint-pins: ## pinact check: every uses: SHA-pinned, comment correct, pin at least 7 days old
 	@$(call need,pinact,pinact)
-	GITHUB_TOKEN=$$(gh auth token) pinact run -check -verify-comment -min-age 7 -verify-min-age
+	$(SCAN) pinact run -check -verify-comment -min-age 7 -verify-min-age

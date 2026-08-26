@@ -18,7 +18,7 @@ Apply these defaults proactively to every workflow you touch, unless the reposit
 
 - Ask only about decisions the repo cannot answer: deploy target, registry, whether a needed secret already exists. Everything else you infer from the repo: the runtime version comes from its version file (`.nvmrc`, `.python-version`, `go.mod`) or `engines`, the lint and test commands from its scripts.
 - Use conventional filenames: `ci.yml`, `docker.yml`, `release.yml`, `deploy.yml`; `call-*.yaml` and `reusable-*.yaml` for reusable workflows.
-- Write each third-party `uses:` with the major you intend (`actions/checkout@v7`), then run `GITHUB_TOKEN=$(gh auth token) pinact run -update -min-age 7 <file>` to pin it to the newest release at least 7 days old (see **pinned** below).
+- Write each third-party `uses:` with the major you intend (`actions/checkout@v7`), then run `scripts/scan.sh pinact run -update -min-age 7 <file>` to pin it to the newest release at least 7 days old (see **pinned** below).
 - For a Docker build workflow, or a lint workflow in a repo with no linter of its own, offer a reusable workflow before writing a bespoke one and ask whether the user already has one: Bret's are <https://github.com/BretFisher/docker-build-workflow> and <https://github.com/BretFisher/super-linter-workflow>. A repo that already defines `npm run lint` or equivalent runs that.
 
 ## Auditing an existing workflow
@@ -58,7 +58,7 @@ Publish images on **trusted refs** only (default branch, tags, releases); PRs bu
 
 ## Validate
 
-Run `actionlint`, `GH_TOKEN=$(gh auth token) zizmor` (offline without the token), `poutine analyze_local . --quiet --disable-version-check`, and `GITHUB_TOKEN=$(gh auth token) pinact run -check -verify-comment -min-age 7 -verify-min-age` on every file you edited; fix what they report and run again until all four are clean. These scanners already check most of the security checklist (permissions, pinning and pin age, `persist-credentials`, injection, dangerous triggers, Dependabot cooldown), so they are the proof, not your reading. `gasa` audits a pushed repository through the API, so it belongs to the audit path, not to a local edit. Check `command -v` first; for a missing tool, ask whether to install it (`brew install actionlint shellcheck zizmor poutine pinact`) or skip it, and wait for the answer. Hand back only when the validators are clean or reported absent by name.
+Run `actionlint`, `scripts/scan.sh zizmor` (the wrapper sets the token from your `gh` login inside its own process, so it never appears in a command, trace, or transcript; zizmor runs offline without it), `poutine analyze_local . --quiet --disable-version-check`, and `scripts/scan.sh pinact run -check -verify-comment -min-age 7 -verify-min-age` on every file you edited; fix what they report and run again until all four are clean. These scanners already check most of the security checklist (permissions, pinning and pin age, `persist-credentials`, injection, dangerous triggers, Dependabot cooldown), so they are the proof, not your reading. `gasa` audits a pushed repository through the API, so it belongs to the audit path, not to a local edit. Check `command -v` first; for a missing tool, ask whether to install it (`brew install actionlint shellcheck zizmor poutine pinact`) or skip it, and wait for the answer. Hand back only when the validators are clean or reported absent by name.
 
 ## Done when
 
