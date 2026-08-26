@@ -1,0 +1,27 @@
+name: ci
+on:
+  pull_request_target:
+  push:
+permissions: write-all
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci && npm test
+      - name: comment
+        run: |
+          echo "PR title: ${{ github.event.pull_request.title }}"
+          gh pr comment ${{ github.event.pull_request.number }} --body "tests passed"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: deploy
+        run: aws s3 sync ./dist s3://widget-api-prod
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
