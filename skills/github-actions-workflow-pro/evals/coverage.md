@@ -2,7 +2,7 @@
 
 Which assertion in `evals.json` proves each rule the skill states. Two kinds of proof:
 
-- **Scanner** — the rule is owned by actionlint, zizmor, poutine, or gasa. One mechanical assertion per eval ("passes actionlint, zizmor regular, poutine, and pinact -check -verify-comment with zero findings", graded by running the tools on the output) covers every scanner-owned rule at once. It carries one exception: poutine `default_permissions_on_risky_events` on a job with an explicit `permissions: {}`, a known false positive (see `references/audit.md`, poutine row). No agent-written assertion is needed for these.
+- **Scanner** — the rule is owned by actionlint, zizmor, poutine, or gasa. One mechanical assertion per eval ("passes actionlint, zizmor regular, poutine, and pinact -check -verify-comment with zero findings", graded by running the tools on the output) covers every scanner-owned rule at once. It carries two exceptions: poutine `default_permissions_on_risky_events` on a job with an explicit `permissions: {}`, a known false positive (see `references/audit.md`, poutine row), and zizmor `dangerous-triggers` on a `pull_request_target` the answer keeps for a stated reason (see `references/security.md`). No agent-written assertion is needed for these.
 - **Agent** — no scanner checks the rule, so a named assertion reads the output for it.
 
 `eN#k` = eval N, assertion k (1-based, order in `evals.json`). "mech" = the mechanical scanner assertion present on every eval.

@@ -32,7 +32,7 @@ Every workflow you create or edit meets these. The linked reference carries the 
 - `permissions: {}` at the top level, then **least-privilege** grants per job. `actions/checkout` still needs `contents: read`, and sets `persist-credentials: false` unless a later step pushes with the token. → `references/security.md`
 - Every third-party `uses:` is **pinned** to a full commit SHA with a `# vX.Y.Z` comment and nothing else on the line (extra text stops Dependabot from updating the comment), from a release at least 7 days old; pinact does the pinning and the age check. Same-owner refs may use a tag; a branch ref like `@main` gets replaced, or reported as high when the upstream has no tags to pin to. → `references/security.md`
 - Cloud credentials come from OIDC (`id-token: write`), third-party secrets live in a repository environment the job names, and `${{ github.event.* }}` values reach `run:` only through `env:`. → `references/security.md`
-- `pull_request` for PR triggers. `pull_request_target` appears only in a private repo with the untrusted checkout isolated in its own zero-grant job, and never in a public one. → `references/security.md`
+- `pull_request` for PR triggers. `pull_request_target` appears only where external PRs cannot reach it: a repo whose pull request access is Collaborators only, or a private repo with the untrusted checkout isolated in its own zero-grant job; never in a public repo that accepts outside PRs. → `references/security.md`
 - If `.github/dependabot.yml` exists, it has a `github-actions` entry with a daily schedule and a 7-day cooldown; recommend the snippet when it is missing. → `references/security.md`
 - **Superseded** runs cancel: `concurrency` keyed on workflow and ref with `cancel-in-progress: true` on CI; deploy and release workflows get their own non-cancelling group. → `references/speed.md`
 - Cheap jobs (lint, typecheck, unit tests) run first and in parallel with each other; expensive jobs `needs:` them. → `references/speed.md`
@@ -62,7 +62,7 @@ Run `actionlint`, `GH_TOKEN=$(gh auth token) zizmor` (offline without the token)
 
 ## Done when
 
-- [ ] `actionlint`, `zizmor`, `poutine`, and `pinact -check` clean on every edited file, or reported absent by name; a branch ref pinact cannot pin is listed in the hand-back as open, with the upstream fix (tag a release)
+- [ ] `actionlint`, `zizmor`, `poutine`, and `pinact -check` clean on every edited file, or reported absent by name; the two reports allowed to remain are a branch ref pinact cannot pin (listed as open with the upstream fix: tag a release) and zizmor `dangerous-triggers` on a `pull_request_target` kept for a stated reason
 - [ ] Every job has a `permissions:` block and the workflow starts with `permissions: {}`
 - [ ] Every third-party `uses:` is a full SHA with a version comment
 - [ ] Every placeholder is listed for the user to confirm
