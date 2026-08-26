@@ -26,10 +26,6 @@ Pin image tags (or digests, per `docker-pro`) once the option lands; `latest` is
 
 **Not in scope.** Building our own images; running `gh` itself in a container (it stays local for auth).
 
-## Milestone: eval coverage for every checklist and done-when line
-
-Map each SKILL.md checklist line, done-when item, and audit.md done-when item to at least one assertion in `evals/evals.json`, skipping rules a scanner already owns (those need no agent assertion; `make lint` and the Validate step prove them). Add fixtures and evals for the gaps: OIDC over static keys, deploy concurrency group, Dependabot snippet offer, `set -euo pipefail`, decisions-only interview, `node-version-file`, reusable-workflow offer, placeholder listing, audit Do-first and delivery-format question, run-stats skipped-with-reason.
-
 ## Milestone: description trigger optimization
 
 Run the skill-creator description loop (`scripts/run_loop.py`, 20 queries with near-miss negatives: Dockerfile questions, local lint setup, GitLab CI, Jenkins) on `github-actions-workflow-pro` once its content is stable. Never run yet.

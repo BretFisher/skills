@@ -11,7 +11,11 @@
         "The workflow sets explicit least-privilege permissions rather than relying on GitHub defaults.",
         "The workflow defines concurrency with cancel-in-progress for superseded branch or PR runs.",
         "The Node setup uses npm caching or an equivalent package-manager cache.",
-        "The test job has a timeout and clear names for the workflow, job, and key steps."
+        "The test job has a timeout and clear names for the workflow, job, and key steps.",
+        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), and poutine with zero findings when the grader runs them on the output.",
+        "The answer states that actionlint, zizmor, and poutine were run on the result, or names by tool which ones were not installed.",
+        "The hand-back explains, in one line each, the reason for every opinionated default it applied.",
+        "The answer asks only about decisions the repo cannot answer (or states none were needed); it does not ask the user for facts it could look up."
       ]
     },
     {
@@ -24,7 +28,11 @@
         "The workflow uses docker/setup-buildx-action, docker/metadata-action, and docker/build-push-action.",
         "The workflow logs in to ghcr.io only when the event is not pull_request and pushes only for non-PR events.",
         "The image publishing job grants packages: write without granting broad write-all permissions.",
-        "The workflow uses Buildx cache and enables provenance and SBOM for published images."
+        "The workflow uses Buildx cache and enables provenance and SBOM for published images.",
+        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), and poutine with zero findings when the grader runs them on the output.",
+        "The answer states that actionlint, zizmor, and poutine were run on the result, or names by tool which ones were not installed.",
+        "The hand-back explains, in one line each, the reason for every opinionated default it applied.",
+        "Image pushes, provenance, and SBOM happen only on trusted refs (default branch, tags); the PR path builds without pushing."
       ]
     },
     {
@@ -37,7 +45,11 @@
         "The corrected workflow removes permissions: write-all and uses explicit least-privilege permissions.",
         "The corrected workflow replaces raw docker build and docker push shell commands with Buildx-oriented Docker actions.",
         "The answer recommends or implements AWS OIDC instead of long-lived AWS access key secrets.",
-        "The corrected workflow includes concurrency, caching, and timeouts where appropriate."
+        "The corrected workflow includes concurrency, caching, and timeouts where appropriate.",
+        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), and poutine with zero findings when the grader runs them on the output.",
+        "The answer states that actionlint, zizmor, and poutine were run on the result, or names by tool which ones were not installed.",
+        "The hand-back explains, in one line each, the reason for every opinionated default it applied.",
+        "Every placeholder the answer introduced (role ARN, region, registry, environment name) is listed for the user to confirm."
       ]
     },
     {
@@ -54,7 +66,8 @@
         "The corrected workflow pins actions/checkout and actions/setup-node to full commit SHAs with a version comment.",
         "The report recommends OIDC for AWS instead of the static access key secrets.",
         "The report separates tool-backed or rule-backed hard findings from opinion or style items under distinct headings.",
-        "The answer states that actionlint and zizmor were run on the corrected file, or names them as not installed."
+        "The answer states that actionlint and zizmor were run on the corrected file, or names them as not installed.",
+        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), and poutine with zero findings when the grader runs them on the output."
       ]
     },
     {
@@ -73,7 +86,9 @@
         "Jobs gain timeout-minutes.",
         "The docker build step moves to docker/setup-buildx-action and docker/build-push-action with type=gha cache, or the answer recommends that change.",
         "The existing SHA pins and permissions block are preserved, not loosened.",
-        "Each speed change is explained with the reason it saves time."
+        "Each speed change is explained with the reason it saves time.",
+        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), and poutine with zero findings when the grader runs them on the output.",
+        "The answer states that actionlint, zizmor, and poutine were run on the result, or names by tool which ones were not installed."
       ]
     },
     {
@@ -91,7 +106,67 @@
         "The lint job runs in parallel with the test job rather than being chained with needs, or the answer justifies chaining.",
         "The existing test job, triggers, permissions, and concurrency block are unchanged.",
         "No path filters, workflow_dispatch, or other unrequested triggers are added.",
-        "The answer states that actionlint and zizmor were run, or names them as not installed."
+        "The answer states that actionlint and zizmor were run, or names them as not installed.",
+        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), and poutine with zero findings when the grader runs them on the output."
+      ]
+    },
+    {
+      "id": 6,
+      "prompt": "Audit all the GitHub Actions workflows in this repo. Security, speed, anything broken. Prioritize what I should fix first.",
+      "expected_output": "A full-repo audit that runs the scanners and cites their rule ids, marks run-stats and gasa skipped because the repo has no remote, opens with a Do-first list of at most five items, has Correctness/Hard/Speed/Opinions sections, asks (or states the default for) the delivery format, and does not edit the files.",
+      "files": [
+        "evals/fixtures/insecure-ci.yml",
+        "evals/fixtures/slow-ci.yml",
+        "evals/fixtures/deploy-static-keys.yml"
+      ],
+      "expectations": [
+        "The report opens with a Do-first list of one to five items, ordered with the most severe first.",
+        "Every tool-detected finding cites the tool and its rule id (for example zizmor template-injection, gasa workflows/action-version-pinning, poutine untrusted_checkout_exec) rather than restating the rule in the agent's own words.",
+        "The report separates Correctness, Hard findings, Speed, and Opinions under distinct headings.",
+        "run-stats and gasa are marked skipped with the reason (no GitHub remote), and the Tools section lists each scanner with a version or 'absent'.",
+        "The report asks how the user wants it delivered (chat, HTML dashboard, Markdown file, or combination) or explicitly states it defaulted to chat because the user was unavailable.",
+        "The speed section covers all three workflows and names the deploy workflow's cancel-in-progress concurrency as a risk for deploys.",
+        "The workflow files in the repo are left unmodified; fixes appear as a proposed diff.",
+        "The proposed corrected YAML passes actionlint, zizmor (regular persona), and poutine with zero findings when the grader runs them on the output."
+      ]
+    },
+    {
+      "id": 7,
+      "prompt": "Harden my deploy workflow (.github/workflows/deploy.yml, attached). We deploy a static site to S3 and CloudFront from main.",
+      "expected_output": "A hardened deploy workflow using OIDC instead of static AWS keys, a non-cancelling concurrency group, an environment scoping the secrets, set -euo pipefail in the multi-line run block, persist-credentials: false, a timeout, an offer of the Dependabot snippet, and placeholders listed.",
+      "files": [
+        "evals/fixtures/deploy-static-keys.yml"
+      ],
+      "expectations": [
+        "The corrected workflow replaces AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY with aws-actions/configure-aws-credentials using role-to-assume and id-token: write.",
+        "The deploy job's concurrency no longer cancels in-progress runs (cancel-in-progress: false or a queue), with the reason given.",
+        "The deploy job declares an environment and the remaining secrets are scoped to it.",
+        "Any multi-line run block that remains starts with set -euo pipefail (splitting into single-line steps, which fail fast on their own, also satisfies this).",
+        "actions/checkout sets persist-credentials: false and the job has timeout-minutes.",
+        "The answer recommends a Dependabot github-actions entry (daily, cooldown 7) because none exists, as a complete file.",
+        "Every placeholder introduced (role ARN, environment name, region) is listed for the user to confirm.",
+        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), and poutine with zero findings when the grader runs them on the output."
+      ]
+    },
+    {
+      "id": 8,
+      "prompt": "Set up CI and container image publishing for this repo (it's a Node app with a Dockerfile). Use GitHub Actions.",
+      "expected_output": "ci.yml and docker.yml that read the Node version from .nvmrc, run lint and test in parallel, publish to ghcr.io only on trusted refs, offer the reusable docker-build-workflow before writing a bespoke one, ask only about decisions the repo cannot answer, and add no unrequested triggers.",
+      "files": [
+        "evals/fixtures/node-repo/.nvmrc",
+        "evals/fixtures/node-repo/package.json",
+        "evals/fixtures/node-repo/package-lock.json",
+        "evals/fixtures/node-repo/Dockerfile"
+      ],
+      "expectations": [
+        "setup-node uses node-version-file: .nvmrc rather than a hardcoded version.",
+        "Lint and test run as parallel jobs using the repo's own npm scripts; the reusable super-linter workflow is not proposed because the repo has its own linter.",
+        "The answer offers BretFisher/docker-build-workflow as a reusable option before or alongside the bespoke docker.yml, and asks whether the user already has one.",
+        "The answer asks only about decisions the repo cannot answer (registry, whether to publish on tags) and does not ask for facts it could infer.",
+        "Workflow files use the conventional names ci.yml and docker.yml.",
+        "No workflow_dispatch, repository_dispatch, or path filters are added.",
+        "The hand-back explains, in one line each, the reason for every opinionated default it applied.",
+        "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), and poutine with zero findings when the grader runs them on the output."
       ]
     }
   ]
