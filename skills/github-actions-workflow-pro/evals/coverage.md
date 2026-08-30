@@ -9,39 +9,39 @@ Which assertion in `evals.json` proves each rule the skill states. Two kinds of 
 
 ## SKILL.md checklist
 
-| Line                                           | Proof                                                                  | Assertions                                                     |
-| ---------------------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `permissions: {}` + least-privilege per job    | scanner (zizmor `excessive-permissions`, gasa) + agent                 | mech; e0#2 e1#4 e2#2 e3#3 e5#1                                 |
-| `checkout` needs `contents: read`              | agent (runtime failure, no scanner)                                    | e5#1, and any eval whose output checks out and passes mech     |
-| `persist-credentials: false`                   | scanner (zizmor `artipacked`)                                          | mech; e5#3 e7#5                                                |
-| Third-party `uses:` SHA + version comment      | scanner (zizmor `unpinned-uses`, `ref-version-mismatch`; gasa)         | mech; e3#4 e5#2                                                |
-| Version comment alone on the line              | agent (Dependabot behaviour, no scanner)                               | not asserted; candidate for e3 (fixture has no such line yet)  |
-| Release at least 7 days old                    | scanner (pinact `-verify-min-age`)                                     | mech (pinact `-min-age 7 -verify-min-age` in the grader's run) |
-| Same-owner `@main` replaced, or reported high  | scanner (gasa, zizmor)                                                 | mech; tagless-upstream case not asserted (needs a live repo)   |
-| OIDC over static cloud keys                    | agent                                                                  | e2#4 e7#1                                                      |
-| Secrets scoped to an environment               | scanner (zizmor `secrets-outside-env`, auditor) + agent                | e7#3                                                           |
-| `github.event.*` through `env:`                | scanner (actionlint, zizmor, poutine)                                  | mech; e3#2                                                     |
-| `pull_request` not `pull_request_target`       | scanner (zizmor, gasa, poutine)                                        | mech; e2#1 e3#1                                                |
-| Dependabot entry with cooldown                 | scanner (zizmor `dependabot-cooldown`, gasa `updates/*`) + agent offer | e7#6                                                           |
-| Superseded runs cancel (CI)                    | scanner (zizmor `concurrency-limits`, pedantic) + agent                | e0#3 e4#1                                                      |
-| Deploy/release in a non-cancelling group       | agent                                                                  | e6#6 e7#2                                                      |
-| Cheap jobs first and parallel                  | agent                                                                  | e4#5 e5#5 e8#2                                                 |
-| Cache via setup action                         | agent                                                                  | e0#4 e4#2 e5#3                                                 |
-| `timeout-minutes`                              | agent                                                                  | e0#5 e4#6 e5#4 e7#5                                            |
-| Path filters only when correct; none on new CI | agent                                                                  | e5#7 e8#6                                                      |
-| Ask before manual/remote triggers              | agent                                                                  | e5#7 e8#6                                                      |
+| Line                                           | Proof                                                                  | Assertions                                                                |
+| ---------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------- |
+| `permissions: {}` + least-privilege per job    | scanner (zizmor `excessive-permissions`, gasa) + agent                 | mech; e0#2 e1#4 e2#2 e3#3 e5#1                                            |
+| `checkout` needs `contents: read`              | agent (runtime failure, no scanner)                                    | e5#1, and any eval whose output checks out and passes mech                |
+| `persist-credentials: false`                   | scanner (zizmor `artipacked`)                                          | mech; e5#3 e7#5                                                           |
+| Third-party `uses:` SHA + version comment      | scanner (zizmor `unpinned-uses`, `ref-version-mismatch`; gasa)         | mech; e3#4 e5#2                                                           |
+| Version comment alone on the line              | agent (Dependabot behaviour, no scanner)                               | not asserted; candidate for e3 (fixture has no such line yet)             |
+| Release at least 7 days old                    | scanner (pinact `-verify-min-age`)                                     | mech (pinact `-min-age 7 -verify-min-age` in the grader's run)            |
+| Same-owner `@main` replaced, or reported high  | scanner (gasa, zizmor)                                                 | mech; tagless-upstream case not asserted (needs a live repo)              |
+| OIDC over static cloud keys                    | agent                                                                  | e2#4 e7#1                                                                 |
+| Secrets scoped to an environment               | scanner (zizmor `secrets-outside-env`, auditor) + agent                | e7#3                                                                      |
+| `github.event.*` through `env:`                | scanner (actionlint, zizmor, poutine)                                  | mech; e3#2                                                                |
+| `pull_request` not `pull_request_target`       | scanner (zizmor, gasa, poutine)                                        | mech; e2#1 e3#1                                                           |
+| Dependabot entry with cooldown                 | scanner (zizmor `dependabot-cooldown`, gasa `updates/*`) + agent offer | e7#6                                                                      |
+| Superseded runs cancel (CI)                    | scanner (zizmor `concurrency-limits`, pedantic) + agent                | e0#3 e4#1                                                                 |
+| Deploy/release in a non-cancelling group       | agent                                                                  | e6#6 e7#2                                                                 |
+| Cheap jobs first and parallel                  | agent                                                                  | e4#5 e5#5 e8#2                                                            |
+| Cache via setup action                         | agent                                                                  | e0#4 e4#2 e5#3                                                            |
+| `timeout-minutes`                              | agent                                                                  | e0#5 e4#6 e5#4 e7#5                                                       |
+| Path filters only when correct; none on new CI | agent                                                                  | e5#7 e8#6 (compound: path filters and dispatch triggers in one assertion) |
+| Ask before manual/remote triggers              | agent                                                                  | e5#7 e8#6 (same compound assertions as the row above)                     |
 
 ## Building a workflow
 
-| Line                                             | Proof   | Assertions                                                                             |
-| ------------------------------------------------ | ------- | -------------------------------------------------------------------------------------- |
-| Ask only about decisions; infer facts            | agent   | e0#9 e8#4                                                                              |
-| Runtime version from `.nvmrc` / `engines`        | agent   | e8#1                                                                                   |
-| Conventional filenames                           | agent   | e8#5 (e0/e1 name the file in the prompt)                                               |
-| pinact for every third-party `uses:`             | scanner | mech (pinact `-check` clean means every pin is a SHA with a correct comment)           |
-| SHAs come from `pinact run`, never a hand lookup | agent   | every eval, last assertion (transcript); iteration-4: 9/9 pass with skill, 0/9 without |
-| `-update` scoped on an already-pinned file       | agent   | e4#4 e5#6 (setup-node `# v4.4.0` must survive)                                         |
-| Reusable-workflow offer; repo's own linter wins  | agent   | e8#2 e8#3                                                                              |
+| Line                                             | Proof   | Assertions                                                                                                     |
+| ------------------------------------------------ | ------- | -------------------------------------------------------------------------------------------------------------- |
+| Ask only about decisions; infer facts            | agent   | e0#9 e8#4                                                                                                      |
+| Runtime version from `.nvmrc` / `engines`        | agent   | e8#1                                                                                                           |
+| Conventional filenames                           | agent   | e8#5 (e0/e1 name the file in the prompt)                                                                       |
+| pinact for every third-party `uses:`             | scanner | mech (pinact `-check` clean means every pin is a SHA with a correct comment)                                   |
+| SHAs come from `pinact run`, never a hand lookup | agent   | every eval, last assertion (transcript); iteration-4: 9/9 pass with skill, 0/9 without                         |
+| `-update` scoped on an already-pinned file       | agent   | e5#6 (edit path: setup-node `# v4.4.0` must survive); audit path (e3, e6) not asserted, see iteration-5 item 1 |
+| Reusable-workflow offer; repo's own linter wins  | agent   | e8#2 e8#3                                                                                                      |
 
 ## Maintainable YAML and Container images
 
@@ -54,13 +54,13 @@ Which assertion in `evals.json` proves each rule the skill states. Two kinds of 
 
 ## Validate and Done-when
 
-| Line                                                   | Proof           | Assertions                     |
-| ------------------------------------------------------ | --------------- | ------------------------------ |
-| Scanners run or named absent                           | agent           | e0#7 e1#7 e2#7 e3#6 e4#11 e5#8 |
-| Every job has `permissions:`; `permissions: {}` at top | scanner + agent | mech; e0#2 e5#1                |
-| Every third-party `uses:` SHA-pinned                   | scanner         | mech                           |
-| Placeholders listed                                    | agent           | e2#8 e7#7                      |
-| Hand-back explains each default                        | agent           | e0#8 e1#8 e2#8 e4#9 e8#7       |
+| Line                                                   | Proof           | Assertions                                                                              |
+| ------------------------------------------------------ | --------------- | --------------------------------------------------------------------------------------- |
+| Scanners run or named absent                           | agent           | e0#7 e1#7 e2#7 e3#6 e4#11 e5#8 (iteration-4 backlog: cut, or sharpen to the Tools line) |
+| Every job has `permissions:`; `permissions: {}` at top | scanner + agent | mech; e0#2 e5#1                                                                         |
+| Every third-party `uses:` SHA-pinned                   | scanner         | mech                                                                                    |
+| Placeholders listed                                    | agent           | e2#8 e7#7                                                                               |
+| Hand-back explains each default                        | agent           | e0#8 e1#8 e2#8 e4#9 e8#7                                                                |
 
 ## audit.md
 
@@ -110,9 +110,9 @@ Add (real outcomes that a worse output would get wrong today):
 
 ### Iteration-5 additions (2026-08-30, Sonnet executors on evals 3, 6, 7 after the fixture trim)
 
-- Already-pinned `uses:` lines keep their SHA and version (or move forward) unless a finding names them (e6): the run hand-copied `checkout # v4.4.0` from one file's pinact output over the other two files' correct `# v7.0.1`, and the answer claimed they matched. audit.md already says `pinact run -update -i '<action>'` on the scratch copy; no assertion enforces it.
+- The row `-update` scoped on an already-pinned file (Building a workflow) has no audit-path assertion. In e6 the run hand-copied `checkout # v4.4.0` from one file's pinact output over the other two files' correct `# v7.0.1`, and the answer claimed they matched. Add to e3 and e6: already-pinned `uses:` lines keep their SHA and version (or move forward) unless a finding names them.
 - Every finding fixed in the proposed diff appears in the report (e6): actionlint SC2086 on `$CF_DIST` was fixed silently while Correctness said "None found".
-- A `pinact -update` major-version jump (v4 to v7) is announced in the hand-back (e3).
+- A `pinact -update` major-version jump (v4 to v7) is announced in the hand-back with the command that keeps the old major (e3). Rule added to audit.md 2026-08-30; assertion still to write.
 - Top-level `permissions: {}` with per-job grants is asserted on e7 (the fixture's top-level `contents: read` is a Hard finding zizmor regular does not flag).
 - Fixture header side effect: the two-line `# Eval fixture` comment (added so the skills.sh Socket audit reads the files as test input) was carried verbatim into the delivered YAML in every run, softened one Opinion-tier rename in e6 ("these are named eval fixtures"), and was copied onto `slow-ci.yml`, which never had one. Findings and severities were unchanged. If it ever moves an assertion, the alternative is a `fixtures/README.md` that does not travel with the placed file.
 
