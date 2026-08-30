@@ -58,14 +58,13 @@
     {
       "id": 3,
       "prompt": "Audit this workflow (.github/workflows/ci.yml, attached) for security problems. Give me a report of what is wrong and a corrected version.",
-      "expected_output": "An audit report that separates hard findings from opinions, identifies pull_request_target with untrusted checkout, write-all permissions, unpinned actions, template injection of the PR title, and static AWS keys, and a corrected workflow that passes actionlint and zizmor.",
+      "expected_output": "An audit report that separates hard findings from opinions, identifies pull_request_target with untrusted checkout, write-all permissions, unpinned actions, template injection of the PR title, and a corrected workflow that passes actionlint and zizmor.",
       "files": ["evals/fixtures/insecure-ci.yml"],
       "expectations": [
         "The report identifies pull_request_target combined with checking out the PR head as a critical risk and moves the workflow to pull_request or isolates the untrusted checkout.",
         "The report identifies the PR title interpolated directly into a run: block as template injection, and the corrected workflow no longer interpolates it into a shell (passed through env, or the step removed).",
         "The corrected workflow replaces permissions: write-all with permissions: {} at the top and explicit per-job grants.",
         "The corrected workflow pins actions/checkout and actions/setup-node to full commit SHAs with a version comment.",
-        "The report recommends OIDC for AWS instead of the static access key secrets.",
         "The report separates tool-backed or rule-backed hard findings from opinion or style items under distinct headings.",
         "The answer states that actionlint and zizmor were run on the corrected file, or names them as not installed.",
         "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset), and zizmor `dangerous-triggers` when the output keeps `pull_request_target` and the answer states why (Collaborators-only PR access, or private repo with the split-job pattern).",

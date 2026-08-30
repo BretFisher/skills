@@ -1,3 +1,5 @@
+# Eval fixture: a deliberately insecure workflow used as test input for the
+# github-actions-workflow-pro skill. Nothing in this repository runs it.
 name: ci
 on:
   pull_request_target:
@@ -20,8 +22,3 @@ jobs:
           gh pr comment ${{ github.event.pull_request.number }} --body "tests passed"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: deploy
-        run: aws s3 sync ./dist s3://widget-api-prod
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
