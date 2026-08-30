@@ -43,17 +43,17 @@ Every workflow you create or edit meets these. The linked reference carries the 
 ## Maintainable YAML
 
 - Friendly `name:` values with capitals and spaces: workflow 1–3 words, job up to 5, step up to 10. Two test jobs need names that tell them apart. Match the style of the repo's other workflows.
-- Triggers stay explicit: CI on `pull_request` and `push` to the default branch; releases on tags, releases, or manual dispatch (after asking).
+- Triggers stay explicit: CI on `pull_request` and `push` to the default branch; releases on tags, releases, or manual dispatch (after asking). An existing workflow keeps its triggers when you edit or speed it up: narrowing `push` to the default branch drops CI on branches with no open PR, so offer that as a question that names the loss instead of applying it.
 - Multi-line Bash steps start with `set -euo pipefail`; prefer several clear lines over one dense one.
 - Comments mark security boundaries, non-obvious triggers, and deployment gates. YAML keys explain themselves.
 - Reusable workflows earn their indirection when several workflows or repositories share stable behavior. One workflow stays inline.
 
 ## Container images
 
-Publish images on **trusted refs** only (default branch, tags, releases); PRs build without pushing.
+Publish images on **trusted refs** only (default branch, tags, releases), from two jobs: a build job that runs on `pull_request` with `contents: read` and `push: false`, and a publish job that runs on `push` to the default branch or a tag and is the only job with `packages: write`. A permission cannot depend on the event, so one job with `push: ${{ github.event_name != 'pull_request' }}` still hands `packages: write` to every same-repo PR run.
 
 - `docker/setup-buildx-action`, then `docker/metadata-action` for tags and labels, then `docker/build-push-action`. On a PR, `metadata-action` yields `pr-N`, not a semver tag, which is what you want.
-- `ghcr.io` unless the repo names another registry. `packages: write` goes only to the publishing job.
+- `ghcr.io` unless the repo names another registry.
 - `cache-from: type=gha` and `cache-to: type=gha,mode=max`. `provenance: true` and `sbom: true` when publishing.
 
 ## Validate
@@ -66,4 +66,4 @@ Run `actionlint`, `scripts/scan.sh zizmor` (the wrapper sets the token from your
 - [ ] Every job has a `permissions:` block and the workflow starts with `permissions: {}`
 - [ ] Every third-party `uses:` is a full SHA with a version comment
 - [ ] Every placeholder is listed for the user to confirm
-- [ ] The hand-back states the reason for each opinionated default you applied, in one line each
+- [ ] The hand-back states the reason for each opinionated default you applied, in one line each: why it applies here, not what it does

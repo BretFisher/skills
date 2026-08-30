@@ -7,13 +7,12 @@
       "expected_output": "A maintainable CI workflow that uses explicit read permissions, concurrency cancellation, npm caching, a timeout, and clear job/step names.",
       "files": [],
       "expectations": [
-        "The workflow uses pull_request and push triggers for main.",
+        "The workflow runs `npm ci` as the install step and `npm test` as the test step, as the prompt asked; a substituted command (`npm install`, `npm run test:ci`) fails this.",
         "The workflow sets explicit least-privilege permissions rather than relying on GitHub defaults.",
         "The workflow defines concurrency with cancel-in-progress for superseded branch or PR runs.",
         "The Node setup uses npm caching or an equivalent package-manager cache.",
         "The test job has a timeout and clear names for the workflow, job, and key steps.",
         "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset), and zizmor `dangerous-triggers` when the output keeps `pull_request_target` and the answer states why (Collaborators-only PR access, or private repo with the split-job pattern).",
-        "The answer states that actionlint, zizmor, and poutine were run on the result, or names by tool which ones were not installed.",
         "The hand-back explains, in one line each, the reason for every opinionated default it applied.",
         "The answer asks only about decisions the repo cannot answer (or states none were needed); it does not ask the user for facts it could look up.",
         "The transcript shows every commit SHA written into a `uses:` line came from running `pinact run` on the file; no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`) or other hand lookup produced a SHA that was then typed into the YAML."
@@ -26,14 +25,12 @@
       "files": [],
       "expectations": [
         "The workflow builds on pull requests and pushes to main and semver-style tags.",
-        "The workflow uses docker/setup-buildx-action, docker/metadata-action, and docker/build-push-action.",
-        "The workflow logs in to ghcr.io only when the event is not pull_request and pushes only for non-PR events.",
+        "Image push, provenance, and SBOM happen only on trusted refs (push to the default branch or a semver tag). The pull_request path builds with push: false in a job that holds no packages: write; the job that pushes is the only one granted packages: write and does not run on pull_request events. A single job with `push: ${{ github.event_name != 'pull_request' }}` and packages: write on every event fails this.",
         "The image publishing job grants packages: write without granting broad write-all permissions.",
         "The workflow uses Buildx cache and enables provenance and SBOM for published images.",
         "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset), and zizmor `dangerous-triggers` when the output keeps `pull_request_target` and the answer states why (Collaborators-only PR access, or private repo with the split-job pattern).",
-        "The answer states that actionlint, zizmor, and poutine were run on the result, or names by tool which ones were not installed.",
         "The hand-back explains, in one line each, the reason for every opinionated default it applied.",
-        "Image pushes, provenance, and SBOM happen only on trusted refs (default branch, tags); the PR path builds without pushing.",
+        "The workflow is saved as docker.yml and the image name derives from the repository (`${{ github.repository }}` or `ghcr.io/${{ github.repository }}` in metadata-action `images:`), as the prompt asked.",
         "The transcript shows every commit SHA written into a `uses:` line came from running `pinact run` on the file; no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`) or other hand lookup produced a SHA that was then typed into the YAML."
       ]
     },
@@ -49,9 +46,10 @@
         "The answer recommends or implements AWS OIDC instead of long-lived AWS access key secrets.",
         "The corrected workflow includes concurrency, caching, and timeouts where appropriate.",
         "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset), and zizmor `dangerous-triggers` when the output keeps `pull_request_target` and the answer states why (Collaborators-only PR access, or private repo with the split-job pattern).",
-        "The answer states that actionlint, zizmor, and poutine were run on the result, or names by tool which ones were not installed.",
         "The hand-back explains, in one line each, the reason for every opinionated default it applied.",
         "Every placeholder the answer introduced (role ARN, region, registry, environment name) is listed for the user to confirm.",
+        "Image push and deploy run only on push to the default branch or on tags; the pull_request path builds with push: false and holds neither packages: write nor deploy credentials (no id-token: write, no AWS role).",
+        "The deploy step consumes the image by the digest the build job output (docker/build-push-action `outputs.digest` passed through job outputs), not by a mutable tag.",
         "The transcript shows every commit SHA written into a `uses:` line came from running `pinact run` on the file; no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`) or other hand lookup produced a SHA that was then typed into the YAML."
       ]
     },
@@ -66,8 +64,10 @@
         "The corrected workflow replaces permissions: write-all with permissions: {} at the top and explicit per-job grants.",
         "The corrected workflow pins actions/checkout and actions/setup-node to full commit SHAs with a version comment.",
         "The report separates tool-backed or rule-backed hard findings from opinion or style items under distinct headings.",
-        "The answer states that actionlint and zizmor were run on the corrected file, or names them as not installed.",
+        "The report's Tools line names actionlint, shellcheck, zizmor, poutine, pinact, gasa, and run-stats, each with a version or 'absent' or 'skipped: <reason>'; a sentence that only says the scanners were run fails this.",
         "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset), and zizmor `dangerous-triggers` when the output keeps `pull_request_target` and the answer states why (Collaborators-only PR access, or private repo with the split-job pattern).",
+        "The corrected workflow still does what the original did: tests run on the same events, and the PR comment step is kept in a safe shape (env-passed values, no pull_request_target) or its removal is stated with the reason. Correctness names the step that can never succeed as written: `gh pr comment` also runs on `push` events, where there is no PR number.",
+        "If pinact moved an action to a newer major than the original (`@v4` becomes a `# v7.x` comment), the hand-back names each such action and gives the command that keeps the old major (`scripts/scan.sh pinact run -update -min-age 7 -i 'actions/checkout@v4' <file>`); silent major jumps fail this.",
         "The transcript shows every commit SHA written into a `uses:` line came from running `pinact run` on the file; no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`) or other hand lookup produced a SHA that was then typed into the YAML."
       ]
     },
@@ -79,7 +79,7 @@
       "expectations": [
         "The workflow gains a concurrency block with cancel-in-progress for superseded runs.",
         "setup-node gains cache: npm or an equivalent package-manager cache.",
-        "The redundant matrix cell is removed or explained: ubuntu-latest and ubuntu-24.04 are the same runner, so the matrix shrinks without losing coverage.",
+        "Only the redundant matrix alias is removed: ubuntu-latest and ubuntu-24.04 are the same runner today, so one of them goes; ubuntu-22.04 is a distinct runner and stays, or its removal is proposed as a coverage question with the reason.",
         "fetch-depth: 0 is removed from jobs that do not need history, or its removal is proposed with the reason.",
         "Lint and test no longer run strictly sequentially, or the answer justifies keeping needs: lint.",
         "Jobs gain timeout-minutes.",
@@ -87,7 +87,7 @@
         "The existing SHA pins are preserved exactly (same SHAs and version comments, including setup-node `# v4.4.0`; a whole-file `pinact -update` would have bumped it) and the permissions block is not loosened.",
         "Each speed change is explained with the reason it saves time.",
         "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset), and zizmor `dangerous-triggers` when the output keeps `pull_request_target` and the answer states why (Collaborators-only PR access, or private repo with the split-job pattern).",
-        "The answer states that actionlint, zizmor, and poutine were run on the result, or names by tool which ones were not installed.",
+        "The `on:` block keeps the original events and branch filters (the prompt asked for speed without dropping coverage); narrowing `push` to `branches: [main]` or dropping an event fails this unless the answer proposes it as a separate question that names the coverage it drops.",
         "The transcript shows every commit SHA written into a `uses:` line came from running `pinact run` on the file; no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`) or other hand lookup produced a SHA that was then typed into the YAML."
       ]
     },
@@ -100,12 +100,12 @@
         "The new lint job has its own permissions block with contents: read.",
         "The new lint job uses the same full-SHA pins and version comments for actions/checkout and actions/setup-node as the existing test job.",
         "The new lint job sets persist-credentials: false on checkout and cache: npm on setup-node, matching the existing job.",
-        "The new lint job has a timeout-minutes and a human-friendly name.",
+        "The new lint job has timeout-minutes and a name a person would search for in the Actions tab (capitalized words with spaces, such as `Lint`); a filename, an id-style name (`lint-1`), or no name fails this.",
         "The lint job runs in parallel with the test job rather than being chained with needs, or the answer justifies chaining.",
         "The existing test job, triggers, permissions, and concurrency block are unchanged byte for byte, including the setup-node SHA and `# v4.4.0` comment (a whole-file `pinact -update` would have bumped it).",
         "No path filters, workflow_dispatch, or other unrequested triggers are added.",
-        "The answer states that actionlint and zizmor were run, or names them as not installed.",
         "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset), and zizmor `dangerous-triggers` when the output keeps `pull_request_target` and the answer states why (Collaborators-only PR access, or private repo with the split-job pattern).",
+        "The lint job runs `npm ci` and then `npm run lint`; a copied test job that still runs `npm test`, or a lint step without a preceding install, fails this.",
         "The transcript shows every commit SHA written into a `uses:` line came from running `pinact run` on the file; no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`) or other hand lookup produced a SHA that was then typed into the YAML."
       ]
     },
@@ -127,6 +127,9 @@
         "The speed section covers all three workflows and names the deploy workflow's cancel-in-progress concurrency as a risk for deploys.",
         "The workflow files in the repo are left unmodified; fixes appear as a proposed diff.",
         "The proposed corrected YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset), and zizmor `dangerous-triggers` when the output keeps `pull_request_target` and the answer states why (Collaborators-only PR access, or private repo with the split-job pattern).",
+        "Lines that were already SHA-pinned in the originals (deploy-static-keys.yml and slow-ci.yml: checkout `# v7.0.1`, setup-node `# v4.4.0`) keep their SHA and version comment in the proposed YAML, or move forward with the reason stated; a pin copied from another file's pinact output onto these lines (a downgrade to `# v4.4.0`) is a hand lookup and fails this.",
+        "Every finding the proposed diff fixes appears in the report under the section it belongs to (an actionlint SC2086 quoting fix in the diff with Correctness saying 'none found' fails this).",
+        "Each proposed workflow still does what the original did (deploy still deploys, tests still run, the PR comment is kept in a safe shape or its removal is stated), and Correctness names the step that can never succeed as written: `gh pr comment` also runs on `push` events, where there is no PR number.",
         "The transcript shows every commit SHA written into a `uses:` line came from running `pinact run` on the file; no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`) or other hand lookup produced a SHA that was then typed into the YAML."
       ]
     },
@@ -144,6 +147,8 @@
         "The answer recommends a Dependabot github-actions entry (daily, cooldown 7) because none exists, as a complete file.",
         "Every placeholder introduced (role ARN, environment name, region) is listed for the user to confirm.",
         "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset), and zizmor `dangerous-triggers` when the output keeps `pull_request_target` and the answer states why (Collaborators-only PR access, or private repo with the split-job pattern).",
+        "aws-actions/configure-aws-credentials runs after `npm ci` and `npm run build`, so package lifecycle scripts never run with cloud credentials in the environment; or the build runs in a separate job that has no id-token: write and hands the artifact to the deploy job.",
+        "The workflow starts with `permissions: {}` and the deploy job grants `contents: read` and `id-token: write` itself; the original's top-level `contents: read` block is reported as a Hard finding (a non-empty top-level grant applies to every job).",
         "The transcript shows every commit SHA written into a `uses:` line came from running `pinact run` on the file; no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`) or other hand lookup produced a SHA that was then typed into the YAML."
       ]
     },
@@ -162,10 +167,10 @@
         "Lint and test run as parallel jobs using the repo's own npm scripts; the reusable super-linter workflow is not proposed because the repo has its own linter.",
         "The answer offers BretFisher/docker-build-workflow as a reusable option before or alongside the bespoke docker.yml, and asks whether the user already has one.",
         "The answer asks only about decisions the repo cannot answer (registry, whether to publish on tags) and does not ask for facts it could infer.",
-        "Workflow files use the conventional names ci.yml and docker.yml.",
         "No workflow_dispatch, repository_dispatch, or path filters are added.",
-        "The hand-back explains, in one line each, the reason for every opinionated default it applied.",
+        "The hand-back gives a one-line reason for each of these defaults it applied: least-privilege permissions, SHA pinning, concurrency, caching, timeout-minutes, and trusted-refs publishing (PR builds do not push). Other defaults may go unexplained.",
         "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset), and zizmor `dangerous-triggers` when the output keeps `pull_request_target` and the answer states why (Collaborators-only PR access, or private repo with the split-job pattern).",
+        "Image push, provenance, and SBOM happen only on trusted refs (push to the default branch or a semver tag). The pull_request path builds with push: false in a job that holds no packages: write; the job that pushes is the only one granted packages: write and does not run on pull_request events. A single job with `push: ${{ github.event_name != 'pull_request' }}` and packages: write on every event fails this.",
         "The transcript shows every commit SHA written into a `uses:` line came from running `pinact run` on the file; no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`) or other hand lookup produced a SHA that was then typed into the YAML."
       ]
     }
