@@ -112,6 +112,18 @@ In scope, not yet applied:
 - e9 uncovered outcome: the audit caught good-ci.yml referencing `.nvmrc`/`package.json` that do not exist in the fixture repo; no assertion rewards that Correctness catch.
 - e9 fixture wart, accepted: the lock's version stamps were sed-downgraded to v0.79.0, so the `github/gh-aw-actions/setup` pin carries a v0.79.0 comment on a v0.86.2 SHA; a lock genuinely compiled by v0.79.0 would differ more broadly. Executors that report the mismatch are correct; replace the fixture with a real old-compiler artifact only if this ever confuses a run.
 
+Full-suite pass, 2026-08-31 (Sonnet 5 and Haiku 4.5, with skill vs no skill, all 10 evals; results in the README table):
+
+- Most frequent with-skill miss on both models: the hand-back-reasons assertion (e1#6, e2#7, e8#6; Haiku also e4#9, e7#7). A default applied with no why, or a placeholder (`environment: production`, `aws-region`) not listed. Candidate rule: the done-when names the defaults to explain, so a model can check the list instead of remembering "every".
+- e9#4 failed on Sonnet with the rule present: it gave the right recompile path and also proposed a repo `dependabot.yml` that would bump the lock's manifest. audit.md now says how a Dependabot recommendation must treat the lock (PRs against it are closed, not merged).
+- e2#10 (deploy by digest) failed on Sonnet with the rule present (deferred as a gap) — confirms the rule was needed; consider making the SKILL.md line an explicit step in the container-images list rather than a trailing sentence.
+- Trusted-refs variant not named by e1#2/e2#9/e8#8: Haiku split the jobs but left `push: ${{ github.event_name != 'pull_request' }}` on the unprivileged build job, so the trusted-ref path pushes without a login and the publish job never runs. Add that shape to the failing examples.
+- e3#6 / e6#4 (Tools line): Haiku invented four of five tool versions in two runs, with no version command in the transcript. Require the transcript to show the version commands, not only the line.
+- Transcript assertion (last on every eval) on a run that wrote no SHA: graders split between vacuous PASS and FAIL. Make the rule explicit — "if no SHA was newly written, passes" — so the baseline number is comparable across graders.
+- Haiku audit runs report scanner counts that contradict their own saved output (poutine "0" with 3 findings saved). No assertion compares reported counts with tool output; consider one for e3/e6.
+- Sonnet e6 executor claimed zizmor's directory form dropped 15/20 findings; the grader's directory run returned all 20. Unreproduced; leave the per-file loop out of audit.md unless it recurs.
+- Grader-run scanners found the baselines' proposed YAML unrunnable twice (Haiku e6: SHAs that exist in no repo, zizmor `impostor-commit`; Haiku e9: a fabricated checkout ref). No assertion targets "the proposed fix is worse than the original" beyond the mech assertion; it did catch both.
+
 Rejected, so graders stop re-suggesting them:
 
 - Lockfile content validation (empty `package-lock.json` not flagged): ecosystem-specific; the skill does not carry rules per package manager or language.

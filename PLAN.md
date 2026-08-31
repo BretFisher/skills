@@ -41,7 +41,7 @@ Pin image tags (or digests, per `docker-pro`) once the option lands; `latest` is
 
 ## Milestone: evals pass 2 (grader backlog)
 
-**Done 2026-08-30** (commit `9b6d714`): 88 assertions became 92, saved iteration-4/-5 outputs re-graded (with skill 88/92 vs old 62/92), four rules written from the with-skill failures. Remaining: the cheaper-model pass, now tracked by the README "Skill eval results" table; the pass-3 backlog lives in `evals/coverage.md`.
+**Done 2026-08-30** (commit `9b6d714`): 88 assertions became 92, saved iteration-4/-5 outputs re-graded (with skill 88/92 vs old 62/92), four rules written from the with-skill failures. Cheaper-model pass done 2026-08-31 (Sonnet 5 94/101, Haiku 4.5 70/101, both vs no-skill baselines; README table); remaining models in that table need an outside runner for the non-Anthropic columns; the pass-3 backlog lives in `evals/coverage.md`.
 
 **Why.** Iteration-4 (2026-08-26) scored the rebuilt skill 87/88 against the old snapshot's 66/88, but the graders also reported which assertions are trivially satisfied and which real outcomes nothing checks (trusted-refs push gating, deploy-by-digest, unrequested trigger narrowing, intent preservation in audit output). Until those are assertions, a worse output can still score 100%.
 
