@@ -42,7 +42,7 @@ python -m scripts.aggregate_benchmark .evals/<skill-name>/iteration-N --skill-na
 `make eval-benchmark SKILL=<skill-name>` and `make eval-view SKILL=<skill-name>` wrap those two
 scripts with the right paths (see the Makefile; `ITER` defaults to the highest iteration present).
 
-Eval-harness notes, learned the hard way: graders never embed a `timing` object in `grading.json` (it breaks `aggregate_benchmark`; timing belongs in the sibling `timing.json`) and never use `set -x` near a token-bearing command; executors commit the pristine input files as the work repo's first commit before editing, so `git show HEAD:` still holds the original for the grader.
+Eval-harness notes, learned the hard way: graders never embed a `timing` object in `grading.json` (it breaks `aggregate_benchmark`; timing belongs in the sibling `timing.json`) and never use `set -x` near a token-bearing command; executors commit the pristine input files as the work repo's first commit before editing, so `git show HEAD:` still holds the original for the grader. When a rate limit kills graders mid-run, validate every surviving `grading.json` (expectation count, field names, no `timing`) and relaunch only the missing runs; do not regrade the survivors.
 
 If you want to publish a quality scorecard, copy a single curated `benchmark.md` into the
 skill folder and commit just that — do not commit the rest of `.evals/`.

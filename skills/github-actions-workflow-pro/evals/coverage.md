@@ -93,36 +93,53 @@ Which assertion in `evals.json` proves each rule the skill states. Two kinds of 
 - The live-repo gap: run-history behaviors, disabled workflows, spread ratio from real runs, the tagless-upstream `@main` case, and untrusted run titles all need a repo with a remote and seeded runs (a failing run, a disabled workflow, a run title carrying an injected instruction). One throwaway fork closes five rows at once.
 - Reusable-workflow caller cases (`timeout-minutes` on a `uses:` job, inputs vs callers).
 
-## Backlog (pass 3 candidates, from the pass-2 graders)
+## Pass 3 work plan
 
-In scope, not yet applied:
+Source: the pass-2 graders (2026-08-30) and the full-suite run on Sonnet 5 and Haiku 4.5 with and without the skill (2026-08-31; 94/101 and 70/101 with skill, 55/101 and 36/101 without; saved under `.evals/github-actions-workflow-pro/iteration-{7-sonnet,8-haiku}/`). Items are ordered by what they move. Each names its type: **rule** changes skill text and needs executors to re-run; **eval** changes `evals.json` wording and needs graders only, against the saved outputs; **fixture** changes an input file; **harness** changes how runs are made.
 
-- e1#7: allow the image name to reach `metadata-action` via an env variable, not only the literal expression.
-- e3#8 and e6#11: say whether a narrowed branch filter counts as a behavior change (align with e4#11).
+Order of work: do every **eval** item first and re-grade the saved iteration-7 and -8 outputs against the changed assertions only (cheap, and it fixes the numbers before anything else moves them). Then the **rule** items, re-running only the evals whose rules changed, on Sonnet and Haiku. README cells change only after a full run of all 10 evals.
+
+### 1. Grading consistency (eval, do first: these move the baseline numbers)
+
+- Transcript assertion (last on every eval) on a run that wrote no SHA: graders split between vacuous PASS and FAIL across iterations 7 and 8. Add the clause "a run that wrote no new SHA passes this assertion" so the number is comparable. e9#8 is the extreme case (an audit that pins nothing).
+- e6#10 / e6#11 / e3#8: say whether "Correctness" is a literal section title or substance (a baseline with no sections was graded on substance once, on the title once), and whether a narrowed branch filter counts as a behavior change (align with e4#11).
 - e4#11: the escape clause needs the question to name the dropped coverage; a nearby unrelated question does not count.
-- e6#10 and e6#11: say whether "Correctness" means a literal section title or substance (a baseline report with no sections was graded on substance).
-- e7#10: say the Hard label is load-bearing, not just the reason.
-- Intent preservation: an invented step that hard-fails on an unverified artifact (`if-no-files-found: error` on every PR) should fail e3#8.
-- Recheck e8#5 against the iteration-4 with-skill output: both delivered workflows carry `paths-ignore`, which that assertion says must not be added; likely a pass-1 grading miss, not an assertion gap.
-- Fixture repair: `evals/fixtures/node-repo/package-lock.json` has an empty packages map, so any correct CI fails at `npm ci` in real life. Fix the fixture; see Rejected for why it is not a rule.
+- e7#10: the Hard label is load-bearing, not only the reason.
 
-- e9#4: "no Dependabot inside the lock" is ambiguous when the report also proposes a repo-level `dependabot.yml` (whose github-actions ecosystem inevitably covers the lock's directory); say the report must state that a Dependabot PR against the lock is not the update path and why, while `dependabot.yml` for the normal workflows stays correct.
-- e9#7 (mech): needs a generated-file exemption — a recompiled gh-aw lock carries compiler-authored actionlint nits (schema lag, SC2129) the executor cannot fix; disclosed items in generated files should not fail the assertion.
-- e9#8 (transcript) is near-vacuous on an audit that pins nothing; keep for uniformity or scope it to evals that write pins.
-- e9 uncovered outcome: the audit caught good-ci.yml referencing `.nvmrc`/`package.json` that do not exist in the fixture repo; no assertion rewards that Correctness catch.
-- e9 fixture wart, accepted: the lock's version stamps were sed-downgraded to v0.79.0, so the `github/gh-aw-actions/setup` pin carries a v0.79.0 comment on a v0.86.2 SHA; a lock genuinely compiled by v0.79.0 would differ more broadly. Executors that report the mismatch are correct; replace the fixture with a real old-compiler artifact only if this ever confuses a run.
+### 2. Assertions that let a wrong output through (eval)
 
-Full-suite pass, 2026-08-31 (Sonnet 5 and Haiku 4.5, with skill vs no skill, all 10 evals; results in the README table):
+- e1#2 / e2#9 / e8#8 trusted refs: name the second failing shape seen on Haiku e8 — two jobs, but the unprivileged build job still carries `push: ${{ github.event_name != 'pull_request' }}` with no login, so trusted-ref pushes fail and the publish job never runs.
+- e3#6 / e6#4 Tools line: Haiku invented four of five tool versions in two runs with no version command in the transcript. Require the transcript to show the version commands.
+- e3 / e6 reported counts: Haiku reported `poutine: 0` with 3 findings in its own saved output. Add: every scanner count in the report matches the tool output the grader reproduces.
+- e9#3 staleness: Haiku passed on a guess ("likely 2+ months old"). Require the latest gh-aw tag or the lock's commit date to appear.
+- e9#4 Dependabot: say the report must state that Dependabot PRs against the lock are closed, not merged (rule now in audit.md), while a repo `dependabot.yml` for normal workflows stays correct.
+- e9#2: allow a compiler-produced lock (the output of `gh aw compile` on the edited `.md`) — only hand edits fail it.
+- e9#7 (mech): exempt disclosed compiler-authored nits inside a recompiled lock (schema lag on `queue`, SC2129).
+- e1#7: allow the image name to reach `metadata-action` through an env variable.
+- Intent preservation (e3#8): an invented step that hard-fails on an unverified artifact (`if-no-files-found: error` on every PR) fails it.
+- Recheck e8#5 on the iteration-4 with-skill output: both workflows carried `paths-ignore`; likely a pass-1 grading miss.
 
-- Most frequent with-skill miss on both models: the hand-back-reasons assertion (e1#6, e2#7, e8#6; Haiku also e4#9, e7#7). A default applied with no why, or a placeholder (`environment: production`, `aws-region`) not listed. Candidate rule: the done-when names the defaults to explain, so a model can check the list instead of remembering "every".
-- e9#4 failed on Sonnet with the rule present: it gave the right recompile path and also proposed a repo `dependabot.yml` that would bump the lock's manifest. audit.md now says how a Dependabot recommendation must treat the lock (PRs against it are closed, not merged).
-- e2#10 (deploy by digest) failed on Sonnet with the rule present (deferred as a gap) — confirms the rule was needed; consider making the SKILL.md line an explicit step in the container-images list rather than a trailing sentence.
-- Trusted-refs variant not named by e1#2/e2#9/e8#8: Haiku split the jobs but left `push: ${{ github.event_name != 'pull_request' }}` on the unprivileged build job, so the trusted-ref path pushes without a login and the publish job never runs. Add that shape to the failing examples.
-- e3#6 / e6#4 (Tools line): Haiku invented four of five tool versions in two runs, with no version command in the transcript. Require the transcript to show the version commands, not only the line.
-- Transcript assertion (last on every eval) on a run that wrote no SHA: graders split between vacuous PASS and FAIL. Make the rule explicit — "if no SHA was newly written, passes" — so the baseline number is comparable across graders.
-- Haiku audit runs report scanner counts that contradict their own saved output (poutine "0" with 3 findings saved). No assertion compares reported counts with tool output; consider one for e3/e6.
-- Sonnet e6 executor claimed zizmor's directory form dropped 15/20 findings; the grader's directory run returned all 20. Unreproduced; leave the per-file loop out of audit.md unless it recurs.
-- Grader-run scanners found the baselines' proposed YAML unrunnable twice (Haiku e6: SHAs that exist in no repo, zizmor `impostor-commit`; Haiku e9: a fabricated checkout ref). No assertion targets "the proposed fix is worse than the original" beyond the mech assertion; it did catch both.
+### 3. Skill rules the run showed are missing or too quiet (rule)
+
+- Hand-back reasons: the most frequent with-skill miss on both models (Sonnet e1, e2, e8; Haiku e1, e4, e7, e8). Make the done-when list the defaults that need a why (permissions, pinning, concurrency, cache, timeout, trusted refs, provenance/SBOM, `persist-credentials`, `set -euo pipefail`) and the placeholders that need listing (environment name, region, role ARN, bucket), so a model checks a list instead of remembering "every".
+- Deploy by digest: Sonnet e2 deferred it as a "gap" with the rule present. Move it from a trailing sentence to its own bullet in the SKILL.md container-images list, with the `outputs.digest` → job output → deploy reference shape spelled out.
+- Trusted refs: add the Haiku shape above (build job must have no `push:` expression at all) to the SKILL.md container-images bullet.
+- Tools line: audit.md names the version commands; add that the versions are pasted from their output, never recalled (Haiku fabricated them twice).
+- Credentials after build: Haiku e7 configured AWS before `npm ci` with the security.md bullet present. Consider surfacing it on the SKILL.md OIDC checklist line, since Haiku reads SKILL.md more reliably than references.
+- Agentic pair section: Haiku e9 recognized the pair but filed its findings under Hard with one hand-edit fix. audit.md says "own section"; make the report template show the section so the structure is copied, not inferred.
+
+### 4. Fixtures (fixture)
+
+- `evals/fixtures/node-repo/package-lock.json` has an empty packages map, so any correct CI fails at `npm ci`. Replace with a valid minimal lockfile.
+- e5 input is already fully pinned, so assertions 1–9 do not discriminate (both configs matched byte for byte). Add one tag-pinned action to `good-ci.yml` so the edit path has something to pin.
+- e9: add a `dependabot.yml` to the fixture repo so the Dependabot-vs-lock point is forced, and replace the sed-downgraded lock with a real old-compiler artifact if the version-comment mismatch ever confuses a run (accepted wart today: `github/gh-aw-actions/setup` carries a v0.79.0 comment on a v0.86.2 SHA).
+- e9 uncovered outcome: every audit run caught `good-ci.yml` referencing `.nvmrc` / `package.json` that do not exist in the fixture repo; add the assertion or add the files.
+
+### 5. Harness (harness)
+
+- `transcript.md` is executor-authored and Haiku omitted commands it ran (correct SHAs with no `pinact run` in the table, e2). A raw tool-call log from the harness would make the process assertions verifiable; until then the assertion text should say what counts as evidence.
+- Session rate limits kill graders mid-write. Recovery that worked: validate every surviving `grading.json` (expectation count matches `expectations.json`, fields `text`/`passed`/`evidence`, no `timing`), then relaunch only the missing runs with "skip a run that already has a valid grading.json".
+- Unreproduced: a Sonnet e6 executor claimed zizmor's directory form dropped 15 of 20 findings; the grader's directory run returned all 20. Leave audit.md as is unless it recurs.
 
 Rejected, so graders stop re-suggesting them:
 
