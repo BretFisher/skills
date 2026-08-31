@@ -46,6 +46,7 @@ Every workflow you create or edit meets these. The linked reference carries the 
 - Triggers stay explicit: CI on `pull_request` and `push` to the default branch; releases on tags, releases, or manual dispatch (after asking). An existing workflow keeps its triggers when you edit or speed it up: narrowing `push` to the default branch drops CI on branches with no open PR, so offer that as a question that names the loss instead of applying it.
 - Multi-line Bash steps start with `set -euo pipefail`; prefer several clear lines over one dense one.
 - Comments mark security boundaries, non-obvious triggers, and deployment gates. YAML keys explain themselves.
+- `<name>.lock.yml` beside `<name>.md` is a compiled GitHub Agentic Workflow: edits go in the `.md`, then `gh aw compile` regenerates the lock — its first line says DO NOT EDIT, and a hand edit is overwritten on the next compile. Auditing the pair (staleness, recompile) → [audit.md](references/audit.md).
 - Reusable workflows earn their indirection when several workflows or repositories share stable behavior. One workflow stays inline.
 
 ## Container images
