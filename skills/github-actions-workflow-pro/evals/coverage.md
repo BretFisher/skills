@@ -121,9 +121,9 @@ Order of work: do every **eval** item first and re-grade the saved iteration-7 a
 
 ### 3. Skill rules the run showed are missing or too quiet (rule)
 
-- Hand-back reasons — **applied 2026-08-31**: the done-when now names the defaults and the placeholders. Was the most frequent with-skill miss on both models (Sonnet e1, e2, e8; Haiku e1, e4, e7, e8). Verification: with-skill re-run of e1, e2, e7, e8 on Sonnet and Haiku.
-- Deploy by digest — **applied 2026-08-31**: the SKILL.md bullet now spells the three-line wiring (`id: build`, job `outputs:`, `needs.build.outputs.digest`). Sonnet e2 had deferred it as a "gap" with the principle-only rule present. Verification: e2 re-run.
-- Trusted refs — **applied 2026-08-31**: SKILL.md now says the build job's `push:` is the literal `false`, never an event expression, with the failure it causes. Verification: e8 (and e1) re-run.
+- Hand-back reasons — **applied and verified 2026-08-31**: the done-when names the defaults and placeholders. Re-runs of e1, e2, e7, e8: Sonnet passed the reasons assertion on all four (was failing three); Haiku passed on three of four (e2 gave 8 of 9 whys — one still drops sometimes). Was the most frequent with-skill miss on both models.
+- Deploy by digest — **applied and verified 2026-08-31**: the SKILL.md bullet spells the three-line wiring. Sonnet e2 re-run wired it end to end (had deferred the principle-only version as "a gap"); Haiku e2 wired two of the three lines and left the digest output dangling — shape rules raise Haiku's floor, they do not guarantee the last step.
+- Trusted refs — **applied and verified 2026-08-31** with a caveat: SKILL.md says the build job's `push:` is the literal `false`, never an event expression. Sonnet followed it and quoted it; Haiku e8 followed it (its previous failure), but Haiku e1 and e2 re-runs produced the event-expression single job anyway. On Haiku this rule lands in roughly half of runs — score movement is within single-run variance, so treat any one Haiku run as a sample, not a verdict.
 - Tools line: audit.md names the version commands; add that the versions are pasted from their output, never recalled (Haiku fabricated them twice).
 - Credentials after build: Haiku e7 configured AWS before `npm ci` with the security.md bullet present. Consider surfacing it on the SKILL.md OIDC checklist line, since Haiku reads SKILL.md more reliably than references.
 - Agentic pair section: Haiku e9 recognized the pair but filed its findings under Hard with one hand-edit fix. audit.md says "own section"; make the report template show the section so the structure is copied, not inferred.
@@ -134,6 +134,10 @@ Order of work: do every **eval** item first and re-grade the saved iteration-7 a
 - e5 input is already fully pinned, so assertions 1–9 do not discriminate (both configs matched byte for byte). Add one tag-pinned action to `good-ci.yml` so the edit path has something to pin.
 - e9: add a `dependabot.yml` to the fixture repo so the Dependabot-vs-lock point is forced, and replace the sed-downgraded lock with a real old-compiler artifact if the version-comment mismatch ever confuses a run (accepted wart today: `github/gh-aw-actions/setup` carries a v0.79.0 comment on a v0.86.2 SHA).
 - e9 uncovered outcome: every audit run caught `good-ci.yml` referencing `.nvmrc` / `package.json` that do not exist in the fixture repo; add the assertion or add the files.
+
+### Verification result for section 3 items 1-3 (2026-08-31, iterations 9 and 10)
+
+With-skill re-runs of e1, e2, e7, e8. Sonnet: 39/39 (was 35/39) — all three rules followed, quoted, every touched eval now perfect. Haiku: 27/39 (was 25/39) — hand-back list mostly holds, digest wiring lands partially, `push:` literal-false lands in about half of runs; failures move between runs more than they persist, so Haiku conclusions need more than one run per eval. Items 3.4-3.6 were deliberately left unimplemented; Haiku e7's re-run failed credentials-before-build again with the rule still only in security.md, which is the control result item 3.5 predicts.
 
 ### 5. Harness (harness)
 
