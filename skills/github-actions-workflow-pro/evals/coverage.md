@@ -9,28 +9,28 @@ Which assertion in `evals.json` proves each rule the skill states. Two kinds of 
 
 ## SKILL.md checklist
 
-| Line                                                 | Proof                                                                         | Assertions                                                                |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
-| `permissions: {}` + least-privilege per job          | scanner (zizmor `excessive-permissions`, gasa) + agent                        | mech; e0#2 e1#3 e2#2 e3#3 e5#1 e7#10 (non-empty top-level grant is Hard)  |
-| `checkout` needs `contents: read`                    | agent (runtime failure, no scanner)                                           | e5#1, and any eval whose output checks out and passes mech                |
-| `persist-credentials: false`                         | scanner (zizmor `artipacked`)                                                 | mech; e5#3 e7#5                                                           |
-| Third-party `uses:` SHA + version comment            | scanner (zizmor `unpinned-uses`, `ref-version-mismatch`; gasa)                | mech; e3#4 e5#2                                                           |
-| Version comment alone on the line                    | agent (Dependabot behaviour, no scanner)                                      | not asserted; candidate for e3 (fixture has no such line yet)             |
-| Release at least 7 days old                          | scanner (pinact `-verify-min-age`)                                            | mech (pinact `-min-age 7 -verify-min-age` in the grader's run)            |
-| Same-owner `@main` replaced, or reported high        | scanner (gasa, zizmor)                                                        | mech; tagless-upstream case not asserted (needs a live repo)              |
-| OIDC over static cloud keys                          | agent                                                                         | e2#4 e7#1                                                                 |
-| Secrets scoped to an environment                     | scanner (zizmor `secrets-outside-env`, auditor) + agent                       | e7#3                                                                      |
-| Cloud credentials configured after install and build | agent (security.md, added 2026-08-30: Fable passed without it, Sonnet failed) | e7#9                                                                      |
-| `github.event.*` through `env:`                      | scanner (actionlint, zizmor, poutine)                                         | mech; e3#2                                                                |
-| `pull_request` not `pull_request_target`             | scanner (zizmor, gasa, poutine)                                               | mech; e2#1 e3#1                                                           |
-| Dependabot entry with cooldown                       | scanner (zizmor `dependabot-cooldown`, gasa `updates/*`) + agent offer        | e7#6                                                                      |
-| Superseded runs cancel (CI)                          | scanner (zizmor `concurrency-limits`, pedantic) + agent                       | e0#3 e4#1                                                                 |
-| Deploy/release in a non-cancelling group             | agent                                                                         | e6#6 e7#2                                                                 |
-| Cheap jobs first and parallel                        | agent                                                                         | e4#5 e5#5 e8#2                                                            |
-| Cache via setup action                               | agent                                                                         | e0#4 e4#2 e5#3                                                            |
-| `timeout-minutes`                                    | agent                                                                         | e0#5 e4#6 e5#4 e7#5                                                       |
-| Path filters only when correct; none on new CI       | agent                                                                         | e5#7 e8#5 (compound: path filters and dispatch triggers in one assertion) |
-| Ask before manual/remote triggers                    | agent                                                                         | e5#7 e8#5 (same compound assertions as the row above)                     |
+| Line                                                 | Proof                                                                         | Assertions                                                                                 |
+| ---------------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `permissions: {}` + least-privilege per job          | scanner (zizmor `excessive-permissions`, gasa) + agent                        | mech; e0#2 e1#3 e2#2 e3#3 e5#1 e7#10 (non-empty top-level grant is Hard)                   |
+| `checkout` needs `contents: read`                    | agent (runtime failure, no scanner)                                           | e5#1, and any eval whose output checks out and passes mech                                 |
+| `persist-credentials: false`                         | scanner (zizmor `artipacked`)                                                 | mech; e5#3 e7#5                                                                            |
+| Third-party `uses:` SHA + version comment            | scanner (zizmor `unpinned-uses`, `ref-version-mismatch`; gasa)                | mech; e3#4 e5#2                                                                            |
+| Version comment alone on the line                    | agent (Dependabot behaviour, no scanner)                                      | e3#10 (added 2026-08-31; the fixture now carries a pinned line with trailing comment text) |
+| Release at least 7 days old                          | scanner (pinact `-verify-min-age`)                                            | mech (pinact `-min-age 7 -verify-min-age` in the grader's run)                             |
+| Same-owner `@main` replaced, or reported high        | scanner (gasa, zizmor)                                                        | mech; tagless-upstream case not asserted (needs a live repo)                               |
+| OIDC over static cloud keys                          | agent                                                                         | e2#4 e7#1                                                                                  |
+| Secrets scoped to an environment                     | scanner (zizmor `secrets-outside-env`, auditor) + agent                       | e7#3                                                                                       |
+| Cloud credentials configured after install and build | agent (security.md, added 2026-08-30: Fable passed without it, Sonnet failed) | e7#9                                                                                       |
+| `github.event.*` through `env:`                      | scanner (actionlint, zizmor, poutine)                                         | mech; e3#2                                                                                 |
+| `pull_request` not `pull_request_target`             | scanner (zizmor, gasa, poutine)                                               | mech; e2#1 e3#1                                                                            |
+| Dependabot entry with cooldown                       | scanner (zizmor `dependabot-cooldown`, gasa `updates/*`) + agent offer        | e7#6                                                                                       |
+| Superseded runs cancel (CI)                          | scanner (zizmor `concurrency-limits`, pedantic) + agent                       | e0#3 e4#1                                                                                  |
+| Deploy/release in a non-cancelling group             | agent                                                                         | e6#6 e7#2                                                                                  |
+| Cheap jobs first and parallel                        | agent                                                                         | e4#5 e5#5 e8#2                                                                             |
+| Cache via setup action                               | agent                                                                         | e0#4 e4#2 e5#3                                                                             |
+| `timeout-minutes`                                    | agent                                                                         | e0#5 e4#6 e5#4 e7#5                                                                        |
+| Path filters only when correct; none on new CI       | agent                                                                         | e5#7 e8#5 (compound: path filters and dispatch triggers in one assertion)                  |
+| Ask before manual/remote triggers                    | agent                                                                         | e5#7 e8#5 (same compound assertions as the row above)                                      |
 
 ## Building a workflow
 

@@ -56,7 +56,7 @@
     {
       "id": 3,
       "prompt": "Audit this workflow (.github/workflows/ci.yml, attached) for security problems. Give me a report of what is wrong and a corrected version.",
-      "expected_output": "An audit report that separates hard findings from opinions, identifies pull_request_target with untrusted checkout, write-all permissions, unpinned actions, template injection of the PR title, and a corrected workflow that passes actionlint and zizmor.",
+      "expected_output": "An audit report that separates hard findings from opinions, identifies pull_request_target with untrusted checkout, write-all permissions, unpinned actions, a version comment carrying extra text, template injection of the PR title, and a corrected workflow that passes actionlint and zizmor.",
       "files": ["evals/fixtures/insecure-ci.yml"],
       "expectations": [
         "The report identifies pull_request_target combined with checking out the PR head as a critical risk and moves the workflow to pull_request or isolates the untrusted checkout.",
@@ -68,6 +68,7 @@
         "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset), and zizmor `dangerous-triggers` when the output keeps `pull_request_target` and the answer states why (Collaborators-only PR access, or private repo with the split-job pattern).",
         "The corrected workflow still does what the original did: tests run on the same events, and the PR comment step is kept in a safe shape (env-passed values, no pull_request_target) or its removal is stated with the reason. Correctness names the step that can never succeed as written: `gh pr comment` also runs on `push` events, where there is no PR number.",
         "If pinact moved an action to a newer major than the original (`@v4` becomes a `# v7.x` comment), the hand-back names each such action and gives the command that keeps the old major (`scripts/scan.sh pinact run -update -min-age 7 -i 'actions/checkout@v4' <file>`); silent major jumps fail this.",
+        "The report flags the upload-artifact line whose version comment carries extra text after the version (Dependabot skips updating a comment with anything besides the version, so the pin silently goes stale), and in the corrected file that comment is the version alone.",
         "The transcript shows every commit SHA written into a `uses:` line came from running `pinact run` on the file; no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`) or other hand lookup produced a SHA that was then typed into the YAML."
       ]
     },
