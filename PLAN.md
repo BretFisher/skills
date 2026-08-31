@@ -41,6 +41,8 @@ Pin image tags (or digests, per `docker-pro`) once the option lands; `latest` is
 
 ## Milestone: evals pass 2 (grader backlog)
 
+**Done 2026-08-30** (commit `9b6d714`): 88 assertions became 92, saved iteration-4/-5 outputs re-graded (with skill 88/92 vs old 62/92), four rules written from the with-skill failures. Remaining: the cheaper-model pass, now tracked by the README "Skill eval results" table; the pass-3 backlog lives in `evals/coverage.md`.
+
 **Why.** Iteration-4 (2026-08-26) scored the rebuilt skill 87/88 against the old snapshot's 66/88, but the graders also reported which assertions are trivially satisfied and which real outcomes nothing checks (trusted-refs push gating, deploy-by-digest, unrequested trigger narrowing, intent preservation in audit output). Until those are assertions, a worse output can still score 100%.
 
 **Scope.** The full list lives in `skills/github-actions-workflow-pro/evals/coverage.md`, section "Next evals pass". Apply it to `evals.json`, update the coverage rows, then re-grade the saved iteration-4 outputs (`.evals/github-actions-workflow-pro/iteration-4/`) against the new and changed assertions only: graders, no executors, so the cost is a fraction of a full iteration. Any new assertion the with-skill outputs fail is the next skill rule to write (eval-driven development, per AGENTS.md). After that, the cheaper-model pass: same evals on Sonnet and Haiku, failing assertion ids mapped back through `coverage.md` to the rule lines a smaller model drops.
