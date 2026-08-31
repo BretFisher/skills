@@ -49,4 +49,19 @@ at the repo root, which is gitignored. They're regenerated on every run and mach
 aren't source of truth. When running the skill-creator eval loop, point its workspace at
 `.evals/<name>/` rather than the default `<name>-workspace/` sibling.
 
+### Skill eval results
+
+I run each skill's evals on the models below so you know the skill still produces good output on
+the model you use, even a cheap, less accurate one. I only record a result here after a full run of
+every eval against the current assertion set (92 assertions as of 2026-08-30).
+
+#### github-actions-workflow-pro
+
+|        | Haiku 4.5 | Sonnet 5 | Opus 4.8 | Opus 5 | GPT 5.6 Sol | GPT 5.6 Luna | Kimi K2.7 Code | Kimi K3 | Grok 4.6 | GLM 5.3 Flash | MiniMax M3 | Qwen 3.8 27B |
+| ------ | --------- | -------- | -------- | ------ | ----------- | ------------ | -------------- | ------- | -------- | ------------- | ---------- | ------------ |
+| Result | —         | —        | —        | —      | —           | —            | —              | —       | —        | —             | —          | —            |
+
+I build and test these skills on Fable 5, which scores 88/92 — that's my baseline, not one of the
+target models above. Sonnet 5 has a partial run so far (evals 3, 6, and 7), so no result yet.
+
 See [AGENTS.md](./AGENTS.md) for the full convention (also symlinked as `CLAUDE.md`), and [PLAN.md](./PLAN.md) for the roadmap.
