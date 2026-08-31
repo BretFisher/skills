@@ -55,6 +55,7 @@ Publish images on **trusted refs** only (default branch, tags, releases), from t
 - `docker/setup-buildx-action`, then `docker/metadata-action` for tags and labels, then `docker/build-push-action`. On a PR, `metadata-action` yields `pr-N`, not a semver tag, which is what you want.
 - `ghcr.io` unless the repo names another registry.
 - `cache-from: type=gha` and `cache-to: type=gha,mode=max`. `provenance: true` and `sbom: true` when publishing.
+- A deploy job that follows a build consumes the image by the digest the build job output (`build-push-action` `outputs.digest`, passed through job outputs), not by a tag: a tag can be re-pushed between build and deploy, a digest cannot, so the artifact that was scanned and tested is the artifact that ships.
 
 ## Validate
 
