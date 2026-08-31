@@ -174,6 +174,26 @@
         "Image push, provenance, and SBOM happen only on trusted refs (push to the default branch or a semver tag). The pull_request path builds with push: false in a job that holds no packages: write; the job that pushes is the only one granted packages: write and does not run on pull_request events. A single job with `push: ${{ github.event_name != 'pull_request' }}` and packages: write on every event fails this.",
         "The transcript shows every commit SHA written into a `uses:` line came from running `pinact run` on the file; no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`) or other hand lookup produced a SHA that was then typed into the YAML."
       ]
+    },
+    {
+      "id": 9,
+      "prompt": "Audit all the GitHub Actions workflows in this repo. Security, speed, anything outdated.",
+      "expected_output": "An audit that recognizes link-checker.md + link-checker.lock.yml as a compiled gh-aw agentic workflow pair, gives it its own section where staleness is the finding (compiler v0.79.0 behind the latest gh-aw release), recommends gh aw update-actions then gh aw compile rather than editing the lock or pointing Dependabot at it, and audits good-ci.yml as a normal workflow.",
+      "files": [
+        "evals/fixtures/link-checker.md",
+        "evals/fixtures/link-checker.lock.yml",
+        "evals/fixtures/good-ci.yml"
+      ],
+      "expectations": [
+        "The report identifies link-checker.lock.yml and link-checker.md as a compiled GitHub Agentic Workflow (gh-aw) pair and gives the pair its own section, separate from the normal workflow findings.",
+        "The lock file is never treated as hand-editable: no proposed diff or corrected YAML modifies link-checker.lock.yml, and any change to the pair is directed at link-checker.md followed by `gh aw compile`.",
+        "The report warns the pair is stale: it reads the compiler version (v0.79.0) from the lock file's generated-by header, compares it with the latest gh-aw release, and flags the lock as compiled by an outdated compiler (a check of the lock's last commit date also satisfies the age half).",
+        "The recommended remediation is `gh aw update-actions` (refreshing .github/aw/actions-lock.json) followed by `gh aw compile`, committing both; the report does not propose Dependabot or Renovate updates inside the lock file, and states why (the file is generated as one unit).",
+        "Any scanner finding cited against link-checker.lock.yml appears in the pair's section with recompilation as the fix, not under Hard findings as a hand-edit.",
+        "good-ci.yml is audited as a normal workflow and appears in the report outside the agentic pair's section.",
+        "Any proposed corrected YAML (there may be none, since good-ci.yml is already clean) passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset), and zizmor `dangerous-triggers` when the output keeps `pull_request_target` and the answer states why (Collaborators-only PR access, or private repo with the split-job pattern).",
+        "The transcript shows every commit SHA written into a `uses:` line came from running `pinact run` on the file; no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`) or other hand lookup produced a SHA that was then typed into the YAML."
+      ]
     }
   ]
 }
