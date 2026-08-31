@@ -106,6 +106,12 @@ In scope, not yet applied:
 - Recheck e8#5 against the iteration-4 with-skill output: both delivered workflows carry `paths-ignore`, which that assertion says must not be added; likely a pass-1 grading miss, not an assertion gap.
 - Fixture repair: `evals/fixtures/node-repo/package-lock.json` has an empty packages map, so any correct CI fails at `npm ci` in real life. Fix the fixture; see Rejected for why it is not a rule.
 
+- e9#4: "no Dependabot inside the lock" is ambiguous when the report also proposes a repo-level `dependabot.yml` (whose github-actions ecosystem inevitably covers the lock's directory); say the report must state that a Dependabot PR against the lock is not the update path and why, while `dependabot.yml` for the normal workflows stays correct.
+- e9#7 (mech): needs a generated-file exemption — a recompiled gh-aw lock carries compiler-authored actionlint nits (schema lag, SC2129) the executor cannot fix; disclosed items in generated files should not fail the assertion.
+- e9#8 (transcript) is near-vacuous on an audit that pins nothing; keep for uniformity or scope it to evals that write pins.
+- e9 uncovered outcome: the audit caught good-ci.yml referencing `.nvmrc`/`package.json` that do not exist in the fixture repo; no assertion rewards that Correctness catch.
+- e9 fixture wart, accepted: the lock's version stamps were sed-downgraded to v0.79.0, so the `github/gh-aw-actions/setup` pin carries a v0.79.0 comment on a v0.86.2 SHA; a lock genuinely compiled by v0.79.0 would differ more broadly. Executors that report the mismatch are correct; replace the fixture with a real old-compiler artifact only if this ever confuses a run.
+
 Rejected, so graders stop re-suggesting them:
 
 - Lockfile content validation (empty `package-lock.json` not flagged): ecosystem-specific; the skill does not carry rules per package manager or language.
