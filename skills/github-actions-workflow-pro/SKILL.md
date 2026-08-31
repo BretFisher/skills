@@ -51,12 +51,12 @@ Every workflow you create or edit meets these. The linked reference carries the 
 
 ## Container images
 
-Publish images on **trusted refs** only (default branch, tags, releases), from two jobs: a build job that runs on `pull_request` with `contents: read` and `push: false`, and a publish job that runs on `push` to the default branch or a tag and is the only job with `packages: write`. A permission cannot depend on the event, so one job with `push: ${{ github.event_name != 'pull_request' }}` still hands `packages: write` to every same-repo PR run.
+Publish images on **trusted refs** only (default branch, tags, releases), from two jobs: a build job that runs on `pull_request` with `contents: read` and `push: false`, and a publish job that runs on `push` to the default branch or a tag and is the only job with `packages: write`. A permission cannot depend on the event, so one job with `push: ${{ github.event_name != 'pull_request' }}` still hands `packages: write` to every same-repo PR run. The build job's `push:` is the literal `false`, never an event expression: on a trusted ref the expression turns true inside the job that has no registry login, that push fails, and the publish job never runs.
 
 - `docker/setup-buildx-action`, then `docker/metadata-action` for tags and labels, then `docker/build-push-action`. On a PR, `metadata-action` yields `pr-N`, not a semver tag, which is what you want.
 - `ghcr.io` unless the repo names another registry.
 - `cache-from: type=gha` and `cache-to: type=gha,mode=max`. `provenance: true` and `sbom: true` when publishing.
-- A deploy job that follows a build consumes the image by the digest the build job output (`build-push-action` `outputs.digest`, passed through job outputs), not by a tag: a tag can be re-pushed between build and deploy, a digest cannot, so the artifact that was scanned and tested is the artifact that ships.
+- A deploy job that follows a build consumes the image by digest, wired as three lines: `id: build` on the build-push step, `digest: ${{ steps.build.outputs.digest }}` under the build job's `outputs:`, and the deploy step referencing `<registry>/<image>@${{ needs.build.outputs.digest }}`. Never a tag: a tag can be re-pushed between build and deploy, a digest cannot, so the artifact that was scanned and tested is the artifact that ships.
 
 ## Validate
 
@@ -67,5 +67,5 @@ Run `actionlint`, `scripts/scan.sh zizmor` (the wrapper sets the token from your
 - [ ] `actionlint`, `zizmor`, `poutine`, and `pinact -check` clean on every edited file, or reported absent by name; the two reports allowed to remain are a branch ref pinact cannot pin (listed as open with the upstream fix: tag a release) and zizmor `dangerous-triggers` on a `pull_request_target` kept for a stated reason
 - [ ] Every job has a `permissions:` block and the workflow starts with `permissions: {}`
 - [ ] Every third-party `uses:` is a full SHA with a version comment
-- [ ] Every placeholder is listed for the user to confirm
-- [ ] The hand-back states the reason for each opinionated default you applied, in one line each: why it applies here, not what it does
+- [ ] Every placeholder is listed for the user to confirm — environment name, region, role ARN, bucket, registry, secret names
+- [ ] The hand-back gives a one-line why for each of these defaults it applied — least-privilege permissions, SHA pinning, concurrency, caching, `timeout-minutes`, trusted-refs publishing, `provenance`/`sbom`, `persist-credentials: false`, `set -euo pipefail`. A named list, because "each default" is recalled from memory at the end of a long task and one always drops; the why states why it applies here, not what it does

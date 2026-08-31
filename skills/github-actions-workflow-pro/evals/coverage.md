@@ -121,9 +121,9 @@ Order of work: do every **eval** item first and re-grade the saved iteration-7 a
 
 ### 3. Skill rules the run showed are missing or too quiet (rule)
 
-- Hand-back reasons: the most frequent with-skill miss on both models (Sonnet e1, e2, e8; Haiku e1, e4, e7, e8). Make the done-when list the defaults that need a why (permissions, pinning, concurrency, cache, timeout, trusted refs, provenance/SBOM, `persist-credentials`, `set -euo pipefail`) and the placeholders that need listing (environment name, region, role ARN, bucket), so a model checks a list instead of remembering "every".
-- Deploy by digest: Sonnet e2 deferred it as a "gap" with the rule present. Move it from a trailing sentence to its own bullet in the SKILL.md container-images list, with the `outputs.digest` → job output → deploy reference shape spelled out.
-- Trusted refs: add the Haiku shape above (build job must have no `push:` expression at all) to the SKILL.md container-images bullet.
+- Hand-back reasons — **applied 2026-08-31**: the done-when now names the defaults and the placeholders. Was the most frequent with-skill miss on both models (Sonnet e1, e2, e8; Haiku e1, e4, e7, e8). Verification: with-skill re-run of e1, e2, e7, e8 on Sonnet and Haiku.
+- Deploy by digest — **applied 2026-08-31**: the SKILL.md bullet now spells the three-line wiring (`id: build`, job `outputs:`, `needs.build.outputs.digest`). Sonnet e2 had deferred it as a "gap" with the principle-only rule present. Verification: e2 re-run.
+- Trusted refs — **applied 2026-08-31**: SKILL.md now says the build job's `push:` is the literal `false`, never an event expression, with the failure it causes. Verification: e8 (and e1) re-run.
 - Tools line: audit.md names the version commands; add that the versions are pasted from their output, never recalled (Haiku fabricated them twice).
 - Credentials after build: Haiku e7 configured AWS before `npm ci` with the security.md bullet present. Consider surfacing it on the SKILL.md OIDC checklist line, since Haiku reads SKILL.md more reliably than references.
 - Agentic pair section: Haiku e9 recognized the pair but filed its findings under Hard with one hand-edit fix. audit.md says "own section"; make the report template show the section so the structure is copied, not inferred.
