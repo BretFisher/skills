@@ -58,13 +58,13 @@ Which assertion in `evals.json` proves each rule the skill states. Two kinds of 
 
 ## Validate and Done-when
 
-| Line                                                   | Proof                                        | Assertions                                                             |
-| ------------------------------------------------------ | -------------------------------------------- | ---------------------------------------------------------------------- |
-| Scanners run or named absent                           | agent                                        | e3#6 e6#4 (Tools line with versions; on build evals mech is the proof) |
-| Every job has `permissions:`; `permissions: {}` at top | scanner + agent                              | mech; e0#2 e5#1                                                        |
-| Every third-party `uses:` SHA-pinned                   | scanner                                      | mech                                                                   |
-| Placeholders listed                                    | agent                                        | e2#7 e7#7                                                              |
-| Hand-back explains each default                        | agent (done-when: the why, not what it does) | e0#7 e1#6 e2#7 e4#9 e8#6                                               |
+| Line                                                   | Proof                                        | Assertions                                                           |
+| ------------------------------------------------------ | -------------------------------------------- | -------------------------------------------------------------------- |
+| Scanners run or named absent                           | agent                                        | e3#6 e6#4 (Tools line, ran/absent; on build evals mech is the proof) |
+| Every job has `permissions:`; `permissions: {}` at top | scanner + agent                              | mech; e0#2 e5#1                                                      |
+| Every third-party `uses:` SHA-pinned                   | scanner                                      | mech                                                                 |
+| Placeholders listed                                    | agent                                        | e2#7 e7#7                                                            |
+| Hand-back explains each default                        | agent (done-when: the why, not what it does) | e0#7 e1#6 e2#7 e4#9 e8#6                                             |
 
 ## audit.md
 
@@ -109,7 +109,7 @@ Order of work: do every **eval** item first and re-grade the saved iteration-7 a
 ### 2. Assertions that let a wrong output through (eval)
 
 - e1#2 / e2#9 / e8#8 trusted refs: name the second failing shape seen on Haiku e8 — two jobs, but the unprivileged build job still carries `push: ${{ github.event_name != 'pull_request' }}` with no login, so trusted-ref pushes fail and the publish job never runs.
-- e3#6 / e6#4 Tools line: Haiku invented four of five tool versions in two runs with no version command in the transcript. Require the transcript to show the version commands.
+- e3#6 / e6#4 Tools line: Haiku invented four of five tool versions in two runs with no version command in the transcript. Resolved 2026-08-31 by removing versions from the line (ran/absent/skipped only); the line records coverage, and a version slot was only a place to fabricate.
 - e3 / e6 reported counts: Haiku reported `poutine: 0` with 3 findings in its own saved output. Add: every scanner count in the report matches the tool output the grader reproduces.
 - e9#3 staleness: Haiku passed on a guess ("likely 2+ months old"). Require the latest gh-aw tag or the lock's commit date to appear.
 - e9#4 Dependabot: say the report must state that Dependabot PRs against the lock are closed, not merged (rule now in audit.md), while a repo `dependabot.yml` for normal workflows stays correct.
@@ -124,9 +124,9 @@ Order of work: do every **eval** item first and re-grade the saved iteration-7 a
 - Hand-back reasons — **applied and verified 2026-08-31**: the done-when names the defaults and placeholders. Re-runs of e1, e2, e7, e8: Sonnet passed the reasons assertion on all four (was failing three); Haiku passed on three of four (e2 gave 8 of 9 whys — one still drops sometimes). Was the most frequent with-skill miss on both models.
 - Deploy by digest — **applied and verified 2026-08-31**: the SKILL.md bullet spells the three-line wiring. Sonnet e2 re-run wired it end to end (had deferred the principle-only version as "a gap"); Haiku e2 wired two of the three lines and left the digest output dangling — shape rules raise Haiku's floor, they do not guarantee the last step.
 - Trusted refs — **applied and verified 2026-08-31** with a caveat: SKILL.md says the build job's `push:` is the literal `false`, never an event expression. Sonnet followed it and quoted it; Haiku e8 followed it (its previous failure), but Haiku e1 and e2 re-runs produced the event-expression single job anyway. On Haiku this rule lands in roughly half of runs — score movement is within single-run variance, so treat any one Haiku run as a sample, not a verdict.
-- Tools line: audit.md names the version commands; add that the versions are pasted from their output, never recalled (Haiku fabricated them twice).
+- Tools line — **dropped 2026-08-31**: versions removed from the Tools line and the version commands from audit.md instead of a paste-never-recall rule. Versions served no reader; ran/absent/skipped is what the line is for. e3#6 and e6#4 reworded to match.
 - Credentials after build — **applied 2026-08-31, not yet re-run**: the SKILL.md OIDC checklist line now says the credentials step runs after `npm ci`, `pip install`, and the build, or the build is its own job without `id-token: write`, with the why. Haiku e7 configured AWS before `npm ci` twice with the bullet only in security.md (the second time after rules 3.1-3.3 landed), so the control evidence is in; verify on e7 with skill, Haiku and Sonnet.
-- Agentic pair section: Haiku e9 recognized the pair but filed its findings under Hard with one hand-edit fix. audit.md says "own section"; make the report template show the section so the structure is copied, not inferred.
+- Agentic pair section — **applied 2026-08-31, not yet re-run**: the audit.md report template has an `## Agentic workflows` section with the pair line (compiler version vs latest, git-log date, fresh/stale, update-actions + compile fix, lock findings folded in) and an omit-when-absent note. Haiku e9 had filed lock findings under Hard with a hand-edit fix; verify on e9 with skill, Haiku and Sonnet (e9#4-#6).
 
 ### 4. Fixtures (fixture)
 
