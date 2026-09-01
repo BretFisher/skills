@@ -59,7 +59,7 @@ every eval against the current assertion set (101 assertions as of 2026-08-31).
 
 |        | Haiku 4.5 | Sonnet 5 | Opus 4.8 | Opus 5 | GPT 5.6 Sol | GPT 5.6 Luna | Kimi K2.7 Code | Kimi K3 | Grok 4.6 | GLM 5.3 Flash | MiniMax M3 | Qwen 3.8 27B |
 | ------ | --------- | -------- | -------- | ------ | ----------- | ------------ | -------------- | ------- | -------- | ------------- | ---------- | ------------ |
-| Result | 70/101    | 94/101   | —        | —      | —           | —            | —              | —       | —        | —             | —          | —            |
+| Result | 83/101    | 97/101   | —        | —      | —           | —            | —              | —       | —        | —             | —          | —            |
 
 I build and test these skills on Fable 5 — that's my baseline, not one of the target models above.
 For comparison, the same models with no skill at all scored 55/101 (Sonnet 5) and 36/101 (Haiku 4.5).

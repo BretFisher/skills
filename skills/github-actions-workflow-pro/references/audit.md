@@ -103,7 +103,7 @@ Deliver in the format the user chose in step 1 (or the stated chat default). Wha
 
 - `<name>.md` → `<name>.lock.yml` — compiled by gh-aw <vX.Y.Z> (latest <vA.B.C>), last compiled <date from git log>: <fresh | stale: N months old, M releases behind>. Fix: `gh aw update-actions`, then `gh aw compile`, commit both. <scanner findings on the lock, one line each, all resolved by the recompile>
 
-Omit this section when the repo has no `.md` + `.lock.yml` pair. The lock's findings live here and nowhere else; a lock line under Hard findings reads as a hand-edit, which is the one fix that breaks a compiled file.
+With no `.md` + `.lock.yml` pair in the repo the section reads `none`, like every other empty section. The lock's findings live here and nowhere else; a lock line under Hard findings reads as a hand-edit, which is the one fix that breaks a compiled file.
 
 ## Speed
 
