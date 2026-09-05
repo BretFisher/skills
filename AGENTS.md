@@ -6,37 +6,46 @@ Read this before creating, editing, or evaluating a skill.
 ## Layout
 
 ```text
-skills/<skill-name>/          # SOURCE — committed
+skills/<skill-name>/          # SOURCE — committed; this directory is all an installer copies
   SKILL.md                    #   the skill itself: description, working style, checklist, validate, done-when
   references/*.md             #   detail read only when a branch needs it (rules + why, procedures)
   scripts/*                   #   deterministic helpers the skill runs (linted, --help, structured output)
-  evals/evals.json            #   eval DEFINITIONS (prompts + assertions) — committed, this is the test contract
-  evals/fixtures/             #   input files some evals hand to the agent
-.evals/<skill-name>/          # RUN ARTIFACTS — gitignored, never committed
-  iteration-N/                #   one dir per eval run: transcripts, grading.json, timing.json, benchmark.*
+evals/<skill-name>/           # EVAL DEFINITIONS — committed; outside the skill so installers never ship them
+  evals.json                  #   prompts + assertions — the test contract
+  fixtures/                   #   input files some evals hand to the agent
+  coverage.md                 #   maps every rule line to the assertion that proves it, or names the gap
+  runs/iteration-N/           #   RUN ARTIFACTS — gitignored: transcripts, grading.json, timing.json, benchmark.*
+evals/_dashboard/             # gitignored: build-dashboard.py and the dashboard.html it builds from every run
 ```
 
 ## Where skill evals go — important
 
+Eval files live outside the skill directory. Installers (`git clone`, `npx skills add`, a plugin
+marketplace) copy the whole `skills/<skill-name>/` directory, so a user who installs a skill pulls in
+every file under it. The Agent Skills spec names no location for evals, and the skill-creator scripts
+take the skill path and the workspace path as explicit arguments, so nothing needs them inside the skill.
+
 There are two different things, and they live in two different places:
 
 - **Eval definitions** — the prompts and assertions that _define_ each test.
-  These live next to the skill at `skills/<skill-name>/evals/evals.json` and **are committed**.
-  They are the contract for the skill: a reviewer reads them to know what behavior must hold,
-  and they let anyone re-run the evals later to catch regressions.
+  These live at `evals/<skill-name>/evals.json` with their input files in `evals/<skill-name>/fixtures/`
+  and **are committed**. They are the contract for the skill: a reviewer reads them to know what behavior
+  must hold, and they let anyone re-run the evals later to catch regressions. Every `files` entry in
+  `evals.json` is a path from the repo root (`evals/<skill-name>/fixtures/<file>`), not from the skill.
 
 - **Eval run artifacts** — the _output_ of executing those evals (transcripts, gradings,
-  timings, `benchmark.json`/`benchmark.md`, viewer logs).
-  These go in **`.evals/<skill-name>/iteration-N/`** at the repo root, which is **gitignored**.
+  timings, `benchmark.json`/`benchmark.md`, viewer logs, canary audits of real repos).
+  These go in **`evals/<skill-name>/runs/iteration-N/`**, which is **gitignored**.
   They are regenerated on every run and are machine-specific, so they are not source of truth.
 
-When running the skill-creator eval loop, point the workspace at `.evals/<skill-name>/`
-instead of the tool's default `<skill-name>-workspace/` sibling. Every skill-creator script
+When running the skill-creator eval loop, point the workspace at `evals/<skill-name>/runs/`
+instead of the tool's default `<skill-name>-workspace/` sibling, and tell it where `evals.json` is:
+its own SKILL.md assumes `evals/evals.json` inside the skill. Every skill-creator script
 (`generate_review.py`, `aggregate_benchmark`) takes the workspace path as an explicit argument,
 so this is just a matter of passing the right path — e.g.:
 
 ```bash
-python -m scripts.aggregate_benchmark .evals/<skill-name>/iteration-N --skill-name <skill-name>
+python -m scripts.aggregate_benchmark evals/<skill-name>/runs/iteration-N --skill-name <skill-name>
 ```
 
 `make eval-benchmark SKILL=<skill-name>` and `make eval-view SKILL=<skill-name>` wrap those two
@@ -44,13 +53,12 @@ scripts with the right paths (see the Makefile; `ITER` defaults to the highest i
 
 Eval-harness notes, learned the hard way: graders never embed a `timing` object in `grading.json` (it breaks `aggregate_benchmark`; timing belongs in the sibling `timing.json`) and never use `set -x` near a token-bearing command; executors commit the pristine input files as the work repo's first commit before editing, so `git show HEAD:` still holds the original for the grader. When a rate limit kills graders mid-run, validate every surviving `grading.json` (expectation count, field names, no `timing`) and relaunch only the missing runs; do not regrade the survivors.
 
-If you want to publish a quality scorecard, copy a single curated `benchmark.md` into the
-skill folder and commit just that — do not commit the rest of `.evals/`.
+If you want to publish a quality scorecard, copy a single curated `benchmark.md` into
+`evals/<skill-name>/` and commit just that — do not commit anything under `runs/`.
 
 ## Before committing
 
-Run `make lint` (and `make fmt` first if prettier complains). It runs `markdownlint`, `prettier --check`, and `yamllint` (configs in `.github/linters/`, the same files super-linter reads in CI), `shellcheck` on every
-`skills/*/scripts/*.sh`, `py_compile` on `skills/*/scripts/*.py`, and `actionlint` + `zizmor` + `poutine` + `pinact -check` on this repo's workflows (actionlint also on the well-formed eval fixtures).
+Run `make lint` (and `make fmt` first if prettier complains).
 Tools are never installed by the Makefile; a missing one prints its `brew install` formula.
 
 ## Writing skills
@@ -90,7 +98,7 @@ Anthropic's skill-creator and docs, then other sources. The rules below are the 
   write the rule in the skill, run until the assertion passes. Repeat until every rule you want has an
   assertion and the output is what you would ship. Then run the same evals on a cheaper model and refactor
   the rules that fail there. Once the evals are green on every model you need, look for assertions that
-  pass on every model _without_ the skill: those rules are candidates to delete, so remove them and re-run
-  everything to confirm they were not carrying weight. `evals/coverage.md` in each skill maps every rule
-  line to the assertion that proves it or names the gap; a rule with no row is untested. Eval definitions
-  are the regression contract; the design tool is the transcript.
+  pass on every model _without_ the skill: those rules are candidates to delete, so document those rules
+  in `evals/<skill-name>/coverage.md` and report to the user in the summary output. That file
+  maps every rule line to the assertion that proves it or names the gap; a rule with no row is untested.
+  Eval definitions are the regression contract; the design tool is the transcript.

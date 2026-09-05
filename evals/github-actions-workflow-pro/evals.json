@@ -57,7 +57,7 @@
       "id": 3,
       "prompt": "Audit this workflow (.github/workflows/ci.yml, attached) for security problems. Give me a report of what is wrong and a corrected version.",
       "expected_output": "An audit report that separates hard findings from opinions, identifies pull_request_target with untrusted checkout, write-all permissions, unpinned actions, a version comment carrying extra text, template injection of the PR title, and a corrected workflow that passes actionlint and zizmor.",
-      "files": ["evals/fixtures/insecure-ci.yml"],
+      "files": ["evals/github-actions-workflow-pro/fixtures/insecure-ci.yml"],
       "expectations": [
         "The report identifies pull_request_target combined with checking out the PR head as a critical risk and moves the workflow to pull_request or isolates the untrusted checkout.",
         "The report identifies the PR title interpolated directly into a run: block as template injection, and the corrected workflow no longer interpolates it into a shell (passed through env, or the step removed).",
@@ -76,7 +76,7 @@
       "id": 4,
       "prompt": "Our CI (.github/workflows/ci.yml, attached) takes about 25 minutes on every push and people have started ignoring it. Speed it up without dropping real coverage.",
       "expected_output": "A faster workflow that adds concurrency cancellation, npm caching, timeouts, drops the redundant fetch-depth: 0 and duplicate matrix cell, runs lint and test in parallel, adds Buildx cache for the image build, keeps the existing pins and permissions, and explains why each change helps.",
-      "files": ["evals/fixtures/slow-ci.yml"],
+      "files": ["evals/github-actions-workflow-pro/fixtures/slow-ci.yml"],
       "expectations": [
         "The workflow gains a concurrency block with cancel-in-progress for superseded runs.",
         "setup-node gains cache: npm or an equivalent package-manager cache.",
@@ -96,7 +96,7 @@
       "id": 5,
       "prompt": "Add a job to my CI workflow (.github/workflows/ci.yml, attached) that runs `npm run lint`. Keep everything else as it is.",
       "expected_output": "The same workflow with one new lint job that matches the existing job's conventions: permissions block, same pinned checkout and setup-node with version comments, persist-credentials: false, npm cache, timeout, friendly name, running in parallel with the test job. No unrelated changes.",
-      "files": ["evals/fixtures/good-ci.yml"],
+      "files": ["evals/github-actions-workflow-pro/fixtures/good-ci.yml"],
       "expectations": [
         "The new lint job has its own permissions block with contents: read.",
         "The new lint job uses the same full-SHA pins and version comments for actions/checkout and actions/setup-node as the existing test job.",
@@ -115,9 +115,9 @@
       "prompt": "Audit all the GitHub Actions workflows in this repo. Security, speed, anything broken. Prioritize what I should fix first.",
       "expected_output": "A full-repo audit that runs the scanners and cites their rule ids, marks run-stats and gasa skipped because the repo has no remote, opens with a Do-first list of at most five items, has Correctness/Hard/Speed/Opinions sections, asks (or states the default for) the delivery format, and does not edit the files.",
       "files": [
-        "evals/fixtures/insecure-ci.yml",
-        "evals/fixtures/slow-ci.yml",
-        "evals/fixtures/deploy-static-keys.yml"
+        "evals/github-actions-workflow-pro/fixtures/insecure-ci.yml",
+        "evals/github-actions-workflow-pro/fixtures/slow-ci.yml",
+        "evals/github-actions-workflow-pro/fixtures/deploy-static-keys.yml"
       ],
       "expectations": [
         "The report opens with a Do-first list of one to five items, ordered with the most severe first.",
@@ -138,7 +138,9 @@
       "id": 7,
       "prompt": "Harden my deploy workflow (.github/workflows/deploy.yml, attached). We deploy a static site to S3 and CloudFront from main.",
       "expected_output": "A hardened deploy workflow using OIDC instead of static AWS keys, a non-cancelling concurrency group, an environment scoping the secrets, set -euo pipefail in the multi-line run block, persist-credentials: false, a timeout, an offer of the Dependabot snippet, and placeholders listed.",
-      "files": ["evals/fixtures/deploy-static-keys.yml"],
+      "files": [
+        "evals/github-actions-workflow-pro/fixtures/deploy-static-keys.yml"
+      ],
       "expectations": [
         "The corrected workflow replaces AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY with aws-actions/configure-aws-credentials using role-to-assume and id-token: write.",
         "The deploy job's concurrency no longer cancels in-progress runs (cancel-in-progress: false or a queue), with the reason given.",
@@ -158,10 +160,10 @@
       "prompt": "Set up CI and container image publishing for this repo (it's a Node app with a Dockerfile). Use GitHub Actions.",
       "expected_output": "ci.yml and docker.yml that read the Node version from .nvmrc, run lint and test in parallel, publish to ghcr.io only on trusted refs, offer the reusable docker-build-workflow before writing a bespoke one, ask only about decisions the repo cannot answer, and add no unrequested triggers.",
       "files": [
-        "evals/fixtures/node-repo/.nvmrc",
-        "evals/fixtures/node-repo/package.json",
-        "evals/fixtures/node-repo/package-lock.json",
-        "evals/fixtures/node-repo/Dockerfile"
+        "evals/github-actions-workflow-pro/fixtures/node-repo/.nvmrc",
+        "evals/github-actions-workflow-pro/fixtures/node-repo/package.json",
+        "evals/github-actions-workflow-pro/fixtures/node-repo/package-lock.json",
+        "evals/github-actions-workflow-pro/fixtures/node-repo/Dockerfile"
       ],
       "expectations": [
         "setup-node uses node-version-file: .nvmrc rather than a hardcoded version.",
@@ -180,9 +182,9 @@
       "prompt": "Audit all the GitHub Actions workflows in this repo. Security, speed, anything outdated.",
       "expected_output": "An audit that recognizes link-checker.md + link-checker.lock.yml as a compiled gh-aw agentic workflow pair, gives it its own section where staleness is the finding (compiler v0.79.0 behind the latest gh-aw release), recommends gh aw update-actions then gh aw compile rather than editing the lock or pointing Dependabot at it, and audits good-ci.yml as a normal workflow.",
       "files": [
-        "evals/fixtures/link-checker.md",
-        "evals/fixtures/link-checker.lock.yml",
-        "evals/fixtures/good-ci.yml"
+        "evals/github-actions-workflow-pro/fixtures/link-checker.md",
+        "evals/github-actions-workflow-pro/fixtures/link-checker.lock.yml",
+        "evals/github-actions-workflow-pro/fixtures/good-ci.yml"
       ],
       "expectations": [
         "The report identifies link-checker.lock.yml and link-checker.md as a compiled GitHub Agentic Workflow (gh-aw) pair and gives the pair its own section, separate from the normal workflow findings.",

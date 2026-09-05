@@ -5,8 +5,8 @@
 
 SKILL         ?= github-actions-workflow-pro
 SKILL_CREATOR ?= $(firstword $(wildcard $(HOME)/.claude/plugins/marketplaces/claude-plugins-official/plugins/skill-creator/skills/skill-creator))
-ITER          ?= $(shell ls -d .evals/$(SKILL)/iteration-* 2>/dev/null | sed 's/.*iteration-//' | sort -n | tail -1)
-EVAL_DIR       = .evals/$(SKILL)/iteration-$(ITER)
+ITER          ?= $(shell ls -d evals/$(SKILL)/runs/iteration-* 2>/dev/null | sed 's/.*iteration-//' | sort -n | tail -1)
+EVAL_DIR       = evals/$(SKILL)/runs/iteration-$(ITER)
 
 # `need` fails with an install hint when a tool is absent.
 need = command -v $(1) >/dev/null 2>&1 || { echo "missing: $(1)  ->  brew install $(2)"; exit 1; }
@@ -25,9 +25,9 @@ lint: lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins ## Run e
 
 lint-md: ## markdownlint on all Markdown (config: .github/linters/.markdown-lint.yml, shared with CI)
 	@$(call need,markdownlint,markdownlint-cli)
-	markdownlint -c .github/linters/.markdown-lint.yml '**/*.md' --ignore node_modules --ignore .evals --ignore CLAUDE.md
+	markdownlint -c .github/linters/.markdown-lint.yml '**/*.md' --ignore node_modules --ignore 'evals/*/runs/**' --ignore 'evals/_dashboard/**' --ignore CLAUDE.md
 
-PRETTIER_FILES = "**/*.md" "**/*.json" "!.evals/**" "!.agents/**" "!node_modules/**" "!CLAUDE.md" '.github/**/*.y*ml'
+PRETTIER_FILES = "**/*.md" "**/*.json" "!evals/*/runs/**" "!evals/_dashboard/**" "!.agents/**" "!node_modules/**" "!CLAUDE.md" '.github/**/*.y*ml'
 
 lint-fmt: ## prettier --check on Markdown and JSON (super-linter runs the same check in CI)
 	@$(call need,prettier,prettier)
@@ -39,7 +39,7 @@ fmt: ## prettier --write on Markdown and JSON
 
 lint-yaml: ## yamllint on all YAML (config: .github/linters/.yaml-lint.yml, shared with CI)
 	@$(call need,yamllint,yamllint)
-	yamllint -c .github/linters/.yaml-lint.yml .github/ skills/
+	yamllint -c .github/linters/.yaml-lint.yml .github/ skills/ evals/*/fixtures/
 
 lint-sh: ## shellcheck on every skill shell script (skips cleanly when there are none)
 	@$(call need,shellcheck,shellcheck)
@@ -53,8 +53,8 @@ lint-actions: ## actionlint + zizmor + poutine on this repo's workflows; actionl
 	@$(call need,zizmor,zizmor)
 	@$(call need,poutine,poutine)
 	actionlint .github/workflows/*.y*ml \
-	  skills/github-actions-workflow-pro/evals/fixtures/good-ci.yml \
-	  skills/github-actions-workflow-pro/evals/fixtures/slow-ci.yml
+	  evals/github-actions-workflow-pro/fixtures/good-ci.yml \
+	  evals/github-actions-workflow-pro/fixtures/slow-ci.yml
 	$(SCAN) zizmor --no-progress --collect=all .github/workflows .github/dependabot.yml
 	poutine analyze_local . --quiet --disable-version-check --fail-on-violation >/dev/null
 

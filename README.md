@@ -20,9 +20,9 @@ Installable via `npx skills add https://github.com/bretfisher/skills` and mark t
 | `skills/<name>/SKILL.md`         | The skill itself: description (the trigger), working style, checklist, validate step, done-when                                                                                                                   | ✅ yes        |
 | `skills/<name>/references/*.md`  | Detail the skill reads only when a branch needs it (rules + the why, audit procedure)                                                                                                                             | ✅ yes        |
 | `skills/<name>/scripts/*`        | Deterministic helpers the skill runs instead of re-deriving (`run-stats.py`; `scan.sh` runs zizmor/pinact with the GitHub token set inside its own process, so `gh auth token` never appears in a command or log) | ✅ yes        |
-| `skills/<name>/evals/evals.json` | Eval **definitions** (prompts + assertions) — the test contract                                                                                                                                                   | ✅ yes        |
-| `skills/<name>/evals/fixtures/`  | Input files some evals hand to the agent (a deliberately insecure or slow workflow)                                                                                                                               | ✅ yes        |
-| `.evals/<name>/iteration-N/`     | Eval **run artifacts** (transcripts, gradings, timings, benchmarks)                                                                                                                                               | ❌ gitignored |
+| `evals/<name>/evals.json`        | Eval **definitions** (prompts + assertions) — the test contract. Outside `skills/` so an installer copies only the skill                                                                                          | ✅ yes        |
+| `evals/<name>/fixtures/`         | Input files some evals hand to the agent (a deliberately insecure or slow workflow)                                                                                                                               | ✅ yes        |
+| `evals/<name>/runs/iteration-N/` | Eval **run artifacts** (transcripts, gradings, timings, benchmarks)                                                                                                                                               | ❌ gitignored |
 
 ## Makefile
 
@@ -32,7 +32,7 @@ Installable via `npx skills add https://github.com/bretfisher/skills` and mark t
 | ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `make lint`                                 | Pre-commit gate: `markdownlint`, `prettier --check`, and `yamllint` (configs in `.github/linters/`, the same rules super-linter applies in CI), `shellcheck` on `skills/*/scripts/*.sh`, `py_compile` on `skills/*/scripts/*.py`, and `actionlint` + `zizmor` + `poutine` + `pinact -check` on this repo's workflows (actionlint also on the well-formed eval fixtures) |
 | `make fmt`                                  | `prettier --write` on all Markdown and JSON, so tables and JSON match what CI expects                                                                                                                                                                                                                                                                                   |
-| `make eval-benchmark [SKILL=… ITER=…]`      | Aggregate the latest `.evals/<skill>/iteration-N/` into `benchmark.json` + `benchmark.md` via the skill-creator plugin                                                                                                                                                                                                                                                  |
+| `make eval-benchmark [SKILL=… ITER=…]`      | Aggregate the latest `evals/<skill>/runs/iteration-N/` into `benchmark.json` + `benchmark.md` via the skill-creator plugin                                                                                                                                                                                                                                              |
 | `make eval-view [SKILL=… ITER=…]`           | Open the skill-creator review viewer on that iteration                                                                                                                                                                                                                                                                                                                  |
 | `make pin [FILES=…]`                        | Pin this repo's workflows with pinact: newest release at least 7 days old, SHA plus version comment                                                                                                                                                                                                                                                                     |
 | `make run-stats [RUNS=3] [REPO=owner/repo]` | Rank a repo's workflows and jobs by mean duration over the last few runs, flag inconsistent timing and recent failures                                                                                                                                                                                                                                                  |
@@ -41,13 +41,16 @@ Installable via `npx skills add https://github.com/bretfisher/skills` and mark t
 
 ### Skill evals
 
-Eval _definitions_ live next to each skill (`skills/<name>/evals/evals.json`) and are committed —
-they document what each skill is supposed to do and let anyone re-run the evals to catch regressions.
+Eval _definitions_ live at `evals/<name>/evals.json` with input files in `evals/<name>/fixtures/`, and
+are committed. They document what each skill is supposed to do and let anyone re-run the evals to catch
+regressions. They sit outside `skills/<name>/` on purpose: installers copy the whole skill directory, so
+a user who installs a skill gets only the files the skill needs at runtime. The Agent Skills spec names
+no location for evals, so this costs nothing in compatibility.
 
-Eval _run artifacts_ (the output of executing those evals) are written to `.evals/<name>/iteration-N/`
-at the repo root, which is gitignored. They're regenerated on every run and machine-specific, so they
+Eval _run artifacts_ (the output of executing those evals) are written to `evals/<name>/runs/iteration-N/`,
+which is gitignored. They're regenerated on every run and machine-specific, so they
 aren't source of truth. When running the skill-creator eval loop, point its workspace at
-`.evals/<name>/` rather than the default `<name>-workspace/` sibling.
+`evals/<name>/runs/` rather than the default `<name>-workspace/` sibling.
 
 ### Skill eval results
 

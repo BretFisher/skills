@@ -1,7 +1,8 @@
-# Skill eval run artifacts — transcripts, gradings, timings, benchmarks, viewer logs.
+# Skill eval run artifacts — transcripts, gradings, timings, benchmarks, viewer logs, canary audits.
 # Regenerated on every eval run and machine-specific, so they are not source of truth.
-# The eval *definitions* (skills/<name>/evals/evals.json) ARE committed — only runs are ignored.
-.evals/
+# The eval *definitions* (evals/<name>/evals.json, fixtures/, coverage.md) ARE committed — only runs are ignored.
+evals/*/runs/
+evals/_dashboard/
 
 # macOS Finder metadata
 .DS_Store

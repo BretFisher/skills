@@ -95,7 +95,7 @@ Which assertion in `evals.json` proves each rule the skill states. Two kinds of 
 
 ## Pass 3 work plan
 
-Source: the pass-2 graders (2026-08-30) and the full-suite run on Sonnet 5 and Haiku 4.5 with and without the skill (2026-08-31; 94/101 and 70/101 with skill, 55/101 and 36/101 without; saved under `.evals/github-actions-workflow-pro/iteration-{7-sonnet,8-haiku}/`). Items are ordered by what they move. Each names its type: **rule** changes skill text and needs executors to re-run; **eval** changes `evals.json` wording and needs graders only, against the saved outputs; **fixture** changes an input file; **harness** changes how runs are made.
+Source: the pass-2 graders (2026-08-30) and the full-suite run on Sonnet 5 and Haiku 4.5 with and without the skill (2026-08-31; 94/101 and 70/101 with skill, 55/101 and 36/101 without; saved under `evals/github-actions-workflow-pro/runs/iteration-{7-sonnet,8-haiku}/`). Items are ordered by what they move. Each names its type: **rule** changes skill text and needs executors to re-run; **eval** changes `evals.json` wording and needs graders only, against the saved outputs; **fixture** changes an input file; **harness** changes how runs are made.
 
 Order of work: do every **eval** item first and re-grade the saved iteration-7 and -8 outputs against the changed assertions only (cheap, and it fixes the numbers before anything else moves them). Then the **rule** items, re-running only the evals whose rules changed, on Sonnet and Haiku. README cells change only after a full run of all 10 evals.
 
@@ -130,7 +130,7 @@ Order of work: do every **eval** item first and re-grade the saved iteration-7 a
 
 ### 4. Fixtures (fixture)
 
-- `evals/fixtures/node-repo/package-lock.json` has an empty packages map, so any correct CI fails at `npm ci`. Replace with a valid minimal lockfile.
+- `evals/github-actions-workflow-pro/fixtures/node-repo/package-lock.json` has an empty packages map, so any correct CI fails at `npm ci`. Replace with a valid minimal lockfile.
 - e5 input is already fully pinned, so assertions 1–9 do not discriminate (both configs matched byte for byte). Add one tag-pinned action to `good-ci.yml` so the edit path has something to pin.
 - e9: add a `dependabot.yml` to the fixture repo so the Dependabot-vs-lock point is forced, and replace the sed-downgraded lock with a real old-compiler artifact if the version-comment mismatch ever confuses a run (accepted wart today: `github/gh-aw-actions/setup` carries a v0.79.0 comment on a v0.86.2 SHA).
 - e9 uncovered outcome: every audit run caught `good-ci.yml` referencing `.nvmrc` / `package.json` that do not exist in the fixture repo; add the assertion or add the files.

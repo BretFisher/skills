@@ -35,7 +35,7 @@ jobs:
 
     with:
       # skip vendored 3rd-party skill-creator tooling; lint our own skills/ and root docs
-      filter-regex-exclude: (^|/)\.agents/|/evals/fixtures/
+      filter-regex-exclude: (^|/)\.agents/|(^|/)evals/[^/]+/fixtures/
 
     ### Other optional settings (which linters run is controlled by .github/super-linter.env)
     ###
