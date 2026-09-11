@@ -1,0 +1,10 @@
+# Eval fixture: a normal Dependabot config for GitHub Actions, placed at .github/dependabot.yml
+# in the eval 9 repo so the audit has to say what happens to PRs it opens against a gh-aw lock file.
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    cooldown:
+      default-days: 7

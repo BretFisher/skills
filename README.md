@@ -29,41 +29,53 @@ Installable via `npx skills add https://github.com/bretfisher/skills` and mark t
 
 `make help` lists everything. Tools are checked, never installed; a missing one prints its `brew install` formula.
 
-| Target                                      | What it does                                                                                                                                                                                                                                                                                                                                                            |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `make lint`                                 | Pre-commit gate: `markdownlint`, `prettier --check`, and `yamllint` (configs in `.github/linters/`, the same rules super-linter applies in CI), `shellcheck` on `skills/*/scripts/*.sh`, `py_compile` on `skills/*/scripts/*.py`, and `actionlint` + `zizmor` + `poutine` + `pinact -check` on this repo's workflows (actionlint also on the well-formed eval fixtures) |
-| `make fmt`                                  | `prettier --write` on all Markdown and JSON, so tables and JSON match what CI expects                                                                                                                                                                                                                                                                                   |
-| `make eval-benchmark [SKILL=… ITER=…]`      | Aggregate the latest `evals/<skill>/runs/iteration-N/` into `benchmark.json` + `benchmark.md` via the skill-creator plugin                                                                                                                                                                                                                                              |
-| `make eval-view [SKILL=… ITER=…]`           | Open the skill-creator review viewer on that iteration                                                                                                                                                                                                                                                                                                                  |
-| `make pin [FILES=…]`                        | Pin this repo's workflows with pinact: newest release at least 7 days old, SHA plus version comment                                                                                                                                                                                                                                                                     |
-| `make run-stats [RUNS=3] [REPO=owner/repo]` | Rank a repo's workflows and jobs by mean duration over the last few runs, flag inconsistent timing and recent failures                                                                                                                                                                                                                                                  |
+| Target                                          | What it does                                                                                                                                                                                                                                                                                                                                                            |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `make lint`                                     | Pre-commit gate: `markdownlint`, `prettier --check`, and `yamllint` (configs in `.github/linters/`, the same rules super-linter applies in CI), `shellcheck` on `skills/*/scripts/*.sh`, `py_compile` on `skills/*/scripts/*.py`, and `actionlint` + `zizmor` + `poutine` + `pinact -check` on this repo's workflows (actionlint also on the well-formed eval fixtures) |
+| `make fmt`                                      | `prettier --write` on all Markdown and JSON, so tables and JSON match what CI expects                                                                                                                                                                                                                                                                                   |
+| `make eval-check [SKILL=… ITER=…]`              | Program-grade every run in the latest iteration with `evals/<skill>/checks.py`: writes each `grading.json` with the mechanical verdicts filled in and `passed: null` on the assertions left for the model grader. Runs the scanners itself. `FLAGS=--force` to overwrite an existing grading.json                                                                       |
+| `make eval-batch [SKILL=… ITER=… BUDGET=60000]` | Group the runs that still have `passed: null` under an excerpt-byte budget and write one grader prompt per group to `grader-batches/batch-N.md`; spawn one grader subagent per file                                                                                                                                                                                     |
+| `make eval-finalize [SKILL=… ITER=…]`           | After the model grader filled the nulls, recompute every `grading.json` summary; exits 1 if any assertion is still null                                                                                                                                                                                                                                                 |
+| `make eval-benchmark [SKILL=… ITER=…]`          | Aggregate the latest `evals/<skill>/runs/iteration-N/` into `benchmark.json` + `benchmark.md` via the skill-creator plugin                                                                                                                                                                                                                                              |
+| `make eval-view [SKILL=… ITER=…]`               | Open the skill-creator review viewer on that iteration                                                                                                                                                                                                                                                                                                                  |
+| `make pin [FILES=…]`                            | Pin this repo's workflows with pinact: newest release at least 7 days old, SHA plus version comment                                                                                                                                                                                                                                                                     |
+| `make run-stats [RUNS=3] [REPO=owner/repo]`     | Rank a repo's workflows and jobs by mean duration over the last few runs, flag inconsistent timing and recent failures                                                                                                                                                                                                                                                  |
 
 `SKILL` defaults to `github-actions-workflow-pro`; `ITER` defaults to the highest iteration present.
 
 ### Skill evals
 
-Eval _definitions_ live at `evals/<name>/evals.json` with input files in `evals/<name>/fixtures/`, and
-are committed. They document what each skill is supposed to do and let anyone re-run the evals to catch
-regressions. They sit outside `skills/<name>/` on purpose: installers copy the whole skill directory, so
-a user who installs a skill gets only the files the skill needs at runtime. The Agent Skills spec names
-no location for evals, so this costs nothing in compatibility.
+Eval _definitions_ (`evals/<name>/evals.json`, fixtures, `checks.py`, `coverage.md`) are committed and sit
+outside `skills/<name>/` so an installer copies only the skill. Eval _run artifacts_
+(`evals/<name>/runs/iteration-N/`) are gitignored. Grading is deterministic first: a program grades every
+assertion it can decide and a model judges only the rest.
 
-Eval _run artifacts_ (the output of executing those evals) are written to `evals/<name>/runs/iteration-N/`,
-which is gitignored. They're regenerated on every run and machine-specific, so they
-aren't source of truth. When running the skill-creator eval loop, point its workspace at
-`evals/<name>/runs/` rather than the default `<name>-workspace/` sibling.
+To learn how a run works end to end, what a program does and what a model does, and how with-skill and
+without-skill runs differ, read [docs/eval-walkthrough.md](docs/eval-walkthrough.md). For the short list
+of what made the skill and its evals cheaper, faster, and provable, with the numbers, read
+[docs/lessons-learned.md](docs/lessons-learned.md).
 
 ### Skill eval results
 
 I run each skill's evals on the models below so you know the skill still produces good output on
 the model you use, even a cheap, less accurate one. I only record a result here after a full run of
-every eval against the current assertion set (101 assertions as of 2026-08-31).
+every eval against the current assertion set (106 assertions as of 2026-09-09). Both columns are from
+2026-09-09, graded deterministic-first (iterations 13 and 14). Haiku ran before eval 5 gained its
+eleventh assertion, so its cells are out of 105. The effort row records the reasoning effort
+the executor subagent ran at. Iterations 13 and 14 inherited the session's `effortLevel: high` from
+`~/.claude/settings.json`; from now on every run uses an agent definition in `.claude/agents/` that pins
+model and effort, so the cell names what actually ran. "Without skill" is the
+same model, same prompts, same grader, with the skill not installed: it is the baseline the skill has to beat,
+and an assertion that passes without the skill on every model is a rule the skill may not need (see
+`evals/<name>/coverage.md`).
 
 #### github-actions-workflow-pro
 
-|        | Haiku 4.5 | Sonnet 5 | Opus 4.8 | Opus 5 | GPT 5.6 Sol | GPT 5.6 Luna | Kimi K2.7 Code | Kimi K3 | Grok 4.6 | GLM 5.3 Flash | MiniMax M3 | Qwen 3.8 27B |
-| ------ | --------- | -------- | -------- | ------ | ----------- | ------------ | -------------- | ------- | -------- | ------------- | ---------- | ------------ |
-| Result | 83/101    | 97/101   | —        | —      | —           | —            | —              | —       | —        | —             | —          | —            |
+|                 | Haiku 4.5 | Sonnet 5 | Opus 4.8 | Opus 5 | GPT 5.6 Sol | GPT 5.6 Luna | Kimi K2.7 Code | Kimi K3 | Grok 4.6 | GLM 5.3 Flash | MiniMax M3 | Qwen 3.8 27B |
+| --------------- | --------- | -------- | -------- | ------ | ----------- | ------------ | -------------- | ------- | -------- | ------------- | ---------- | ------------ |
+| Executor effort | high      | high     | —        | —      | —           | —            | —              | —       | —        | —             | —          | —            |
+| Without skill   | 49/105    | 63/106   | —        | —      | —           | —            | —              | —       | —        | —             | —          | —            |
+| With skill      | 85/105    | 96/106   | —        | —      | —           | —            | —              | —       | —        | —             | —          | —            |
 
 I build and test these skills on Fable 5 — that's my baseline, not one of the target models above.
 For comparison, the same models with no skill at all scored 55/101 (Sonnet 5) and 36/101 (Haiku 4.5).

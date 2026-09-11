@@ -13,9 +13,11 @@ skills/<skill-name>/          # SOURCE — committed; this directory is all an i
 evals/<skill-name>/           # EVAL DEFINITIONS — committed; outside the skill so installers never ship them
   evals.json                  #   prompts + assertions — the test contract
   fixtures/                   #   input files some evals hand to the agent
-  coverage.md                 #   maps every rule line to the assertion that proves it, or names the gap
+  checks.py                   #   program grader: decides every assertion it can, leaves passed: null for the model
+  coverage.md                 #   maps every rule line to the assertion that proves it, or names the gap; records each assertion's kind
   runs/iteration-N/           #   RUN ARTIFACTS — gitignored: transcripts, grading.json, timing.json, benchmark.*
 evals/_dashboard/             # gitignored: build-dashboard.py and the dashboard.html it builds from every run
+docs/                         # human-facing guides: eval-walkthrough.md (how a run works), lessons-learned.md (what improved the skill and evals)
 ```
 
 ## Where skill evals go — important
@@ -51,6 +53,8 @@ python -m scripts.aggregate_benchmark evals/<skill-name>/runs/iteration-N --skil
 `make eval-benchmark SKILL=<skill-name>` and `make eval-view SKILL=<skill-name>` wrap those two
 scripts with the right paths (see the Makefile; `ITER` defaults to the highest iteration present).
 
+Executors and graders are spawned through the agent definitions in `.claude/agents/` (`eval-executor-<model>-<effort>`, `eval-grader-<model>-<effort>`), never through the bare Agent tool with a `model` argument: the Agent tool has no effort parameter, a subagent otherwise inherits the session's `effortLevel`, and a results cell without a known effort cannot be compared with the next one. Add a definition for a new model or effort before running it; the README effort row records the value.
+
 Eval-harness notes, learned the hard way: graders never embed a `timing` object in `grading.json` (it breaks `aggregate_benchmark`; timing belongs in the sibling `timing.json`) and never use `set -x` near a token-bearing command; executors commit the pristine input files as the work repo's first commit before editing, so `git show HEAD:` still holds the original for the grader. When a rate limit kills graders mid-run, validate every surviving `grading.json` (expectation count, field names, no `timing`) and relaunch only the missing runs; do not regrade the survivors.
 
 If you want to publish a quality scorecard, copy a single curated `benchmark.md` into
@@ -66,39 +70,31 @@ Tools are never installed by the Makefile; a missing one prints its `brew instal
 When advice on skill structure conflicts, prefer Matt Pocock's `writing-for-agents` rules, then
 Anthropic's skill-creator and docs, then other sources. The rules below are the ones we have settled on.
 
-- **Pushy description, third person.** The description does two jobs: say what the skill does, then
-  list the situations that should activate it, one "when" per branch on specific topics (create a
-  workflow, edit a job, harden, speed up, publish an image, findings from a named scanner), and end
-  the list with "even if they don't say 'X'" so the model triggers on the task, not the keyword. Add a
-  non-trigger only when another skill genuinely competes for the same prompts; otherwise it is a sentence
-  the model reads on every turn for nothing. Write it in third person; the body carries identity, the
-  description carries the trigger.
-- **Positive rules with a why.** Say what to do, not what to avoid: `pull_request` for PR triggers, rather
-  than "never use pull_request_target". No caps-lock MUST/NEVER; a prohibition drags the banned behaviour
-  into context, and a shouted rule reads as louder, not clearer. Every rule ends with the reason it exists,
-  so the model can tell when the rule applies and when the situation is different.
+- **Pushy description, third person.** The description says what the skill does, then lists the
+  situations that should activate it, one per branch, ending with "even if they don't say 'X'"; add a
+  non-trigger only when another skill competes for the same prompts. Models under-trigger on keywords
+  and trigger on tasks, and every extra sentence is read on every turn.
+- **Positive rules with a why.** Say what to do, not what to avoid, and end every rule with its reason.
+  A prohibition drags the banned behaviour into context, and the reason tells the model when the rule
+  applies and when the situation is different.
 - **Inline what every branch needs; disclose the rest.** SKILL.md stays under about 100 lines of body;
-  once a section is read by only some tasks, move it to `references/<topic>.md` with a "read when" clause
-  at the sentence where that branch is decided (the specs allow up to 500 lines; we split far earlier
-  because every inline line is paid for on every call). Co-locate a gotcha with its rule instead of a
-  separate Gotchas section, and end steps in a checkable done-when list.
-- **Link the skill's own files; backtick everything else.** Pointers to files the skill ships are markdown
-  links with the filename as the text: `read [audit.md](references/audit.md) and follow it`,
-  `→ [security.md](references/security.md)`. Backticks are for paths in the user's repo
-  (`.github/dependabot.yml`), for scripts the skill runs rather than reads (`scripts/run-stats.py`), and for
-  rule-id citations a report prints (`security.md: pinned`). No `@file` imports in a skill: that is a
-  CLAUDE.md feature and would inline the file, defeating progressive disclosure.
-- **Prefer tools over prompts.** When a deterministic linter or scanner already checks a rule (actionlint,
-  zizmor, poutine, pinact, gasa), the skill runs the tool and cites its rule id instead of restating the
-  rule; a tool call is cheaper and more predictable than a paragraph the model has to apply by reading.
-  The skill's own text covers only the residual list the tools cannot see, and says which tool owns each
-  rule it does mention.
-- **Eval-driven development.** Start on the strongest model. Run the skill on real tasks and read the
-  transcripts, then for each failure or judgment you want to lock in: write the eval assertion that fails,
-  write the rule in the skill, run until the assertion passes. Repeat until every rule you want has an
-  assertion and the output is what you would ship. Then run the same evals on a cheaper model and refactor
-  the rules that fail there. Once the evals are green on every model you need, look for assertions that
-  pass on every model _without_ the skill: those rules are candidates to delete, so document those rules
-  in `evals/<skill-name>/coverage.md` and report to the user in the summary output. That file
-  maps every rule line to the assertion that proves it or names the gap; a rule with no row is untested.
-  Eval definitions are the regression contract; the design tool is the transcript.
+  a section only some tasks read moves to `references/<topic>.md`, pointed to from the sentence where
+  that branch is decided. Every inline line is paid for on every call.
+- **Link the skill's own files; backtick everything else.** Files the skill ships are markdown links;
+  paths in the user's repo, scripts the skill runs, and rule-id citations are backticks; no `@file`
+  imports. A link shows the model what it may open, and an import would inline the file and defeat
+  progressive disclosure.
+- **Prefer tools over prompts.** When a deterministic tool already checks a rule, the skill runs the
+  tool and cites its rule id instead of restating the rule. A tool call is cheaper and more predictable
+  than a paragraph the model applies by reading.
+- **Deterministic checks before model judgment.** Every eval assertion a regex, a CLI tool, or a program
+  can decide is graded by `evals/<skill-name>/checks.py`, which writes `grading.json` with `passed: null`
+  and the needed excerpts on the rest; a model grades only those, from the excerpts. The goal is the
+  lowest token and time total per run, and a program's verdict never flips between runs. Write each
+  assertion as the literal a program tests, split one that mixes a check with a judgment, and record the
+  kind (`program`, `split`, `model`) in `coverage.md`; the walkthrough is
+  [docs/eval-walkthrough.md](docs/eval-walkthrough.md).
+- **Eval-driven development.** Start on the strongest model: for each failure, write the assertion that
+  fails, then the rule, until green; then run on a cheaper model and refactor the rules that fail there.
+  Assertions that pass without the skill on every model mark rules to delete; record them in
+  `coverage.md`. Eval definitions are the regression contract; the transcript is the design tool.

@@ -14,7 +14,7 @@ need = command -v $(1) >/dev/null 2>&1 || { echo "missing: $(1)  ->  brew instal
 # scan.sh sets the GitHub token inside its own process; never inline `gh auth token` in a recipe
 SCAN := skills/github-actions-workflow-pro/scripts/scan.sh
 
-.PHONY: help lint lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins fmt eval-benchmark eval-view pin run-stats
+.PHONY: help lint lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins fmt eval-check eval-batch eval-finalize eval-benchmark eval-view pin run-stats
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
@@ -53,10 +53,21 @@ lint-actions: ## actionlint + zizmor + poutine on this repo's workflows; actionl
 	@$(call need,zizmor,zizmor)
 	@$(call need,poutine,poutine)
 	actionlint .github/workflows/*.y*ml \
-	  evals/github-actions-workflow-pro/fixtures/good-ci.yml \
+	  evals/github-actions-workflow-pro/fixtures/good-ci.yml evals/github-actions-workflow-pro/fixtures/good-ci-tagged.yml \
 	  evals/github-actions-workflow-pro/fixtures/slow-ci.yml
 	$(SCAN) zizmor --no-progress --collect=all .github/workflows .github/dependabot.yml
 	poutine analyze_local . --quiet --disable-version-check --fail-on-violation >/dev/null
+
+eval-check: ## Program-grade every run of the latest iteration (writes grading.json with nulls for the model); SKILL=, ITER=
+	@$(call need,yq,yq)
+	@test -d "$(EVAL_DIR)" || { echo "no eval iteration found at $(EVAL_DIR)"; exit 1; }
+	evals/$(SKILL)/checks.py --write --scanners $(FLAGS) $(EVAL_DIR)/eval-*/*/run-*
+
+eval-batch: ## Group runs that still need a model grader into prompt files under $(EVAL_DIR)/grader-batches/ (BUDGET= excerpt chars per call, default 60000)
+	evals/$(SKILL)/checks.py --batch $(if $(BUDGET),--budget=$(BUDGET),) $(EVAL_DIR)/eval-*/*/run-*
+
+eval-finalize: ## After the model grader filled the nulls, recompute every grading.json summary; fails if any null remains
+	evals/$(SKILL)/checks.py --finalize $(EVAL_DIR)/eval-*/*/run-*
 
 eval-benchmark: ## Aggregate the latest eval iteration into benchmark.json/.md (SKILL=, ITER=)
 	@test -n "$(SKILL_CREATOR)" || { echo "skill-creator plugin not found; set SKILL_CREATOR=/path/to/skill-creator"; exit 1; }
