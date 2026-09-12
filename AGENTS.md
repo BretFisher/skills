@@ -84,6 +84,10 @@ Anthropic's skill-creator and docs, then other sources. The rules below are the 
   paths in the user's repo, scripts the skill runs, and rule-id citations are backticks; no `@file`
   imports. A link shows the model what it may open, and an import would inline the file and defeat
   progressive disclosure.
+- **A skill names only its own files and other skills.** Never point at a path in this repo
+  (`PLAN.md`, `docs/`, `evals/`), and never mention this repo's plans or backlog. An installer copies
+  `skills/<skill-name>/` and nothing else, so any such path is missing on the user's machine, and our
+  roadmap is not their context. A path in the _user's_ repo is fine: that is what the skill acts on.
 - **Prefer tools over prompts.** When a deterministic tool already checks a rule, the skill runs the
   tool and cites its rule id instead of restating the rule. A tool call is cheaper and more predictable
   than a paragraph the model applies by reading.
