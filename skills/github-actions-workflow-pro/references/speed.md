@@ -2,6 +2,10 @@
 
 The rules behind the speed lines of the SKILL.md checklist, with the reason for each. Almost none of these are checked by a scanner, so in an audit they come from reading the YAML and the run history (`scripts/run-stats.py`). Read this when the user reports slow CI, when adding a matrix, path filter, or cache, or when writing the speed section of an audit. Fast workflows get maintained; slow ones get ignored, so quick feedback is worth a few extra lines of YAML but never clever YAML.
 
+## Find the slow steps before changing anything
+
+`scripts/run-stats.py --markdown` ranks steps as well as workflows and jobs, and flags every step whose mean is at or over 2 minutes (`--slow-step-minutes M` moves the cut, fractions allowed). A job is slow because of one or two of its steps, so the step table says which line to change; the workflow table only says which file to open. Ask the user what cut matters to them once they see the 2-minute list, because the long tail worth fixing in a 40-minute pipeline starts somewhere different from one that finishes in 90 seconds.
+
 ## Cancel superseded runs
 
 ```yaml

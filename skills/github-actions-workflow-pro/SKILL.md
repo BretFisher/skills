@@ -23,7 +23,7 @@ Apply these defaults proactively to every workflow you touch, unless the reposit
 
 ## Auditing an existing workflow
 
-When the user hands you workflows to review, harden, secure, or speed up, or asks what is wrong with their CI, read [audit.md](references/audit.md) and follow it. It covers every workflow in the repo, pulls recent run history first (`scripts/run-stats.py`: failures, and workflows and jobs ranked by duration), then the linters (`actionlint`, `zizmor`, `gasa`), sorts findings into correctness, hard, speed, and opinion, opens with a Do-first list, and asks how the user wants the report delivered.
+When the user hands you workflows to review, harden, secure, or speed up, or asks what is wrong with their CI, read [audit.md](references/audit.md) and follow it. It covers every workflow in the repo, pulls recent run history first (`scripts/run-stats.py`: failures, and workflows, jobs, and steps ranked by duration, with every step at or over 2 minutes flagged and the threshold put to the user), then the linters (`actionlint`, `zizmor`, `gasa`), sorts findings into correctness, hard, speed, and opinion, opens with a Do-first list, and asks how the user wants the report delivered.
 
 ## Checklist
 

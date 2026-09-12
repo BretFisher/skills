@@ -206,6 +206,50 @@
         "Any proposed corrected YAML (there may be none, since good-ci.yml is already clean) passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset), and zizmor `dangerous-triggers` when the output keeps `pull_request_target` and the answer states why (Collaborators-only PR access, or private repo with the split-job pattern).",
         "Every commit SHA that is new in a `uses:` line (not present in the input files) was written by `pinact run` on the file: the transcript shows the `pinact run` command, and shows no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`), `git ls-remote`, or copy of a SHA from another file that then went into the YAML. A run that wrote no new SHA passes this assertion."
       ]
+    },
+    {
+      "id": 10,
+      "prompt": "Our build job (.github/workflows/build.yml, attached) takes about 11 minutes and most of it is the three builds running one after another. There's also an API server we start with `&` and a hardcoded `sleep 30` before the e2e tests, which is flaky. Can you speed this up? Keeping it as one job matters to us \u2014 the builds share the one npm ci and the same workspace.",
+      "expected_output": "The three independent builds run at the same time inside the one job with a `parallel:` block (or three `background: true` steps plus a `wait`), and the API server becomes a `background: true` step with an `id`, a readiness check instead of `sleep 30`, and a `cancel:` step after the e2e tests. The job stays one job. The hand-back says the keys are new (June 2026, github.com and GHEC) and that actionlint's schema does not know them yet, so its unknown-key reports on those lines are expected.",
+      "files": [
+        "evals/github-actions-workflow-pro/fixtures/serial-build-job.yml",
+        "evals/github-actions-workflow-pro/fixtures/node-repo/.nvmrc",
+        "evals/github-actions-workflow-pro/fixtures/node-repo/package.json"
+      ],
+      "expectations": [
+        "The three build steps (Build Frontend, Build Backend, Build Docs) run concurrently inside the same job, using a `parallel:` block or three steps with `background: true` followed by a `wait`.",
+        "The API server step becomes a background step (`background: true`) with an `id`, and the shell backgrounding (`npm run start:api &`) is gone from the produced YAML.",
+        "The server is stopped with a `cancel:` step that names the server step's id, rather than being left running to the end of the job.",
+        "The `sleep 30` is replaced by a readiness check (polling the server's port or health endpoint) before the e2e step, and the answer says why a fixed sleep is both slower and flakier.",
+        "The work stays in one job: the produced workflow does not split the builds into separate jobs or a matrix, which would repeat the checkout and the npm ci.",
+        "The hand-back tells the user that actionlint does not know the new step keys yet, so its `unexpected key \"background\"` / `step must run script with \"run\"` reports on those lines are the linter's stale schema and not workflow errors.",
+        "The answer states that these step keys are a recent GitHub Actions feature (June 2026) rather than presenting them as long-standing syntax, and does not claim that steps inside a job cannot run in parallel.",
+        "The produced YAML passes zizmor (regular persona), poutine, and `pinact run -check -verify-comment -verify-min-age`, and the only actionlint reports are the unknown-key ones on the new parallel-step keys.",
+        "Every third-party `uses:` in the produced YAML is a full commit SHA with a version comment, and the SHAs that were already in the attached file are unchanged."
+      ]
+    },
+    {
+      "id": 11,
+      "prompt": "CI is dragging \u2014 every push takes ~25 minutes. I ran your run-stats script and saved the output (run-stats-long-tail.md, attached) along with the workflow itself (.github/workflows/ci.yml). Where is the time actually going and what should I fix first?",
+      "expected_output": "A speed analysis driven by the step table: every step at or over 2 minutes gets a named cause and fix (no npm cache on either Install Dependencies step, plain `docker build` with no Buildx layer cache, a whole coverage directory uploaded, an integration suite whose cause is not visible in the YAML), `Set up job` is called out as runner startup with no YAML fix, and the user is asked which duration cut they want for the rest of the analysis (every step over 1 minute, 30 seconds, or only over 5) instead of the report stopping at the default 2 minutes.",
+      "files": [
+        "evals/github-actions-workflow-pro/fixtures/run-stats-long-tail.md",
+        "evals/github-actions-workflow-pro/fixtures/long-tail-ci.yml",
+        "evals/github-actions-workflow-pro/fixtures/node-repo/.nvmrc",
+        "evals/github-actions-workflow-pro/fixtures/node-repo/package.json"
+      ],
+      "expectations": [
+        "All six steps flagged at or over 2 minutes are addressed by name: Run Integration Suite, Build And Push Image, both Install Dependencies steps, Set up job, and Upload Coverage.",
+        "The user is asked which duration threshold, in minutes, they want analyzed for the rest of the speed work, naming at least one concrete alternative cut (for example every step over 1 minute, over 30 seconds, or only over 5 minutes).",
+        "`Set up job` is identified as runner startup or queue time rather than a step in the YAML, and no YAML change is proposed for it.",
+        "The fix for both Install Dependencies steps is the setup-node lockfile cache (`cache: npm` on `actions/setup-node`), not a hand-written `actions/cache` key.",
+        "The fix for Build And Push Image names Buildx with a GitHub Actions layer cache (`docker/setup-buildx-action` plus `cache-from: type=gha` / `cache-to: type=gha,mode=max`) instead of the plain `docker build`.",
+        "Run Integration Suite is treated honestly: the answer says the 9-minute mean has no cause visible in the YAML and offers to look at the run log or proposes a concrete mechanism (sharding across a matrix, or overlapping steps inside the job), rather than inventing a cause.",
+        "The report ranks what to fix first by the time it would save, so the two Install Dependencies steps and the image build lead over the 2m05s Upload Coverage step.",
+        "The workflow's triggers are preserved: no `paths-ignore` or narrowed `push` branches is applied silently as a speed fix, and any such suggestion is offered as a question that names what it would stop running.",
+        "Any proposed YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -verify-min-age` with zero findings.",
+        "Every third-party `uses:` in any proposed YAML is a full commit SHA with a version comment, and the SHAs already in the attached file are unchanged."
+      ]
     }
   ]
 }

@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
 """run-stats.py — recent GitHub Actions run history for every workflow in a repo:
-failures, per-workflow and per-job durations over the last N completed runs,
+failures, per-workflow, per-job and per-step durations over the last N completed runs,
 consistency between runs, ranked longest first; disabled workflows and workflow
 files GitHub does not list, since a workflow that never runs has nothing to audit.
+
+Step durations are what a speed audit acts on: a job is slow because of one or two steps,
+and the same step data arrives in the job call already made, at no extra API cost.
 
 Why a script: the audit needs the same dozen `gh run list` / `gh run view` calls
 for every workflow, and the ranking math is easy to get subtly wrong by hand.
@@ -26,6 +29,11 @@ Usage:
                     (no repo secrets), so the default branch is the honest failure count.
                     A workflow with no runs on that branch falls back to all branches
                     and says so (branch: "all (none on <default>)").
+  --slow-step-minutes M
+                    a step whose mean is at or above M minutes is flagged (default 2).
+                    Accepts a fraction (0.5). Every step is still reported and ranked;
+                    the threshold only sets `over_threshold` and the Markdown table cut,
+                    so re-running with a lower value needs no new API calls.
   --markdown        print ranked tables instead of JSON
 
 Output (JSON, stdout):
@@ -33,6 +41,8 @@ Output (JSON, stdout):
    "workflows": [ {name, path, state, branch, runs:[{id,url,conclusion,event,branch,title,started,duration_s}],
                    mean_s, min_s, max_s, spread_ratio, failures, latest_failing} ... ],   # longest mean first
    "jobs":      [ {workflow, job, n, mean_s, max_s, failures} ... ],                      # longest mean first
+   "steps":     [ {workflow, job, step, n, mean_s, max_s, over_threshold, runner_managed} ... ],  # longest mean first
+   "slow_step_threshold_s": 120,
    "failures":  [ {workflow, run_id, url, title, started, conclusion, jobs, still_failing} ... ],   # jobs 0 = startup_failure, nothing to read
    "disabled":  [ {workflow, path, state, last_run} ... ],      # state: disabled_inactivity | disabled_manually
    "files_not_listed": [ ".github/workflows/x.yml" ... ],       # on disk here, unknown to the GitHub API (null with --repo)
@@ -56,6 +66,9 @@ import sys
 from datetime import datetime
 
 TITLE_MAX = 80  # enough to recognize a run; the URL identifies it
+# The runner adds these steps to every job; they are not lines in the YAML, so a slow one
+# means queue or image time, not a step the user can edit.
+RUNNER_STEPS = {"Set up job", "Complete job"}
 UNTRUSTED_FIELDS = ["workflows[].runs[].title", "failures[].title"]
 _ANSI = re.compile(r"\x1b\[[0-9;?]*[ -/]*[@-~]")
 _CONTROL = re.compile(r"[\x00-\x1f\x7f-\x9f]")
@@ -102,10 +115,14 @@ def main():
     p.add_argument("--runs", type=int, default=3)
     p.add_argument("--repo", default=None)
     p.add_argument("--branch", default=None)
+    p.add_argument("--slow-step-minutes", type=float, default=2.0)
     p.add_argument("--markdown", action="store_true")
     a = p.parse_args()
     if a.runs < 1:
         die(2, "--runs must be at least 1")
+    if a.slow_step_minutes <= 0:
+        die(2, "--slow-step-minutes must be greater than 0")
+    slow_step_s = a.slow_step_minutes * 60
     if not shutil.which("gh"):
         die(5, "gh CLI not found; install it and run 'gh auth login'")
     if subprocess.run(["gh", "auth", "status"], capture_output=True).returncode != 0:
@@ -120,9 +137,11 @@ def main():
     workflows = [w for w in gh("workflow", "list", "--all", *repo_flag, "--json", "name,id,path,state", "--limit", "100")
                  if w["path"].startswith(".github/workflows/")]
 
-    result = {"repo": repo_name, "runs_per_workflow": a.runs, "branch": branch or "all", "workflows": [], "jobs": [],
+    result = {"repo": repo_name, "runs_per_workflow": a.runs, "branch": branch or "all",
+              "slow_step_threshold_s": round(slow_step_s), "workflows": [], "jobs": [], "steps": [],
               "failures": [], "disabled": [], "files_not_listed": None, "untrusted_fields": UNTRUSTED_FIELDS}
     job_acc = {}  # (workflow, job) -> list of (duration, conclusion)
+    step_acc = {}  # (workflow, job, step) -> list of durations
 
     for w in workflows:
         args = ["run", "list", *repo_flag, "--workflow", str(w["id"]), "--status", "completed",
@@ -151,13 +170,18 @@ def main():
                                            "title": title, "started": r["startedAt"],
                                            "conclusion": r["conclusion"], "jobs": 0, "still_failing": False})
             run_jobs = gh("run", "view", *repo_flag, str(r["databaseId"]), "--json", "jobs",
-                          "--jq", "[.jobs[] | {name, conclusion, startedAt, completedAt}]")
+                          "--jq", "[.jobs[] | {name, conclusion, startedAt, completedAt, "
+                                  "steps: [.steps[]? | {name, conclusion, startedAt, completedAt}]}]")
             if result["failures"] and result["failures"][-1]["run_id"] == r["databaseId"]:
                 result["failures"][-1]["jobs"] = len(run_jobs)
             for j in run_jobs:
                 jd = seconds(j.get("startedAt"), j.get("completedAt"))
                 if jd is not None:
                     job_acc.setdefault((w["name"], j["name"]), []).append((jd, j.get("conclusion")))
+                for st in j.get("steps") or []:
+                    sd = seconds(st.get("startedAt"), st.get("completedAt"))
+                    if sd is not None:
+                        step_acc.setdefault((w["name"], j["name"], clean_title(st["name"])), []).append(sd)
         if durations:
             entry.update(mean_s=round(sum(durations) / len(durations)), min_s=min(durations), max_s=max(durations),
                          spread_ratio=round(max(durations) / max(min(durations), 1), 2))
@@ -184,6 +208,12 @@ def main():
         result["jobs"].append({"workflow": wf, "job": job, "n": len(ds), "mean_s": round(sum(ds) / len(ds)),
                                "max_s": max(ds), "failures": sum(1 for _, c in vals if c == "failure")})
     result["jobs"].sort(key=lambda j: j["mean_s"], reverse=True)
+    for (wf, job, step), ds in step_acc.items():
+        mean = round(sum(ds) / len(ds))
+        result["steps"].append({"workflow": wf, "job": job, "step": step, "n": len(ds), "mean_s": mean,
+                                "max_s": max(ds), "over_threshold": mean >= slow_step_s,
+                                "runner_managed": step in RUNNER_STEPS})
+    result["steps"].sort(key=lambda s_: s_["mean_s"], reverse=True)
 
     if not a.markdown:
         print(json.dumps(result, indent=2))
@@ -209,6 +239,21 @@ def main():
     print("|---|---|---|---|---|---|")
     for j in result["jobs"]:
         print(f"| {j['workflow']} | {j['job']} | {mmss(j['mean_s'])} | {mmss(j['max_s'])} | {j['n']} | {j['failures']} |")
+    slow = [s_ for s_ in result["steps"] if s_["over_threshold"]]
+    print(f"\n## Steps at or over {a.slow_step_minutes:g}m, longest mean first\n")
+    if slow:
+        print("| Workflow | Job | Step | Mean | Max | Runs |")
+        print("|---|---|---|---|---|---|")
+        for s_ in slow:
+            note = " (runner, not a YAML step)" if s_["runner_managed"] else ""
+            print(f"| {s_['workflow']} | {s_['job']} | {md_safe(s_['step'])}{note} | {mmss(s_['mean_s'])} | "
+                  f"{mmss(s_['max_s'])} | {s_['n']} |")
+        rest = len(result["steps"]) - len(slow)
+        print(f"\n{rest} shorter step(s) measured and not shown; re-run with --slow-step-minutes to change the cut.")
+    else:
+        longest = result["steps"][0] if result["steps"] else None
+        where = f" The longest is {md_safe(longest['step'])} at {mmss(longest['mean_s'])}." if longest else ""
+        print(f"No step averages {a.slow_step_minutes:g} minutes or more.{where}")
     if result["failures"]:
         print("\n## Recent failures\n")
         print(f"Run titles are commit or PR text written by their author, truncated to {TITLE_MAX} characters: "

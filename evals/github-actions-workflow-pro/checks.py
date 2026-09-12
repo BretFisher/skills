@@ -181,8 +181,12 @@ def uses_lines(text):
     return {m.group(1): (m.group(2), (m.group(3) or "").strip()) for m in (SHA.search(l) for l in text.splitlines()) if m}
 
 
-def scanners(run):
-    """Run actionlint, zizmor (regular), poutine, pinact -check on the run's YAML in a scratch repo."""
+def scanners(run, actionlint_allow=None):
+    """Run actionlint, zizmor (regular), poutine, pinact -check on the run's YAML in a scratch repo.
+
+    actionlint_allow: regex of actionlint messages that are the linter's stale schema rather than a
+    workflow error (the parallel-step keys it does not know yet). Reports that all match are dropped;
+    anything else still fails, so the allowance cannot hide a real finding."""
     if not run.wf:
         return True, "no YAML produced (vacuous)"
     if not RUN_SCANNERS:
@@ -198,7 +202,11 @@ def scanners(run):
     findings = []
     p = subprocess.run(["actionlint"] + glob.glob(f"{wfdir}/*"), cwd=tmp, capture_output=True, text=True)
     if p.returncode:
-        findings.append("actionlint: " + p.stdout.strip().splitlines()[0])
+        reports = [l for l in p.stdout.splitlines() if re.match(r".*:\d+:\d+: ", l)]
+        if actionlint_allow:
+            reports = [l for l in reports if not re.search(actionlint_allow, l)]
+        if reports:
+            findings.append("actionlint: " + reports[0].strip())
     # explicit file list: zizmor's online cache has mis-attributed findings when handed a directory (seen 2026-09-09)
     p = subprocess.run([SCAN, "zizmor", "--no-progress", "--collect=all", "--format", "json", *sorted(os.path.relpath(f, tmp) for f in glob.glob(f"{wfdir}/*"))], cwd=tmp, capture_output=True, text=True)
     try:
@@ -610,6 +618,88 @@ def checks_for(run):
             (8, "program", S),
             (9, TK, T),
         ]
+    if e == 10:
+        j = jobs(wf)
+        one_job = next(iter(j.values()), {}) if j else {}
+        sts = steps(one_job)
+        def concurrent_builds():
+            names = ("build:frontend", "build:backend", "build:docs")
+            par = [st for st in sts if "parallel" in st]
+            in_par = " ".join(json.dumps(st["parallel"]) for st in par)
+            if all(nme in in_par for nme in names):
+                return True, "all three builds inside a parallel: block"
+            bg = [st for st in sts if st.get("background") and any(nme in json.dumps(st) for nme in names)]
+            waited = any("wait" in st for st in sts)
+            return len(bg) == 3 and waited, f"parallel blocks={len(par)} background builds={len(bg)} wait step={waited}"
+        def server_background():
+            srv = next((st for st in sts if "start:api" in json.dumps(st)), None)
+            shell_bg = bool(re.search(r"start:api\s*&\s*$", run.all_text, re.M))
+            return bool(srv and srv.get("background") and srv.get("id")) and not shell_bg, \
+                f"server step={bool(srv)} background={bool(srv and srv.get('background'))} id={(srv or {}).get('id')} shell &={shell_bg}"
+        def cancels():
+            srv = next((st for st in sts if "start:api" in json.dumps(st)), None)
+            sid = (srv or {}).get("id")
+            return bool(sid) and any(st.get("cancel") == sid for st in sts), f"server id={sid} cancel targets={[st.get('cancel') for st in sts if 'cancel' in st]}"
+        def no_sleep():  # split: the sleep is mechanical, the readiness check is judgment
+            if re.search(r"sleep\s+30", run.all_text):
+                return False, "sleep 30 still in the produced YAML"
+            return None, "sleep 30 gone; model judges the readiness check that replaced it"
+        def one_job_kept():
+            return len(j) == 1 and "matrix" not in run.all_text, f"jobs={list(j)} matrix={'matrix' in run.all_text}"
+        def actionlint_note():
+            return bool(re.search(r"actionlint", run.answer, re.I)) and bool(re.search(r"unexpected key|does not know|stale schema|schema|not yet support", run.answer, re.I)), \
+                "answer names actionlint and its unknown-key/schema lag"
+        def recent():  # split: naming the feature as new is mechanical, "does not claim steps cannot parallelize" is judgment
+            m = re.search(r"\b2026\b|new(ly)?|recent(ly)?|just (shipped|added|landed)", run.answer, re.I)
+            if not m:
+                return False, "answer never marks the keys as a recent feature"
+            return None, f"answer marks the feature as new ({m.group(0)!r}); model judges the rest"
+        return [
+            (1, "program", concurrent_builds),
+            (2, "program", server_background),
+            (3, "program", cancels),
+            (4, "split", no_sleep),
+            (5, "program", one_job_kept),
+            (6, "program", actionlint_note),
+            (7, "split", recent),
+            (8, "program", lambda: scanners(run, actionlint_allow=r'unexpected key "(background|wait|wait-all|cancel|parallel)"|step must run script with "run" section')),
+            (9, "program", lambda: (bool(uses_lines(run.all_text)) and all(v[0] in read(f"{FIX}/serial-build-job.yml") and v[1].startswith("#") for v in uses_lines(run.all_text).values()), f"uses={uses_lines(run.all_text)}")),
+        ]
+    if e == 11:
+        STEPS = ["Run Integration Suite", "Build And Push Image", "Install Dependencies", "Set up job", "Upload Coverage"]
+        def names_steps():
+            missing = [nme for nme in STEPS if nme.lower() not in run.answer.lower()]
+            both_installs = len(re.findall(r"install dependencies", run.answer, re.I)) >= 2
+            return not missing and both_installs, f"missing={missing} install mentioned twice={both_installs}"
+        def asks_threshold():  # split: a duration question is mechanical, whether it offers a real alternative cut is judgment
+            qs = [q for q in re.findall(r"[^.!?\n]*\?", run.answer) if re.search(r"minute|\bmins?\b|second|threshold|cut\b", q, re.I)]
+            if not qs:
+                return False, "no question about a duration threshold"
+            return None, f"threshold question(s) asked: {qs[:3]}"
+        def runner_step():  # split: naming it runner time is mechanical, "no YAML fix proposed" is judgment
+            near = " ".join(re.findall(r"[^\n]*set up job[^\n]*", run.answer, re.I))
+            if not re.search(r"runner|queue|startup|start-up|image|not a (YAML|yaml) step|no YAML fix", near, re.I):
+                return False, f"Set up job not explained as runner time: {near[:200]!r}"
+            return None, f"Set up job called runner time: {near[:200]!r}"
+        def npm_cache():
+            return "cache: npm" in run.answer, "setup-node cache: npm named"
+        def buildx():
+            return bool(re.search(r"setup-buildx", run.answer)) and "type=gha" in run.answer, "buildx + type=gha named"
+        def triggers_kept():
+            added = [nme for nme, (t, w) in run.wf.items() if "paths-ignore" in t or "paths:" in t]
+            return not added or bool(re.search(r"\?", run.answer)), f"yaml with path filters={added}"
+        return [
+            (1, "program", names_steps),
+            (2, "split", asks_threshold),
+            (3, "split", runner_step),
+            (4, "program", npm_cache),
+            (5, "program", buildx),
+            (6, "model", None),
+            (7, "model", None),
+            (8, "program", triggers_kept),
+            (9, "program", S),
+            (10, "program", lambda: (all(v[0] in read(f"{FIX}/long-tail-ci.yml") and v[1].startswith("#") for v in uses_lines(run.all_text).values()), f"uses={uses_lines(run.all_text)}")),
+        ]
     return []
 
 
@@ -651,6 +741,9 @@ EXCERPTS = {
     (7, 3): [("answer", r"concurrency|cancel|speed|why|reason")], (7, 8): PLACEHOLDERS, (7, 12): [("answer", r"hard|finding")], (7, 13): PROVENANCE,
     (8, 4): [("answer", r"docker-build-workflow|reusable|question|default|ask|assum")], (8, 5): ASKS, (8, 7): REASONS, (8, 10): PROVENANCE,
     (9, 5): [("answer", r"agentic|dependabot|hard|lock")], (9, 6): [("answer", r"agentic|hard")], (9, 9): PROVENANCE,
+    (10, 4): [("yaml", None), ("answer", r"sleep|ready|readiness|health|why")], (10, 7): [("answer", r"parallel|background|new|2026|why")],
+    (11, 2): ASKS, (11, 3): [("answer", r"set up job|runner|speed")],
+    (11, 6): [("answer", r"integration|speed|log|shard")], (11, 7): [("answer", r"do first|speed|order|first")],
 }
 EXCERPT_CAP = 30000
 

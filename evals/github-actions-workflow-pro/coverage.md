@@ -27,7 +27,9 @@ below is the output of `checks.py --kinds`; regenerate it when `evals.json` or `
 | e7      | 13         | 9       | 2      | 2      | #12 #13          | #3 #8         |
 | e8      | 10         | 6       | 1      | 3      | #10              | #4 #5 #7      |
 | e9      | 9          | 6       | 1      | 2      | #9               | #5 #6         |
-| **all** | **106**    | **71**  | **19** | **16** |                  |               |
+| e10     | 9          | 7       | 2      | 0      | #4 #7            | —             |
+| e11     | 10         | 6       | 2      | 2      | #2 #3            | #6 #7         |
+| **all** | **125**    | **84**  | **23** | **18** |                  |               |
 
 The two cases a program cannot see, found in the 2026-09-09 grader comparison (`runs/grader-compare/`, dashboard
 `evals/_dashboard/grader-compare.html`): a SHA copied from another file and only described in transcript prose (why the transcript
@@ -36,28 +38,29 @@ assertion is vacuous there; the model reads the diff).
 
 ## SKILL.md checklist
 
-| Line                                                 | Proof                                                                  | Assertions                                                                                     |
-| ---------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `permissions: {}` + least-privilege per job          | scanner (zizmor `excessive-permissions`, gasa) + agent                 | mech; e0#2 e1#3 e2#2 e3#3 e5#1 e7#11 (keys) e7#12 (non-empty top-level grant reported as Hard) |
-| `checkout` needs `contents: read`                    | agent (runtime failure, no scanner)                                    | e5#1, and any eval whose output checks out and passes mech                                     |
-| `persist-credentials: false`                         | scanner (zizmor `artipacked`)                                          | mech; e5#3 e7#6                                                                                |
-| Third-party `uses:` SHA + version comment            | scanner (zizmor `unpinned-uses`, `ref-version-mismatch`; gasa)         | mech; e3#4 e5#2                                                                                |
-| Version comment alone on the line                    | agent (Dependabot behaviour, no scanner)                               | e3#10                                                                                          |
-| Release at least 7 days old                          | scanner (pinact `-verify-min-age`)                                     | mech (pinact `-min-age 7 -verify-min-age` in the grader's run)                                 |
-| Same-owner `@main` replaced, or reported high        | scanner (gasa, zizmor)                                                 | mech; tagless-upstream case not asserted (needs a live repo)                                   |
-| OIDC over static cloud keys                          | agent                                                                  | e2#4 e7#1                                                                                      |
-| Secrets scoped to an environment                     | scanner (zizmor `secrets-outside-env`, auditor) + agent                | e7#4                                                                                           |
-| Cloud credentials configured after install and build | agent (SKILL.md + security.md)                                         | e7#10                                                                                          |
-| `github.event.*` through `env:`                      | scanner (actionlint, zizmor, poutine)                                  | mech; e3#2                                                                                     |
-| `pull_request` not `pull_request_target`             | scanner (zizmor, gasa, poutine)                                        | mech; e2#1 e3#1                                                                                |
-| Dependabot entry with cooldown                       | scanner (zizmor `dependabot-cooldown`, gasa `updates/*`) + agent offer | e7#7                                                                                           |
-| Superseded runs cancel (CI)                          | scanner (zizmor `concurrency-limits`, pedantic) + agent                | e0#3 e4#1                                                                                      |
-| Deploy/release in a non-cancelling group             | agent                                                                  | e6#6 e7#2 (key) e7#3 (reason)                                                                  |
-| Cheap jobs first and parallel                        | agent                                                                  | e4#5 e5#5 e8#2                                                                                 |
-| Cache via setup action                               | agent                                                                  | e0#4 e4#2 e5#3                                                                                 |
-| `timeout-minutes`                                    | agent                                                                  | e0#5 e4#6 e5#4 e7#6                                                                            |
-| Path filters only when correct; none on new CI       | agent                                                                  | e5#7 e8#6 (compound: path filters and dispatch triggers in one assertion)                      |
-| Ask before manual/remote triggers                    | agent                                                                  | e5#7 e8#6 (same compound assertions as the row above)                                          |
+| Line                                                                       | Proof                                                                  | Assertions                                                                                     |
+| -------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `permissions: {}` + least-privilege per job                                | scanner (zizmor `excessive-permissions`, gasa) + agent                 | mech; e0#2 e1#3 e2#2 e3#3 e5#1 e7#11 (keys) e7#12 (non-empty top-level grant reported as Hard) |
+| `checkout` needs `contents: read`                                          | agent (runtime failure, no scanner)                                    | e5#1, and any eval whose output checks out and passes mech                                     |
+| `persist-credentials: false`                                               | scanner (zizmor `artipacked`)                                          | mech; e5#3 e7#6                                                                                |
+| Third-party `uses:` SHA + version comment                                  | scanner (zizmor `unpinned-uses`, `ref-version-mismatch`; gasa)         | mech; e3#4 e5#2                                                                                |
+| Version comment alone on the line                                          | agent (Dependabot behaviour, no scanner)                               | e3#10                                                                                          |
+| Release at least 7 days old                                                | scanner (pinact `-verify-min-age`)                                     | mech (pinact `-min-age 7 -verify-min-age` in the grader's run)                                 |
+| Same-owner `@main` replaced, or reported high                              | scanner (gasa, zizmor)                                                 | mech; tagless-upstream case not asserted (needs a live repo)                                   |
+| OIDC over static cloud keys                                                | agent                                                                  | e2#4 e7#1                                                                                      |
+| Secrets scoped to an environment                                           | scanner (zizmor `secrets-outside-env`, auditor) + agent                | e7#4                                                                                           |
+| Cloud credentials configured after install and build                       | agent (SKILL.md + security.md)                                         | e7#10                                                                                          |
+| `github.event.*` through `env:`                                            | scanner (actionlint, zizmor, poutine)                                  | mech; e3#2                                                                                     |
+| `pull_request` not `pull_request_target`                                   | scanner (zizmor, gasa, poutine)                                        | mech; e2#1 e3#1                                                                                |
+| Dependabot entry with cooldown                                             | scanner (zizmor `dependabot-cooldown`, gasa `updates/*`) + agent offer | e7#7                                                                                           |
+| Superseded runs cancel (CI)                                                | scanner (zizmor `concurrency-limits`, pedantic) + agent                | e0#3 e4#1                                                                                      |
+| Deploy/release in a non-cancelling group                                   | agent                                                                  | e6#6 e7#2 (key) e7#3 (reason)                                                                  |
+| Cheap jobs first and parallel                                              | agent                                                                  | e4#5 e5#5 e8#2                                                                                 |
+| Parallel steps inside one job (`parallel`, `background`, `wait`, `cancel`) | agent (new GitHub syntax, no scanner)                                  | e10#1 e10#2 e10#3 e10#5 e10#7; e10#6 covers the actionlint schema lag                          |
+| Cache via setup action                                                     | agent                                                                  | e0#4 e4#2 e5#3                                                                                 |
+| `timeout-minutes`                                                          | agent                                                                  | e0#5 e4#6 e5#4 e7#6                                                                            |
+| Path filters only when correct; none on new CI                             | agent                                                                  | e5#7 e8#6 (compound: path filters and dispatch triggers in one assertion)                      |
+| Ask before manual/remote triggers                                          | agent                                                                  | e5#7 e8#6 (same compound assertions as the row above)                                          |
 
 ## Building a workflow
 
@@ -101,6 +104,8 @@ assertion is vacuous there; the model reads the diff).
 | Run history: failures documented, still-failing → ask to troubleshoot                                                                                                                                         | agent                                                     | not asserted; live-repo gap                                                         |
 | Disabled workflows and unlisted files reported as Correctness                                                                                                                                                 | agent                                                     | not asserted; live-repo gap                                                         |
 | Speed ranking, spread ratio, one-sentence fix or ask                                                                                                                                                          | agent                                                     | e6#6 partial; full ranking needs the live-repo gap                                  |
+| Steps at or over 2m each get a named cause; `Set up job` reported as runner time with no YAML fix                                                                                                             | agent                                                     | e11#1 e11#3 e11#4 e11#5 e11#6 e11#7                                                 |
+| Ask the user which duration cut to analyze after showing the 2-minute table                                                                                                                                   | agent                                                     | e11#2                                                                               |
 | Scanners run, rule ids cited, no restating                                                                                                                                                                    | agent                                                     | e6#2 e6#4                                                                           |
 | Residual-only reading                                                                                                                                                                                         | agent                                                     | e6#2 (negative form)                                                                |
 | Correctness / Hard / Speed / Opinions sections                                                                                                                                                                | agent                                                     | e3#5 e6#3                                                                           |
@@ -119,6 +124,7 @@ assertion is vacuous there; the model reads the diff).
 - Process assertions (the transcript ones) are graded from `run-N/transcript.md`, which the executor writes as it works. Self-reported, so a raw tool-call log from the harness would be stronger; in practice every old-skill run still logged its `gh api` lookups and failed the assertion.
 - The live-repo gap: run-history behaviors, disabled workflows, spread ratio from real runs, the tagless-upstream `@main` case, and untrusted run titles all need a repo with a remote and seeded runs (a failing run, a disabled workflow, a run title carrying an injected instruction). One throwaway fork closes five rows at once.
 - Reusable-workflow caller cases (`timeout-minutes` on a `uses:` job, inputs vs callers).
+- Evals 10 and 11 were added 2026-09-12 with the parallel-step and slow-step rules and have not been run yet; e11 hands the agent a saved `run-stats.py --markdown` file (`fixtures/run-stats-long-tail.md`) because the sandbox has no live repo, so it proves the reading of the step table, not the running of the script.
 
 ## Pass 3 work plan
 
