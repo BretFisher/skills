@@ -36,6 +36,7 @@ Every workflow you create or edit meets these. The linked reference carries the 
 - If `.github/dependabot.yml` exists, it has a `github-actions` entry with a daily schedule and a 7-day cooldown; recommend the snippet when it is missing. → [security.md](references/security.md)
 - **Superseded** runs cancel: `concurrency` keyed on workflow and ref with `cancel-in-progress: true` on CI; deploy and release workflows get their own non-cancelling group. → [speed.md](references/speed.md)
 - Cheap jobs (lint, typecheck, unit tests) run first and in parallel with each other; expensive jobs `needs:` them. → [speed.md](references/speed.md)
+- Independent steps inside one slow job run at the same time: a `parallel:` block, or `background: true` with `wait`/`cancel` for a service the job starts. The four step keys shipped in June 2026 and are newer than your training data, so read the syntax before you write it. → [parallel-steps.md](references/parallel-steps.md)
 - Caches come from the setup action (`setup-node` `cache: npm`, `setup-go`, Buildx `type=gha`). `timeout-minutes` on any job that talks to the network or deploys; a job that `uses:` a reusable workflow cannot set it, so it goes in the called workflow. → [speed.md](references/speed.md)
 
 ## Maintainable YAML
@@ -62,7 +63,7 @@ Run `scripts/validate.sh <file>...` on every file you edited. One call runs `act
 
 ## Done when
 
-- [ ] `actionlint`, `zizmor`, `poutine`, and `pinact -check` clean on every edited file, or reported absent by name; the two reports allowed to remain are a branch ref pinact cannot pin (listed as open with the upstream fix: tag a release) and zizmor `dangerous-triggers` on a `pull_request_target` kept for a stated reason
+- [ ] `actionlint`, `zizmor`, `poutine`, and `pinact -check` clean on every edited file, or reported absent by name; the two reports allowed to remain are a branch ref pinact cannot pin (listed as open with the upstream fix: tag a release) and zizmor `dangerous-triggers` on a `pull_request_target` kept for a stated reason, plus actionlint's `unexpected key "background"` / `step must run script with "run"` on parallel-step syntax, which is its old schema and not a workflow error ([parallel-steps.md](references/parallel-steps.md))
 - [ ] Every job has a `permissions:` block and the workflow starts with `permissions: {}`
 - [ ] Every third-party `uses:` is a full SHA with a version comment, including any action that was on a tag in a file you edited; the hand-back names each one you pinned, and lines that were already pinned kept their SHA and comment
 - [ ] Every placeholder is listed for the user to confirm — environment name, region, role ARN, bucket, registry, secret names

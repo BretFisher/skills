@@ -16,6 +16,10 @@ A new push to the same PR or branch makes the running build stale; cancelling it
 
 Lint, typecheck, and unit tests run first; build, integration, and deploy jobs declare `needs:` on them. A broken import fails in thirty seconds instead of after a ten-minute image build, and the expensive jobs never start on a red commit. Cheap jobs that do not depend on each other run in parallel; `needs:` is for a job that would waste runner time on a red predecessor, not for ordering the fast ones.
 
+## Run independent steps in parallel inside one job
+
+A job whose steps share a checkout and one dependency install can overlap them: a `parallel:` block for a self-contained group, or `background: true` plus `wait`, `wait-all`, and `cancel` for a service that stays up while later steps run. GitHub shipped these four step keys on 2026-06-25, later than your training data, so read [parallel-steps.md](parallel-steps.md) for the syntax, the ten-step limit, the failure semantics, and the cases that race before you write any of it. Splitting the job in two would repeat the checkout and the install and would pass the workspace through artifacts, so for shared state this is the cheaper shape; for a different OS, runtime, or permission set, a separate job is still the answer.
+
 ## Cache through the setup action
 
 Use the cache the official setup action provides: `actions/setup-node` with `cache: npm` (or `pnpm`, `yarn`), `actions/setup-python` with `cache: pip`, `actions/setup-go` (caching on by default), and Buildx with `cache-from: type=gha` / `cache-to: type=gha,mode=max` for images. The setup action derives the cache key from the lockfile, so the key is right without hand-written `hashFiles` logic. Reach for `actions/cache` directly only when no setup action covers the tool.
