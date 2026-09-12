@@ -303,3 +303,30 @@ inherited high, same as iterations 13 and 14). Program pass, one batch each, two
 - Grader feedback to act on next: e3#8 bundles three conditions (events kept, comment step safe, bug named) and its "no
   pull_request_target" clause contradicts e3#7's stated exception; split it. e4#5 (test no longer needs lint) now checks the test job
   only, so it settles without a model when the build job legitimately needs both.
+
+## Pass 5 (2026-09-12): parallel steps and the slow-step audit
+
+Evals 10 and 11 added with the two new rules, run on Sonnet 5 at high effort through
+`eval-executor-sonnet-high` (`runs/iteration-17-sonnet-e1011`). Program pass, one Opus grader batch
+(11 residuals, 72k tokens).
+
+| eval               | with skill | without skill |
+| ------------------ | ---------- | ------------- |
+| e10 parallel-steps | 9/9        | 4/9           |
+| e11 slow-steps     | 10/10      | 8/10          |
+
+- e10 discriminates hard, which is the point of the rule: the baseline wrote "GitHub Actions steps within one job
+  always run sequentially — there's no 'parallel steps' primitive inside a job", then hand-rolled `&` with `$!` and
+  `wait "$pid"` in a single shell step. The with-skill run used `parallel:`, `background: true` with an id, and
+  `cancel:`, and named both the June 2026 ship date and the actionlint schema lag.
+- e11 discriminates on only two assertions, #2 (the threshold put to the user) and #10 (pin provenance). Sonnet reads a
+  step table and names causes without the skill, so #1, #3, #4, #5, #8 and #9 are non-discriminating on this model and
+  are candidates to drop if they stay non-discriminating on Haiku. Keep them until that run exists: they are the
+  regression contract for the audit template, not only a model-capability probe.
+- Two assertions were written wrong and were fixed before the grader ran, not after seeing a verdict I disliked:
+  e11#2 demanded a literal question, which the eval harness forbids (the executor is told the user is unavailable), so
+  it now accepts the stated-default form that `audit.md` prescribes; e11#10 demanded that every `uses:` SHA appear in
+  the fixture, which fails the legitimate fix of adding Buildx actions, so it is now the standard provenance check.
+- Skill change found by reading the with-skill YAML: the executor started the background server after the parallel
+  build block, so its startup overlapped nothing. `references/parallel-steps.md` now says to start a background step as
+  early as its inputs allow.

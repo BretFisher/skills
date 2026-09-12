@@ -240,7 +240,7 @@
       ],
       "expectations": [
         "All six steps flagged at or over 2 minutes are addressed by name: Run Integration Suite, Build And Push Image, both Install Dependencies steps, Set up job, and Upload Coverage.",
-        "The user is asked which duration threshold, in minutes, they want analyzed for the rest of the speed work, naming at least one concrete alternative cut (for example every step over 1 minute, over 30 seconds, or only over 5 minutes).",
+        "The threshold is put to the user: the report either asks which duration cut they want for the rest of the speed work, naming at least one concrete alternative (every step over 1 minute, over 30 seconds, or only over 5), or states that the 2-minute default was used and is theirs to change. A report that never mentions the cut fails.",
         "`Set up job` is identified as runner startup or queue time rather than a step in the YAML, and no YAML change is proposed for it.",
         "The fix for both Install Dependencies steps is the setup-node lockfile cache (`cache: npm` on `actions/setup-node`), not a hand-written `actions/cache` key.",
         "The fix for Build And Push Image names Buildx with a GitHub Actions layer cache (`docker/setup-buildx-action` plus `cache-from: type=gha` / `cache-to: type=gha,mode=max`) instead of the plain `docker build`.",
@@ -248,7 +248,7 @@
         "The report ranks what to fix first by the time it would save, so the two Install Dependencies steps and the image build lead over the 2m05s Upload Coverage step.",
         "The workflow's triggers are preserved: no `paths-ignore` or narrowed `push` branches is applied silently as a speed fix, and any such suggestion is offered as a question that names what it would stop running.",
         "Any proposed YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -verify-min-age` with zero findings.",
-        "Every third-party `uses:` in any proposed YAML is a full commit SHA with a version comment, and the SHAs already in the attached file are unchanged."
+        "The SHA pins already in the attached file are unchanged, and every commit SHA that is new in a `uses:` line was produced by `pinact run` rather than typed from memory or read from a `gh api` / `git ls-remote` lookup."
       ]
     }
   ]

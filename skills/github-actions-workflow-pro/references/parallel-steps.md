@@ -55,7 +55,7 @@ steps:
 - `cancel: <id>` sends `SIGTERM` to one background step, then `SIGKILL` after a short grace period. Use it to stop a service the job started, so the job does not sit at the implicit `wait-all` until the service times out.
 - `wait`, `wait-all`, and `cancel` steps always run and do not accept `if`. Put the condition on the background step itself.
 
-Use `background` when a process must stay up while later steps run (a server, a database, an emulator, a log tailer), or when one step's result is needed earlier than another's. Use `parallel` for everything else, because fewer ids and no explicit wait means fewer ways to get it wrong.
+Start a background step as early as its own inputs allow: a server started before the builds is warming up while they run, and a server started after them adds its whole startup to the job. Use `background` when a process must stay up while later steps run (a server, a database, an emulator, a log tailer), or when one step's result is needed earlier than another's. Use `parallel` for everything else, because fewer ids and no explicit wait means fewer ways to get it wrong.
 
 ## Semantics that change what you write
 

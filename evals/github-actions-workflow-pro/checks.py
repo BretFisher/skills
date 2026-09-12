@@ -671,11 +671,14 @@ def checks_for(run):
             missing = [nme for nme in STEPS if nme.lower() not in run.answer.lower()]
             both_installs = len(re.findall(r"install dependencies", run.answer, re.I)) >= 2
             return not missing and both_installs, f"missing={missing} install mentioned twice={both_installs}"
-        def asks_threshold():  # split: a duration question is mechanical, whether it offers a real alternative cut is judgment
+        def asks_threshold():  # split: naming the cut is mechanical, offering a real alternative is judgment
             qs = [q for q in re.findall(r"[^.!?\n]*\?", run.answer) if re.search(r"minute|\bmins?\b|second|threshold|cut\b", q, re.I)]
-            if not qs:
-                return False, "no question about a duration threshold"
-            return None, f"threshold question(s) asked: {qs[:3]}"
+            # an executor told the user is unavailable states the default instead of asking; audit.md allows that form
+            stated = [l for l in run.answer.splitlines() if re.search(r"threshold|\bcut\b|slow-step-minutes", l, re.I)
+                      and re.search(r"default|confirm|your call|yours to change|not yet confirmed", l, re.I)]
+            if not qs and not stated:
+                return False, "the report never mentions the duration cut"
+            return None, f"asked={qs[:2]} stated={[l.strip()[:120] for l in stated[:2]]}"
         def runner_step():  # split: naming it runner time is mechanical, "no YAML fix proposed" is judgment
             near = " ".join(re.findall(r"[^\n]*set up job[^\n]*", run.answer, re.I))
             if not re.search(r"runner|queue|startup|start-up|image|not a (YAML|yaml) step|no YAML fix", near, re.I):
@@ -685,6 +688,13 @@ def checks_for(run):
             return "cache: npm" in run.answer, "setup-node cache: npm named"
         def buildx():
             return bool(re.search(r"setup-buildx", run.answer)) and "type=gha" in run.answer, "buildx + type=gha named"
+        def pins_and_provenance():  # new actions are a legitimate fix here, so only the pre-existing pins must match
+            orig = uses_lines(read(f"{FIX}/long-tail-ci.yml"))
+            out = uses_lines(run.all_text)
+            moved = {a: (out[a][0], sha) for a, (sha, _) in orig.items() if a in out and out[a][0] != sha}
+            if moved:
+                return False, f"pre-existing pins changed: {moved}"
+            return T()
         def triggers_kept():
             added = [nme for nme, (t, w) in run.wf.items() if "paths-ignore" in t or "paths:" in t]
             return not added or bool(re.search(r"\?", run.answer)), f"yaml with path filters={added}"
@@ -698,7 +708,7 @@ def checks_for(run):
             (7, "model", None),
             (8, "program", triggers_kept),
             (9, "program", S),
-            (10, "program", lambda: (all(v[0] in read(f"{FIX}/long-tail-ci.yml") and v[1].startswith("#") for v in uses_lines(run.all_text).values()), f"uses={uses_lines(run.all_text)}")),
+            (10, TK, pins_and_provenance),
         ]
     return []
 

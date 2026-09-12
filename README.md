@@ -77,6 +77,10 @@ and an assertion that passes without the skill on every model is a rule the skil
 | Without skill   | 49/105    | 63/106   | —        | —      | —           | —            | —              | —       | —        | —             | —          | —            |
 | With skill      | 85/105    | 96/106   | —        | —      | —           | —            | —              | —       | —        | —             | —          | —            |
 
+Evals 10 and 11 (parallel steps, slow-step audit; 19 assertions) were added on 2026-09-12 and ran on their own,
+Sonnet 5 at high effort: 19/19 with the skill, 12/19 without. The cells above are still the 106-assertion set
+and get their next refresh from a full 125-assertion run.
+
 I build and test these skills on Fable 5 — that's my baseline, not one of the target models above.
 For comparison, the same models with no skill at all scored 55/101 (Sonnet 5) and 36/101 (Haiku 4.5).
 
