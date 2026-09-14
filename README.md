@@ -2,7 +2,24 @@
 
 A bunch of skills for daily work in DevOps, found in `./skills/`
 
-Installable via `npx skills add https://github.com/bretfisher/skills` and mark the ones you want to install. Add `-g` to command to install them globally.
+## Install
+
+Two ways, pick one.
+
+**As a Claude Code plugin** (all skills at once, updated with `/plugin`):
+
+```text
+/plugin marketplace add bretfisher/skills
+/plugin install bretfisher-skills@bretfisher
+```
+
+**As individual skills** (pick only the ones you want):
+
+```bash
+npx skills add bretfisher/skills
+```
+
+Mark the ones you want to install. Add `-g` to the command to install them globally.
 
 ## Skills
 

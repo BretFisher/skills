@@ -1,0 +1,26 @@
+{
+  "name": "bretfisher-skills",
+  "version": "1.0.0",
+  "description": "Bret Fisher's agent skills for DevOps and platform engineering. Opinionated, tested with evals, ready to run.",
+  "author": {
+    "name": "Bret Fisher",
+    "url": "https://www.bretfisher.com"
+  },
+  "homepage": "https://www.bretfisher.com/theguild",
+  "repository": "https://github.com/bretfisher/skills",
+  "license": "MIT",
+  "keywords": [
+    "docker",
+    "kubernetes",
+    "devops",
+    "platform-engineering",
+    "agentic-devops",
+    "sre"
+  ],
+  "skills": [
+    "./skills/docker-pro",
+    "./skills/github-actions-workflow-pro",
+    "./skills/gha-audit",
+    "./skills/super-linting"
+  ]
+}

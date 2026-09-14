@@ -1,0 +1,24 @@
+{
+  "name": "bretfisher",
+  "owner": {
+    "name": "Bret Fisher",
+    "url": "https://www.bretfisher.com"
+  },
+  "description": "Bret Fisher's ops and engineering skills",
+  "plugins": [
+    {
+      "name": "bretfisher-skills",
+      "source": "./",
+      "description": "Agent skills for DevOps and platform engineering",
+      "category": "devops",
+      "keywords": [
+        "docker",
+        "kubernetes",
+        "devops",
+        "platform-engineering",
+        "agentic-devops",
+        "sre"
+      ]
+    }
+  ]
+}
