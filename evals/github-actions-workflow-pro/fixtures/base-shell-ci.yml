@@ -1,0 +1,57 @@
+name: Docs Build
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    name: Build Docs Bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Collect page sources
+        run: |
+          set -euo pipefail
+          test -d docs
+          mkdir -p build
+          cp -R docs build/pages
+          find build/pages -type f -name '*.md' | sort > build/page-list.txt
+          test -s build/page-list.txt
+      - name: Stamp the build
+        env:
+          BUILD_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          stamp="${BUILD_SHA:0:7}"
+          sed -i "s/__VERSION__/${stamp}/g" build/pages/index.md
+          printf '%s\n' "$stamp" > build/pages/BUILT_AT
+      - name: Pack the bundle
+        run: |
+          set -euo pipefail
+          tar --sort=name --owner=0 --group=0 --numeric-owner \
+            -czf docs-bundle.tar.gz -C build pages
+          ls -lh docs-bundle.tar.gz
+      - name: Upload the bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: docs-bundle
+          path: docs-bundle.tar.gz
+          retention-days: 7

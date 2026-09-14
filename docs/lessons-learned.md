@@ -131,7 +131,7 @@ The skill's Validate step told the model to run four scanners, each its own tool
 and again on the corrected copy. `scripts/validate.sh` runs all four with fixed flags and prints one
 summary line. On the two evals with a real validation loop, turns per run fell from 82 to 58 and 72 to
 52 on Haiku and 76 to 61 on Sonnet; the trivial eval did not change. Fewer turns is the direct lever on
-cost (item 9), and fixed flags remove the forgotten `-verify-min-age` class of error.
+cost (item 9), and fixed flags remove the forgotten `--verify-min-age` class of error.
 
 ### 9. Measure tokens from the raw log, not from the skill's word count
 
@@ -151,10 +151,10 @@ assertion stays through the next full run so the cut can be reversed on evidence
 
 ### 11. Let the eval find the skill's factual errors
 
-audit.md gave `pinact run -update -min-age 7 -i 'actions/checkout@v4'` as the way to keep an old major.
+audit.md gave `pinact run --update --min-age 7 -i 'actions/checkout@v4'` as the way to keep an old major.
 A Sonnet executor followed it, found that `-i` is a regex over the action name so `@v4` matches nothing,
 and reported it in the transcript. The rule now says write the tag in the file and run `pinact run`
-without `-update`. An executor that follows instructions literally is a free proofreader; read the
+without `--update`. An executor that follows instructions literally is a free proofreader; read the
 transcripts of the runs that struggled.
 
 ### 12. Treat one run as a sample

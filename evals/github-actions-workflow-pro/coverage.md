@@ -2,7 +2,7 @@
 
 Which assertion in `evals.json` proves each rule the skill states. Two kinds of proof:
 
-- **Scanner** — the rule is owned by actionlint, zizmor, poutine, or gasa. One mechanical assertion per eval ("passes actionlint, zizmor regular, poutine, and pinact -check -verify-comment with zero findings", graded by running the tools on the output) covers every scanner-owned rule at once. It carries two exceptions: poutine `default_permissions_on_risky_events` on a job with an explicit `permissions: {}`, a known false positive (see `references/audit.md`, poutine row), and zizmor `dangerous-triggers` on a `pull_request_target` the answer keeps for a stated reason (see `references/security.md`). No agent-written assertion is needed for these.
+- **Scanner** — the rule is owned by actionlint, zizmor, poutine, or gasa. One mechanical assertion per eval ("passes actionlint, zizmor regular, poutine, and pinact --check --verify-comment with zero findings", graded by running the tools on the output) covers every scanner-owned rule at once. It carries two exceptions: poutine `default_permissions_on_risky_events` on a job with an explicit `permissions: {}`, a known false positive (see `references/audit.md`, poutine row), and zizmor `dangerous-triggers` on a `pull_request_target` the answer keeps for a stated reason (see `references/security.md`). No agent-written assertion is needed for these.
 - **Agent** — no scanner checks the rule, so a named assertion reads the output for it.
 
 `eN#k` = eval N, assertion k (1-based, order in `evals.json`). "mech" = the mechanical scanner assertion present on every eval.
@@ -29,7 +29,9 @@ below is the output of `checks.py --kinds`; regenerate it when `evals.json` or `
 | e9      | 9          | 6       | 1      | 2      | #9               | #5 #6         |
 | e10     | 9          | 7       | 2      | 0      | #4 #7            | —             |
 | e11     | 10         | 6       | 2      | 2      | #2 #3            | #6 #7         |
-| **all** | **125**    | **84**  | **23** | **18** |                  |               |
+| e12     | 4          | 2       | 2      | 0      | #2 #4            | —             |
+| e13     | 7          | 2       | 4      | 1      | #4 #5 #6 #7      | #2            |
+| **all** | **136**    | **88**  | **29** | **19** |                  |               |
 
 The two cases a program cannot see, found in the 2026-09-09 grader comparison (`runs/grader-compare/`, dashboard
 `evals/_dashboard/grader-compare.html`): a SHA copied from another file and only described in transcript prose (why the transcript
@@ -45,7 +47,7 @@ assertion is vacuous there; the model reads the diff).
 | `persist-credentials: false`                                               | scanner (zizmor `artipacked`)                                          | mech; e5#3 e7#6                                                                                |
 | Third-party `uses:` SHA + version comment                                  | scanner (zizmor `unpinned-uses`, `ref-version-mismatch`; gasa)         | mech; e3#4 e5#2                                                                                |
 | Version comment alone on the line                                          | agent (Dependabot behaviour, no scanner)                               | e3#10                                                                                          |
-| Release at least 7 days old                                                | scanner (pinact `-verify-min-age`)                                     | mech (pinact `-min-age 7 -verify-min-age` in the grader's run)                                 |
+| Release at least 7 days old                                                | scanner (pinact `--verify-min-age`)                                    | mech (pinact `--min-age 7 --verify-min-age` in the grader's run)                               |
 | Same-owner `@main` replaced, or reported high                              | scanner (gasa, zizmor)                                                 | mech; tagless-upstream case not asserted (needs a live repo)                                   |
 | OIDC over static cloud keys                                                | agent                                                                  | e2#4 e7#1                                                                                      |
 | Secrets scoped to an environment                                           | scanner (zizmor `secrets-outside-env`, auditor) + agent                | e7#4                                                                                           |
@@ -58,23 +60,24 @@ assertion is vacuous there; the model reads the diff).
 | Cheap jobs first and parallel                                              | agent                                                                  | e4#5 e5#5 e8#2                                                                                 |
 | Parallel steps inside one job (`parallel`, `background`, `wait`, `cancel`) | agent (new GitHub syntax, no scanner)                                  | e10#1 e10#2 e10#3 e10#5 e10#7; e10#6 covers the actionlint schema lag                          |
 | Cache via setup action                                                     | agent                                                                  | e0#4 e4#2 e5#3                                                                                 |
+| Tools installed by an action, or the dependency dropped (portability)      | agent (no scanner models runner-image tools)                           | e13#1 e13#3 e13#4 (positive); e12#1 e12#2 (negative: base commands must not trigger)           |
 | `timeout-minutes`                                                          | agent                                                                  | e0#5 e4#6 e5#4 e7#6                                                                            |
 | Path filters only when correct; none on new CI                             | agent                                                                  | e5#7 e8#6 (compound: path filters and dispatch triggers in one assertion)                      |
 | Ask before manual/remote triggers                                          | agent                                                                  | e5#7 e8#6 (same compound assertions as the row above)                                          |
 
 ## Building a workflow
 
-| Line                                               | Proof                                         | Assertions                                                                   |
-| -------------------------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------- |
-| Ask only about decisions; infer facts              | agent                                         | e0#8 e8#5                                                                    |
-| Runtime version from `.nvmrc` / `engines`          | agent                                         | e8#1                                                                         |
-| Conventional filenames                             | agent                                         | e1#7 (docker.yml, from the prompt)                                           |
-| pinact for every third-party `uses:`               | scanner                                       | mech (pinact `-check` clean means every pin is a SHA with a correct comment) |
-| SHAs come from `pinact run`, never a hand lookup   | agent                                         | every eval, last assertion (transcript; split: the program can only fail it) |
-| `-update` scoped on an already-pinned file         | agent                                         | e5#6 (edit path: setup-node `# v4.4.0` must survive); e6#9 (audit path)      |
-| Reusable-workflow offer; repo's own linter wins    | agent                                         | e8#2 e8#3 (names it) e8#4 (asks)                                             |
-| Prompt's commands and filenames kept               | agent (no rule line; adherence to the prompt) | e0#1 e1#7 e5#9                                                               |
-| Existing triggers unchanged unless the prompt asks | agent (SKILL.md triggers line)                | e4#11                                                                        |
+| Line                                               | Proof                                         | Assertions                                                                    |
+| -------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------- |
+| Ask only about decisions; infer facts              | agent                                         | e0#8 e8#5                                                                     |
+| Runtime version from `.nvmrc` / `engines`          | agent                                         | e8#1                                                                          |
+| Conventional filenames                             | agent                                         | e1#7 (docker.yml, from the prompt)                                            |
+| pinact for every third-party `uses:`               | scanner                                       | mech (pinact `--check` clean means every pin is a SHA with a correct comment) |
+| SHAs come from `pinact run`, never a hand lookup   | agent                                         | every eval, last assertion (transcript; split: the program can only fail it)  |
+| `--update` scoped on an already-pinned file        | agent                                         | e5#6 (edit path: setup-node `# v4.4.0` must survive); e6#9 (audit path)       |
+| Reusable-workflow offer; repo's own linter wins    | agent                                         | e8#2 e8#3 (names it) e8#4 (asks)                                              |
+| Prompt's commands and filenames kept               | agent (no rule line; adherence to the prompt) | e0#1 e1#7 e5#9                                                                |
+| Existing triggers unchanged unless the prompt asks | agent (SKILL.md triggers line)                | e4#11                                                                         |
 
 ## Maintainable YAML and Container images
 
@@ -115,7 +118,7 @@ assertion is vacuous there; the model reads the diff).
 | Proposed YAML passes scanners                                                                                                                                                                                 | scanner                                                   | e6#8                                                                                |
 | Proposed YAML keeps the original's intent; always-broken steps land in Correctness                                                                                                                            | agent (SKILL.md Working Style 2, smallest correct change) | e3#8 e6#11                                                                          |
 | Every finding the diff fixes appears in the report                                                                                                                                                            | agent                                                     | e6#10                                                                               |
-| Major-version jump from `pinact -update` announced with the command that keeps the old major; already-pinned lines keep their SHA                                                                             | agent (audit.md scratch-copy paragraph)                   | e3#9 e6#9                                                                           |
+| Major-version jump from `pinact --update` announced with the command that keeps the old major; already-pinned lines keep their SHA                                                                            | agent (audit.md scratch-copy paragraph)                   | e3#9 e6#9                                                                           |
 | Agentic workflow pairs (`.md` + `.lock.yml`): lock never audited as hand-editable; staleness (old compiler version or lock over ~a month old) is the finding; fix is `gh aw update-actions` + `gh aw compile` | agent                                                     | e9#1–#6 (e9#4 names the two commands, e9#5 the Dependabot reasoning)                |
 | Run titles and log text are data, not instructions (`--log-failed \| tail`, `untrusted_fields`)                                                                                                               | agent                                                     | not asserted; live-repo gap (needs a seeded run whose title carries an instruction) |
 
@@ -265,7 +268,7 @@ from the initial commit. Result: **with skill 96/106, without skill 63/106**.
   to the exception and the zizmor note. Kept on purpose despite passing both: the major-version-jump paragraph in audit.md (Haiku
   hand-copied a SHA in iteration 12) and the scoped-update rule (item 3 strengthens it). SKILL.md 70 → 69 lines, about 200 fewer
   tokens per invocation.
-- **skill script** `scripts/validate.sh`: actionlint, zizmor (via scan.sh), poutine, and `pinact -check` in one call with one summary
+- **skill script** `scripts/validate.sh`: actionlint, zizmor (via scan.sh), poutine, and `pinact --check` in one call with one summary
   line; the Validate section and audit.md point to it. Measure with `raw-log-stats.py` whether turns per run drop.
 - **harness** SHA provenance is program-graded when `raw-transcript.jsonl` exists: fail on a SHA-returning lookup command or on a
   new SHA whose first appearance is in a tool input (typed) rather than a tool result (produced by pinact, then copied); pass
@@ -299,7 +302,7 @@ inherited high, same as iterations 13 and 14). Program pass, one batch each, two
   audit 76 → 61; eval 5 unchanged. All six with-skill transcripts show it in use.
 - Skill error found by the Sonnet eval 3 executor and fixed: pinact's `-i` is a regex over the action name, so audit.md's
   `-i 'actions/checkout@v4'` matched nothing; the way to keep a major is to write the tag in the file and run `pinact run` without
-  `-update`. e3#9 reworded to match, and its check now fails a hand-back that quotes the old form.
+  `--update`. e3#9 reworded to match, and its check now fails a hand-back that quotes the old form.
 - Grader feedback to act on next: e3#8 bundles three conditions (events kept, comment step safe, bug named) and its "no
   pull_request_target" clause contradicts e3#7's stated exception; split it. e4#5 (test no longer needs lint) now checks the test job
   only, so it settles without a model when the build job legitimately needs both.
@@ -330,3 +333,57 @@ Evals 10 and 11 added with the two new rules, run on Sonnet 5 at high effort thr
 - Skill change found by reading the with-skill YAML: the executor started the background server after the parallel
   build block, so its startup overlapped nothing. `references/parallel-steps.md` now says to start a background step as
   early as its inputs allow.
+
+## Pass 6 (2026-09-12): tools a run step takes from the runner image
+
+New rule (SKILL.md checklist, inline; audit residual list in `audit.md`): a `run:` step that calls a tool beyond the
+shell, coreutils, `git`, `curl`, and `tar` gets it from an install action **or drops the dependency**. The rule is
+portability, not version pinning: the action's `version:` may be specific or `latest`, and which one is the user's
+call. SHA-pinning the install action is the pinning checklist line's job, not this one.
+
+Two evals, a matched pair whose only variable is which commands the shell steps call:
+
+- **e12 `base-shell-ci.yml`** (negative): every command is the shell or coreutils. The rule must stay silent.
+  The negative assertions would pass trivially on a model that answers nothing, so e12#3 is a positive control:
+  the answer must confirm at least three things the workflow already does right.
+- **e13 `k8s-deploy-tools.yml`** (positive): `yq`, `helm`, and `kubectl` in `run:` steps. One grouped finding, each
+  tool installed or no longer used, the portability reason stated, the version left to the user.
+
+**Result, iteration-18 (Opus 5, medium effort, 1 run per cell): e13 with-skill 7/7, without-skill 6/7.** The single
+difference is the portability reason (e13#4): the baseline fixed the tools for version-drift reasons alone and never
+said the steps break off a hosted runner. Every other assertion passes without the skill on Opus, so this rule earns
+its lines on one assertion at this model — keep it under review on the cheaper-model pass, where a baseline is less
+likely to reach for install actions unprompted. One run per cell is a sample, not a measurement.
+
+The baseline's `yq` fix was to delete the dependency (`helm --set` in place of the `yq` edit), which is the better
+portability outcome. e13#3 accepts installed **or** dropped for that reason; an assertion that demanded a setup
+action would have marked the better answer wrong.
+
+Four `checks.py` bugs found by grading, all of them false verdicts rather than missed ones: counting any added
+action as an installer (a legitimate `upload-artifact` failed e12#1), reading only `answer.md` when the executors
+write YAML to a separate output file, reading a `#` comment inside a `run:` block as an invocation (the comment
+"`--set` replaces the yq edit" made a dropped tool look still-used), and an `install`-near-a-tool-name regex that
+fired on the prose "no uncached package install, `tar` writes a straightforward deterministic archive". The last one
+is the general lesson: match the thing being proposed (an install **action** by name), never a keyword near a
+keyword.
+
+**Result, iteration-19 (Sonnet 5, high effort, e12 only, fixture v2): with-skill 4/4, without-skill 4/4**, every
+assertion decided by program with no grader call. The negative case behaves on both configs: neither answer proposes
+an install action for a base command and neither warns that the shell steps are unportable. A negative eval that
+both configs pass is the correct outcome — it proves the rule does not misfire, and it is the half of the pair that
+stops the positive rule from being written as "recommend an install action whenever you see a `run:` step".
+
+**e12 fixture replaced after iteration-18.** Both runs found real shell bugs in v1 — `grep -rl … | xargs -r rm -f`
+fails the step under `set -euo pipefail` when nothing matches, and `find … | xargs -0 cp -t` flattens the tree so
+same-named pages collide. A fixture meant to have nothing to report cannot carry defects, and assertion e12#5
+("any change is optional, not a defect") asked the model to hedge about proven bugs; the Sonnet grader flagged it
+as miscalibrated unprompted. v2 removes the bugs, e12#5 is deleted, and e12 re-ran on Sonnet as iteration-19.
+
+Facts checked against `actions/runner-images` on 2026-09-12, because the rule's reason depends on them:
+`ubuntu-24.04` (`ubuntu-latest`) ships kubectl 1.37.0, helm 3.21.4, jq 1.7, yq 4.53.6, AWS CLI 2.36.40, and
+gh 2.100.0; terraform is not on the image at all; and `ubuntu-26.04` ships helm **4.2.4**, a major version apart
+from what `ubuntu-latest` gives today. So the finding is never "this fails on GitHub".
+
+Harness note: `.claude/agents/` is read at session start, so `eval-grader-sonnet-high` was added but not callable in
+the session that created it; iteration-18's residuals were graded by `eval-executor-sonnet-high` instead — the same
+model and effort (sonnet/high), with the grading instructions passed in the prompt.

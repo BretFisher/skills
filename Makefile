@@ -83,8 +83,8 @@ run-stats: ## Rank this repo's workflows and jobs by duration over the last RUNS
 
 pin: ## Pin this repo's workflows with pinact (newest release at least 7 days old); FILES= to limit
 	@$(call need,pinact,pinact)
-	$(SCAN) pinact run -update -min-age 7 $(FILES)
+	$(SCAN) pinact run --update --min-age 7 $(FILES)
 
 lint-pins: ## pinact check: every uses: SHA-pinned, comment correct, pin at least 7 days old
 	@$(call need,pinact,pinact)
-	$(SCAN) pinact run -check -verify-comment -min-age 7 -verify-min-age
+	$(SCAN) pinact run --check --verify-comment --min-age 7 --verify-min-age

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# validate.sh — run actionlint, zizmor, poutine, and pinact -check on workflow files in one call.
+# validate.sh — run actionlint, zizmor, poutine, and pinact --check on workflow files in one call.
 #
 # Why: the Validate step used to be four commands, each a tool call the model paid for on every
 # pass, and a forgotten flag on one of them changed the result. One call, fixed flags, one summary.
@@ -60,7 +60,7 @@ run_tool() {
 run_tool actionlint actionlint "${files[@]}"
 run_tool zizmor "$scan" zizmor --no-progress --collect=all "${files[@]}"
 run_tool poutine poutine analyze_local "$root" --quiet --disable-version-check --fail-on-violation
-run_tool pinact "$scan" pinact run -check -verify-comment -min-age 7 -verify-min-age "${files[@]}"
+run_tool pinact "$scan" pinact run --check --verify-comment --min-age 7 --verify-min-age "${files[@]}"
 
 echo
 if [ "$fail" -eq 0 ]; then

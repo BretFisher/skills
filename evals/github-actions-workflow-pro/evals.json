@@ -250,6 +250,35 @@
         "Any proposed YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -verify-min-age` with zero findings.",
         "The SHA pins already in the attached file are unchanged, and every commit SHA that is new in a `uses:` line was produced by `pinact run` rather than typed from memory or read from a `gh api` / `git ls-remote` lookup."
       ]
+    },
+    {
+      "id": 12,
+      "prompt": "Review .github/workflows/docs.yml (attached) and tell me what to fix. It is about to become a required check, so I want it solid.",
+      "expected_output": "The review finds nothing to change about how the shell steps get their tools: every command in them (mkdir, test, cp, find, sort, sed, printf, tar, ls) is the shell, coreutils, or a tool the runner needs for checkout anyway, so no step is rewritten to install a tool through an action and no step is warned about as unportable. The answer still shows it reviewed the file, confirming the parts that are already right (permissions: {} with a least-privilege job grant, the SHA-pinned actions with persist-credentials: false, concurrency with cancel-in-progress, timeout-minutes, set -euo pipefail), and does not invent defects.",
+      "files": ["evals/github-actions-workflow-pro/fixtures/base-shell-ci.yml"],
+      "expectations": [
+        "The answer does not propose installing any of the shell commands used in the workflow (mkdir, find, xargs, cp, grep, rm, sed, git, date, curl, wc, tar, ls) through a setup or install action, and adds no `uses:` step for that purpose.",
+        "The answer does not warn that these shell steps will fail on a self-hosted runner, a `container:` job, or `act` because of a missing tool.",
+        "The answer shows it actually reviewed the file by confirming at least three things the workflow already does right, naming them (for example `permissions: {}` plus the per-job `contents: read`, the SHA-pinned `actions/checkout` with a version comment, `persist-credentials: false`, `concurrency` with `cancel-in-progress: true`, `timeout-minutes`, or `set -euo pipefail`).",
+        "The answer does not invent security or speed findings that the file does not have: it does not claim the actions are unpinned, that permissions are missing or excessive, that `persist-credentials` is unset, or that concurrency or `timeout-minutes` are absent."
+      ]
+    },
+    {
+      "id": 13,
+      "prompt": "Review .github/workflows/deploy.yml (attached) and tell me what to fix. It is about to become our only path to production, so I want it solid.",
+      "expected_output": "The review reports one grouped finding covering the three tools the shell steps take from the runner image (yq, helm, kubectl): the image is the only thing that puts them on PATH, so the steps do not run on a self-hosted runner, in a `container:` job, or under act. Each tool is either installed by an action (azure/setup-kubectl, azure/setup-helm, or the tool's own) or no longer used at all (helm --set in place of the yq edit). Whether the action asks for a specific version or `latest` is left to the user as a stated choice, not decided silently. It does not propose apt-get install in a run step.",
+      "files": [
+        "evals/github-actions-workflow-pro/fixtures/k8s-deploy-tools.yml"
+      ],
+      "expectations": [
+        "The answer names all three tools that come from the runner image rather than from the workflow: `yq`, `helm`, and `kubectl`.",
+        "The answer reports these as one grouped finding covering all three tools, not as a separate finding per tool or per step.",
+        "Each of `kubectl`, `helm`, and `yq` is either installed by an action in the proposed YAML (for example `azure/setup-kubectl`, `azure/setup-helm`) or no longer used by any `run:` step, so no step depends on the runner image providing it.",
+        "The answer gives the portability reason: the steps do not work where the image does not provide the tool, naming at least one of a self-hosted runner, a `container:` job, or `act`.",
+        "The answer does not silently decide the tool versions for the user: it either asks which versions they need, states that the version is their choice, says what the current runner image ships so they can choose, or uses `latest`.",
+        "The answer does not propose installing the tools with a package manager inside a `run:` step (`apt-get install`, `brew install`, `curl | sh`) as the recommended fix.",
+        "The answer does not report the workflow's already-correct parts as defects: `permissions: {}` with a per-job `contents: read`, the SHA-pinned checkout with `persist-credentials: false`, the named `production` environment holding the secret, the non-cancelling deploy concurrency group, and `timeout-minutes` are all present and stay."
+      ]
     }
   ]
 }

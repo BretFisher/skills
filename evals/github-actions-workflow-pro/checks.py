@@ -182,7 +182,7 @@ def uses_lines(text):
 
 
 def scanners(run, actionlint_allow=None):
-    """Run actionlint, zizmor (regular), poutine, pinact -check on the run's YAML in a scratch repo.
+    """Run actionlint, zizmor (regular), poutine, pinact --check on the run's YAML in a scratch repo.
 
     actionlint_allow: regex of actionlint messages that are the linter's stale schema rather than a
     workflow error (the parallel-step keys it does not know yet). Reports that all match are dropped;
@@ -227,7 +227,7 @@ def scanners(run, actionlint_allow=None):
         if rid == "default_permissions_on_risky_events" and "permissions: {}" in run.all_text:
             continue
         findings.append(f"poutine: {rid}")
-    p = subprocess.run([SCAN, "pinact", "run", "-check", "-verify-comment", "-min-age", "7", "-verify-min-age"], cwd=tmp, capture_output=True, text=True)
+    p = subprocess.run([SCAN, "pinact", "run", "--check", "--verify-comment", "--min-age", "7", "--verify-min-age"], cwd=tmp, capture_output=True, text=True)
     if p.returncode:
         findings.append("pinact: " + (p.stderr or p.stdout).strip().splitlines()[-1][:120])
     shutil.rmtree(tmp)
@@ -288,8 +288,8 @@ def transcript_provenance(run, fixture_texts=()):
         return raw
     if bad:
         return False, f"SHA-returning lookup in transcript: {bad[:3]}"
-    if not re.search(r"pinact run(?! -check)", run.transcript):
-        return False, f"{len(new)} new SHA(s) but no `pinact run` (non -check) in transcript"
+    if not re.search(r"pinact run(?! --check)", run.transcript):
+        return False, f"{len(new)} new SHA(s) but no `pinact run` (non --check) in transcript"
     return None, f"{len(new)} new SHA(s), `pinact run` present, no lookup; model confirms none was copied by hand"
 
 
@@ -322,6 +322,24 @@ def tools_line(run, names):
 
 # ---- per-eval check tables ------------------------------------------------------
 # Each entry: (1-based index, kind, function(run) -> (passed|None, evidence))
+# Patterns for evals 12 and 13 (runner-image tools). Both fixtures are clean under every scanner,
+# so a claim that a clean part is broken is itself the failure; the model judges polarity on the
+# phrases a regex can only locate.
+# Only an install ACTION counts as proposing an install: bare "install" prose ("no uncached package
+# install, `tar` writes ...") is not a proposal. The uses:-line half is covered by INSTALLER_ACTION.
+SETUP_PROPOSAL = r"[\w.-]+/(?:setup|install)-(?:tar|curl|sed|grep|find|xargs|coreutils|date|wc|mkdir|git)\b|\b(?:setup|install)-(?:tar|curl|sed|grep|coreutils|git)\b|\b(?:tar|curl|sed|grep|find|xargs|coreutils|date|mkdir)\b[^\n]{0,60}(?:setup action|install(?:er)? action|action that installs|through an action)"
+ALREADY_RIGHT = {
+    "permissions": r"permissions:\s*\{\}|least.privilege|contents:\s*read",
+    "pinned": r"SHA.pinned|pinned to a (?:full )?(?:commit )?SHA|already pinned",
+    "persist-credentials": r"persist-credentials",
+    "concurrency": r"cancel-in-progress|concurrency",
+    "timeout": r"timeout-minutes",
+    "pipefail": r"set -euo pipefail",
+}
+INSTALLER_ACTION = r"setup-|install-|-installer|/install\\b"
+FALSE_DEFECT = r"(?:un|not )pinned|missing permissions|excessive permissions|no permissions block|persist-credentials[^\n]{0,30}(?:missing|unset|not set)|(?:no|missing) timeout|(?:no|missing) concurrency"
+
+
 def checks_for(run):
     e = run.eval
     n, text, wf = run.one()
@@ -394,8 +412,8 @@ def checks_for(run):
             if not jumped:
                 return True, "stayed on v4"
             names = all(re.search(re.escape(a), run.answer) for a in jumped)
-            ok_cmd = bool(re.search(r"pinact run(?! -update)[^\n]*-i ['\"]?actions/[a-z-]+['\"]?", run.answer)) and not re.search(r"-i ['\"]?actions/[a-z-]+@v\d", run.answer)
-            return names and ok_cmd, f"jumped {jumped}; named={names}; keep-major command without -update and without @vN in -i: {ok_cmd}"
+            ok_cmd = bool(re.search(r"pinact run(?! --update)[^\n]*-i ['\"]?actions/[a-z-]+['\"]?", run.answer)) and not re.search(r"-i ['\"]?actions/[a-z-]+@v\d", run.answer)
+            return names and ok_cmd, f"jumped {jumped}; named={names}; keep-major command without --update and without @vN in -i: {ok_cmd}"
         def artifact_comment():
             m = re.search(r"uses: actions/upload-artifact@[0-9a-f]{40}\s*# v[\d.]+\s*$", text, re.M)
             return bool(m) and bool(re.search(r"upload-artifact", run.answer)), f"clean comment line={bool(m)} reported={('upload-artifact' in run.answer)}"
@@ -710,6 +728,74 @@ def checks_for(run):
             (9, "program", S),
             (10, TK, pins_and_provenance),
         ]
+    if e == 12:  # base shell commands only: the tool rule must stay silent
+        def no_installer_added():
+            added = [a for a in uses_lines(run.all_text) if a != "actions/checkout"]
+            installers = [a for a in added if re.search(INSTALLER_ACTION, a, re.I)]
+            prose = re.search(SETUP_PROPOSAL, run.answer, re.I)
+            return not installers and not prose, f"installer actions added={installers} (other additions, allowed={[a for a in added if a not in installers]}); install prose={prose.group(0) if prose else None}"
+
+        def no_portability_warning():
+            hit = re.search(r"self-hosted|\bcontainer:\s|`act`|\bnektos\b", run.answer, re.I)
+            return (True, "no portability warning") if not hit else (None, f"mentions {hit.group(0)!r}; model judges whether it is a warning about these steps")
+
+        def confirms_correct():
+            got = [k for k, pat in ALREADY_RIGHT.items() if re.search(pat, run.answer, re.I)]
+            return len(got) >= 3, f"confirmed {got}"
+
+        def no_invented_findings():
+            hits = [m.group(0) for m in re.finditer(FALSE_DEFECT, run.answer, re.I)]
+            return (True, "no defect claims on the clean parts") if not hits else (None, f"claims to judge: {hits[:6]}")
+
+        return [
+            (1, "program", no_installer_added),
+            (2, "split", no_portability_warning),
+            (3, "program", confirms_correct),
+            (4, "split", no_invented_findings),
+        ]
+    if e == 13:  # kubectl, helm, yq come from the runner image; the rule is portability, not version pinning
+        def names_tools():
+            got = [x for x in ("yq", "helm", "kubectl") if re.search(rf"\b{x}\b", run.answer)]
+            return len(got) == 3, f"named {got}"
+
+        def installed_or_dropped():
+            """Each tool is installed by an action, or no run: step uses it any more. Dropping the
+            dependency is the better portability fix, so it counts the same as installing it."""
+            uses = " ".join(re.findall(r"^\s*-?\s*uses:\s*\S+", run.answer + "\n" + run.all_text, re.M))
+            runs = " ".join(str(s.get("run", "")) for j in jobs(wf).values() for s in steps(j)) if wf else ""
+            runs = re.sub(r"#[^\n]*", "", runs)  # a comment naming the tool it replaced is not an invocation
+            out = {}
+            for tool in ("kubectl", "helm", "yq"):
+                installed = bool(re.search(rf"/(?:setup-)?{tool}\b|setup-{tool}\b|install-{tool}\b", uses, re.I))
+                still_used = bool(re.search(rf"(?:^|[;&|\s]){tool}\s", runs, re.M))
+                out[tool] = "installed" if installed else ("dropped" if runs and not still_used else "BARE")
+            return all(v != "BARE" for v in out.values()), f"{out}" + ("" if runs else " (no parsed run: steps; judged from prose)")
+
+        def portability_reason():
+            hit = re.search(r"self-hosted|\bcontainer:|container job|`act`|\bact\b(?! on)|not (?:be )?(?:installed|available|present)|does not (?:exist|have|provide)|only[^\n]{0,40}runner image|comes? (?:only )?from the (?:runner )?image", run.answer, re.I)
+            return (None, f"portability phrase={hit.group(0)!r}" if hit else "no portability phrase found")
+
+        def version_left_to_user():
+            asks = re.search(r"which version|your (?:cluster|chart|provider)|up to you|your (?:call|choice|decision)|question|confirm|ships? (?:today|now|currently)|currently ships|image ships|version:\s*(?:latest|['\"]?latest)", run.answer + "\n" + run.all_text, re.I)
+            return (None, f"choice phrase={asks.group(0)!r}" if asks else "no choice/ask/latest phrase found")
+
+        def no_package_manager_fix():
+            hit = re.search(r"apt-get install|apt install|brew install|curl[^\n]*\|\s*(?:ba)?sh|wget[^\n]*\|\s*(?:ba)?sh", run.answer, re.I)
+            return (True, "no package-manager install proposed") if not hit else (None, f"mentions {hit.group(0)!r}; model judges whether it is the recommended fix")
+
+        def keeps_correct_parts():
+            hits = [m.group(0) for m in re.finditer(FALSE_DEFECT, run.answer, re.I)]
+            return (True, "no defect claims on the clean parts") if not hits else (None, f"claims to judge: {hits[:6]}")
+
+        return [
+            (1, "program", names_tools),
+            (2, "model", None),
+            (3, "program", installed_or_dropped),
+            (4, "split", portability_reason),
+            (5, "split", version_left_to_user),
+            (6, "split", no_package_manager_fix),
+            (7, "split", keeps_correct_parts),
+        ]
     return []
 
 
@@ -753,6 +839,10 @@ EXCERPTS = {
     (9, 5): [("answer", r"agentic|dependabot|hard|lock")], (9, 6): [("answer", r"agentic|hard")], (9, 9): PROVENANCE,
     (10, 4): [("yaml", None), ("answer", r"sleep|ready|readiness|health|why")], (10, 7): [("answer", r"parallel|background|new|2026|why")],
     (11, 2): ASKS, (11, 3): [("answer", r"set up job|runner|speed")],
+    (12, 2): [("answer", r"self-hosted|container|act|portab")], (12, 4): [("answer", None)],
+    (13, 2): [("answer", r"finding|tool|runner image|kubectl|helm|yq")],
+    (13, 4): [("answer", r"why|reason|runner image|portab|self-hosted|container|act")], (13, 5): ASKS,
+    (13, 6): [("answer", r"apt|brew|install|fix")], (13, 7): [("answer", None)],
     (11, 6): [("answer", r"integration|speed|log|shard")], (11, 7): [("answer", r"do first|speed|order|first")],
 }
 EXCERPT_CAP = 30000

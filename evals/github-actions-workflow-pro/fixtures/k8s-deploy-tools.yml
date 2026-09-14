@@ -1,0 +1,50 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy To Cluster
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Write kubeconfig
+        env:
+          KUBECONFIG_CONTENTS: ${{ secrets.KUBECONFIG_CONTENTS }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.kube"
+          printf '%s' "$KUBECONFIG_CONTENTS" > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+      - name: Render the release values
+        run: |
+          set -euo pipefail
+          yq -i '.image.tag = strenv(GITHUB_SHA)' deploy/values.yaml
+          yq '.image' deploy/values.yaml
+      - name: Deploy the chart
+        run: |
+          set -euo pipefail
+          helm upgrade --install web ./deploy/chart \
+            --values deploy/values.yaml \
+            --namespace web \
+            --wait --timeout 10m
+      - name: Check the rollout
+        run: |
+          set -euo pipefail
+          kubectl rollout status deployment/web --namespace web --timeout=5m
+          kubectl get pods --namespace web -o wide
