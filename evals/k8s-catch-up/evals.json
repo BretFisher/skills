@@ -1,0 +1,205 @@
+{
+  "skill_name": "k8s-catch-up",
+  "notes": "First pass: one knowledge eval per category file plus two updater evals. Knowledge evals run on a model whose reliable cutoff predates v1.35 (Haiku 4.5, Feb 2025) so the baseline shows what the model gets wrong on its own. Each knowledge prompt names the cluster version so the task is answerable; the assertion checks the field, kind, flag, or endpoint that only exists in the new feature. Every eval is run with and without the skill.",
+  "evals": [
+    {
+      "id": 0,
+      "name": "pods-restart-rules-image-volume-env-file",
+      "category": "pods",
+      "prompt": "Cluster is Kubernetes v1.37. Write a Pod manifest named `trainer` for a batch worker. Requirements: the Pod must never be rescheduled to another node (restartPolicy Never), but when the `worker` container exits with code 42 the kubelet should restart just that container in place. Mount the model files from the OCI artifact `registry.example.com/models/llama:v3` read-only at `/models` without an init container or a CSI driver. The container also needs its environment variables loaded from the file `/config/app.env` that an init container writes into a shared emptyDir, without mounting that file into the `worker` container. Give me only the YAML and a one-line note per requirement saying which field you used.",
+      "expected_output": "One Pod YAML using containers[].restartPolicyRules with exitCodes 42 (container restartPolicy Never/Always as required by the API), a volume with `image: {reference: registry.example.com/models/llama:v3}`, and env[].valueFrom.fileKeyRef pointing at the emptyDir volume and app.env. No webhook, no CSI, no sidecar workaround.",
+      "files": [],
+      "expectations": [
+        "The Pod YAML uses `restartPolicyRules` on the `worker` container with an `exitCodes` rule that includes 42 and action `Restart`.",
+        "The Pod YAML mounts the model files through an `image` volume source whose `reference` is `registry.example.com/models/llama:v3` (not an init container, CSI driver, or hostPath).",
+        "The Pod YAML loads environment variables with `valueFrom.fileKeyRef` (fields `volumeName`, `path`, `key`) instead of mounting the file or using a wrapper script.",
+        "The answer does not suggest a workaround that predates the features, such as an init container that copies model files, a sidecar that restarts the process, or a `source app.env` entrypoint script.",
+        "Process (with the skill only): the transcript shows that the reference files read are individual feature files under `references/<category>/`, at most four of them, and no file outside the skill was searched for the answer; a without-skill run passes this vacuously."
+      ]
+    },
+    {
+      "id": 1,
+      "name": "hpa-per-direction-tolerance",
+      "category": "workloads-autoscaling",
+      "prompt": "Kubernetes v1.37 cluster. Create an autoscaling/v2 HorizontalPodAutoscaler for Deployment `api` in namespace `shop`: 2 to 30 replicas, target 70% average CPU. Scale-up should react to metric changes as small as 5% from the target, but scale-down should ignore anything under 15% so we don't flap. Do this in the HPA object itself, not with a cluster-wide controller-manager flag.",
+      "expected_output": "An HPA with spec.behavior.scaleUp.tolerance: 0.05 and spec.behavior.scaleDown.tolerance: 0.15, GA in v1.37 (beta v1.35, gate HPAConfigurableTolerance off by default in v1.35/v1.36).",
+      "files": [],
+      "expectations": [
+        "The HPA YAML sets `tolerance` under `spec.behavior.scaleUp` to 0.05 and under `spec.behavior.scaleDown` to 0.15.",
+        "The answer does not tell the user to change the kube-controller-manager `--horizontal-pod-autoscaler-tolerance` flag as the way to meet the requirement (mentioning it as the old cluster-wide default is fine).",
+        "The HPA keeps the requested shape: autoscaling/v2, scaleTargetRef to Deployment `api`, minReplicas 2, maxReplicas 30, CPU utilization target 70.",
+        "Process (with the skill only): the transcript shows that the reference files read are individual feature files under `references/<category>/`, at most four of them, and no file outside the skill was searched for the answer; a without-skill run passes this vacuously."
+      ]
+    },
+    {
+      "id": 2,
+      "name": "native-gang-scheduling",
+      "category": "scheduling",
+      "prompt": "We run distributed training on Kubernetes v1.37 (upstream, no Kueue or Volcano installed). A training run is 8 Pods that must all be scheduled together or none at all, otherwise we deadlock on GPUs. What does Kubernetes itself offer for this in v1.37, what do I have to enable on the cluster, and show me the manifest(s) I'd write for the 8-Pod group.",
+      "expected_output": "Points to the native gang scheduling work (KEP 4671, Workload API / PodGroup, beta in v1.37 behind the GenericWorkload feature gate which is off by default), tells the user to enable the gate, and shows the Workload object plus how Pods reference it. Does not send the user to a third-party scheduler as the only answer.",
+      "files": [],
+      "expectations": [
+        "The answer names the native gang scheduling feature that reached beta in v1.37 (KEP 4671, the Workload / PodGroup API) rather than only recommending Kueue, Volcano, or a scheduler plugin.",
+        "The answer states that the feature is behind the `GenericWorkload` feature gate and that the gate is off by default in v1.37, so the cluster must enable it.",
+        "The answer includes a manifest for the group object and shows how the 8 Pods reference it.",
+        "Process (with the skill only): the transcript shows that the reference files read are individual feature files under `references/<category>/`, at most four of them, and no file outside the skill was searched for the answer; a without-skill run passes this vacuously."
+      ]
+    },
+    {
+      "id": 3,
+      "name": "dra-prioritized-list",
+      "category": "dra",
+      "prompt": "Kubernetes v1.36 with DRA. Write a ResourceClaimTemplate for a Pod that wants one device from DeviceClass `gpu-large.example.com`, but if none is available it should accept two devices from DeviceClass `gpu-small.example.com` instead. Then show the Pod snippet that uses the template. Use the current stable DRA API version.",
+      "expected_output": "ResourceClaimTemplate in resource.k8s.io/v1 using devices.requests[].firstAvailable with two subrequests (gpu-large count 1, gpu-small count 2), and a Pod with resourceClaims + containers[].resources.claims. DRA Prioritized List is GA in v1.36.",
+      "files": [],
+      "expectations": [
+        "The ResourceClaimTemplate uses `firstAvailable` with two subrequests: one for DeviceClass `gpu-large.example.com` with count 1 and one for `gpu-small.example.com` with count 2.",
+        "The DRA objects use `apiVersion: resource.k8s.io/v1` (the stable API), not v1alpha3 or v1beta1/v1beta2.",
+        "The Pod snippet declares `spec.resourceClaims` with `resourceClaimTemplateName` and references the claim in `containers[].resources.claims`.",
+        "Process (with the skill only): the transcript shows that the reference files read are individual feature files under `references/<category>/`, at most four of them, and no file outside the skill was searched for the answer; a without-skill run passes this vacuously."
+      ]
+    },
+    {
+      "id": 4,
+      "name": "volume-group-snapshot-ga",
+      "category": "storage",
+      "prompt": "Kubernetes v1.36. Our database uses two PVCs (`db-data` and `db-wal`, both labeled `app: pg`) that must be snapshotted at the same instant. Write the manifests to take a consistent group snapshot of both using the stable Kubernetes group-snapshot API, assuming a VolumeGroupSnapshotClass named `csi-group` exists, and say which API version is stable.",
+      "expected_output": "A VolumeGroupSnapshot in the groupsnapshot.storage.k8s.io API group (the served version depends on the installed external-snapshotter; v1beta2 or newer, never v1alpha1) selecting the PVCs by label and referencing volumeGroupSnapshotClassName csi-group. Volume Group Snapshot is GA in v1.36; the answer should say so and tell the user to check the served version with kubectl api-resources.",
+      "files": [],
+      "expectations": [
+        "The manifest is `kind: VolumeGroupSnapshot` in the `groupsnapshot.storage.k8s.io` API group at a version newer than v1alpha1 (v1beta1, v1beta2, or v1).",
+        "The VolumeGroupSnapshot selects the PVCs with a label selector `app: pg` and names `volumeGroupSnapshotClassName: csi-group`.",
+        "The answer states that volume group snapshots are stable (GA) as of v1.36 rather than calling the feature alpha, and tells the user how to confirm the served API version (for example `kubectl api-resources --api-group=groupsnapshot.storage.k8s.io`).",
+        "Process (with the skill only): the transcript shows that the reference files read are individual feature files under `references/<category>/`, at most four of them, and no file outside the skill was searched for the answer; a without-skill run passes this vacuously."
+      ]
+    },
+    {
+      "id": 5,
+      "name": "service-prefer-same-node",
+      "category": "networking",
+      "prompt": "Kubernetes v1.35. I run a node-local cache DaemonSet `cache` in namespace `web`. Write a Service so that clients are routed to the cache Pod on their own node when one exists, otherwise to one in the same zone, otherwise anywhere. Use the built-in Service field for this, not a topology-aware hints annotation or internalTrafficPolicy Local.",
+      "expected_output": "Service with spec.trafficDistribution: PreferSameNode (GA in v1.35 together with PreferSameZone). Not PreferClose, not internalTrafficPolicy: Local, not service.kubernetes.io/topology-mode.",
+      "files": [],
+      "expectations": [
+        "The Service sets `trafficDistribution: PreferSameNode`.",
+        "The answer does not use `internalTrafficPolicy: Local`, the `service.kubernetes.io/topology-mode` annotation, or `trafficDistribution: PreferClose` as the solution.",
+        "The answer states that `PreferSameNode` falls back to same-zone and then to any endpoint, and that the value is stable (GA) in v1.35.",
+        "Process (with the skill only): the transcript shows that the reference files read are individual feature files under `references/<category>/`, at most four of them, and no file outside the skill was searched for the answer; a without-skill run passes this vacuously."
+      ]
+    },
+    {
+      "id": 6,
+      "name": "pod-certificate-projected-volume",
+      "category": "auth-security",
+      "prompt": "Kubernetes v1.37. My `payments` Pod needs a short-lived X.509 client certificate issued by the cluster's built-in pod-certificate signer `kubernetes.io/kube-apiserver-client-pod`, delivered as files in the container and rotated automatically, using only Kubernetes-native features (no cert-manager, no SPIRE). Show the Pod volume config and say what stage this feature is at in v1.37.",
+      "expected_output": "A projected volume with a `podCertificate` source: signerName kubernetes.io/kube-apiserver-client-pod, keyType, credentialBundlePath (or certificateChainPath/keyPath). Pod Certificates GA in v1.37 (beta v1.35, gate PodCertificateRequest off by default in v1.35/v1.36).",
+      "files": [],
+      "expectations": [
+        "The Pod uses a `projected` volume with a `podCertificate` source whose `signerName` is `kubernetes.io/kube-apiserver-client-pod`.",
+        "The `podCertificate` source sets a key type and a file path field (`credentialBundlePath`, or `certificateChainPath` and `keyPath`).",
+        "The answer states that Pod certificates are stable (GA) in v1.37 and does not propose cert-manager, SPIRE, or a CertificateSigningRequest workflow as the solution.",
+        "Process (with the skill only): the transcript shows that the reference files read are individual feature files under `references/<category>/`, at most four of them, and no file outside the skill was searched for the answer; a without-skill run passes this vacuously."
+      ]
+    },
+    {
+      "id": 7,
+      "name": "mutating-admission-policy-ga",
+      "category": "api-admission",
+      "prompt": "Kubernetes v1.36. Without deploying a webhook, make the API server add the label `team: platform` to every Deployment created in the `platform` namespace. Use the stable in-process mutating policy API and show the policy and its binding.",
+      "expected_output": "MutatingAdmissionPolicy + MutatingAdmissionPolicyBinding in admissionregistration.k8s.io/v1 (GA in v1.36), matchConstraints on apps/v1 deployments CREATE, a mutation using ApplyConfiguration or JSONPatch with CEL, binding scoped to namespace platform.",
+      "files": [],
+      "expectations": [
+        "The manifests use `kind: MutatingAdmissionPolicy` and `kind: MutatingAdmissionPolicyBinding` with `apiVersion: admissionregistration.k8s.io/v1` (not v1alpha1 or v1beta1).",
+        "The policy matches CREATE of `apps/v1` `deployments` and its mutation sets the label `team: platform` (ApplyConfiguration or JSONPatch expressed in CEL).",
+        "The mutation is limited to the `platform` namespace, either by the binding (`matchResources.namespaceSelector`) or by a `matchConditions` CEL expression on the policy, and the answer does not fall back to a MutatingWebhookConfiguration.",
+        "Process (with the skill only): the transcript shows that the reference files read are individual feature files under `references/<category>/`, at most four of them, and no file outside the skill was searched for the answer; a without-skill run passes this vacuously."
+      ]
+    },
+    {
+      "id": 8,
+      "name": "kuberc-preferences-kyaml",
+      "category": "kubectl-cli",
+      "prompt": "Kubernetes v1.37 client and cluster. I want kubectl to (a) print `get` and `describe` output in KYAML by default and (b) give me an alias `gpw` that runs `get pods -o wide`. I don't want any of this in my kubeconfig since that file is shared. Show the exact file, its path, and anything I need to set in my shell.",
+      "expected_output": "A kuberc file at ~/.kube/kuberc with apiVersion kubectl.config.k8s.io/v1beta1, kind Preference, defaults setting --output kyaml for get, and an alias gpw -> get pods -o wide. Notes that kuberc is beta and enabled by default (KUBECTL_KUBERC env var only needed to disable, or to point at another path via --kuberc).",
+      "files": [],
+      "expectations": [
+        "The answer writes a kuberc file (`~/.kube/kuberc` or a `--kuberc` path) with `apiVersion: kubectl.config.k8s.io/v1beta1` and `kind: Preference`, not a kubeconfig edit or shell aliases alone.",
+        "The file defines an alias `gpw` for `get pods -o wide` and a default of `--output kyaml` (or `-o kyaml`) for `get`.",
+        "The answer refers to `kyaml` as a real kubectl output format (`-o kyaml`) rather than calling it unknown or substituting `-o yaml`.",
+        "Process (with the skill only): the transcript shows that the reference files read are individual feature files under `references/<category>/`, at most four of them, and no file outside the skill was searched for the answer; a without-skill run passes this vacuously."
+      ]
+    },
+    {
+      "id": 9,
+      "name": "statusz-flagz-endpoints",
+      "category": "observability",
+      "prompt": "Kubernetes v1.37 control plane. During an incident I need to confirm, from a running kube-apiserver and kube-scheduler, (a) the exact binary version and how long the process has been up and (b) the exact command-line flags and feature gates each is running with, over HTTP without shelling into the node or reading the static Pod manifest. Which built-in endpoints do that in v1.37, what stage are they, and give me the curl commands.",
+      "expected_output": "The /statusz and /flagz endpoints (KEPs 4827, 4828), beta since v1.36 and on by default (gates ComponentStatusz, ComponentFlagz); the v1.37 release did not graduate them. Served on the component's secure port; need RBAC on the nonResourceURLs /statusz and /flagz; curl with a bearer token and an Accept header (text/plain, or the config.k8s.io/v1beta1 structured form).",
+      "files": [],
+      "expectations": [
+        "The answer names both the `/statusz` endpoint (version, uptime) and the `/flagz` endpoint (command-line flags) as the built-in HTTP endpoints.",
+        "The answer states both endpoints are beta and enabled by default since v1.36 (not GA, not alpha), and names the feature gates `ComponentStatusz` and `ComponentFlagz`.",
+        "Every curl command targets a component's secure port over HTTPS and carries credentials (`--cert`/`--key`, or a bearer token header); a bare `curl -k https://...` with no credentials fails this.",
+        "The answer names the RBAC needed: the `system:monitoring` group, or a role with `nonResourceURLs` for `/statusz` and `/flagz`.",
+        "Process (with the skill only): the transcript shows that the reference files read are individual feature files under `references/<category>/`, at most four of them, and no file outside the skill was searched for the answer; a without-skill run passes this vacuously."
+      ]
+    },
+    {
+      "id": 10,
+      "name": "kubelet-crashloop-imagegc-dropin",
+      "category": "node-kubelet",
+      "prompt": "Kubernetes v1.37 nodes. Write the kubelet configuration to: cap the CrashLoopBackOff restart delay at 30 seconds instead of the 5-minute default; garbage-collect any container image unused for 7 days regardless of disk pressure; and structure the config so I can drop this override into a directory of config fragments instead of editing the main kubelet config file. Show the file(s) and the kubelet flag involved.",
+      "expected_output": "A KubeletConfiguration drop-in (e.g. /etc/kubernetes/kubelet.conf.d/10-overrides.conf) with crashLoopBackOff.maxContainerRestartPeriod: 30s and imageMaximumGCAge: 168h, kubelet started with --config-dir. Drop-in dir GA v1.35, ImageMaximumGCAge GA v1.35, crashLoopBackOff max beta v1.35 (gate KubeletCrashLoopBackOffMax on by default).",
+      "files": [],
+      "expectations": [
+        "The KubeletConfiguration sets `crashLoopBackOff.maxContainerRestartPeriod` to 30s.",
+        "The KubeletConfiguration sets `imageMaximumGCAge` to a 7-day duration (168h or equivalent).",
+        "The answer uses the kubelet `--config-dir` flag with a drop-in directory and a fragment file (kind KubeletConfiguration, apiVersion kubelet.config.k8s.io/v1beta1).",
+        "Process (with the skill only): the transcript shows that the reference files read are individual feature files under `references/<category>/`, at most four of them, and no file outside the skill was searched for the answer; a without-skill run passes this vacuously."
+      ]
+    },
+    {
+      "id": 11,
+      "name": "updater-window-from-models",
+      "category": "updater",
+      "prompt": "I want to update the k8s-catch-up skill (it's at skills/k8s-catch-up in this repo). My team runs agents on Claude Sonnet 5 and Claude Haiku 4.5. Which Kubernetes releases should the skill cover and why? Build the feature table for that window and show me just the DRA rows. Don't write or change any reference files yet.",
+      "expected_output": "Asks nothing further (models given), looks up cutoffs: Haiku 4.5 Feb 2025 sets the window; start Jan 2025, so v1.33 onward (v1.33, v1.34, v1.35, v1.36, v1.37). Runs scripts/k8s-features.py table --since 2025-01 (or --releases v1.33,...) and filters the DRA rows. No files under skills/ changed.",
+      "files": [],
+      "expectations": [
+        "The answer names Haiku 4.5's reliable knowledge cutoff (Feb 2025) as the model that sets the window and recommends starting the window in January 2025, i.e. covering v1.33 and every later release.",
+        "The transcript shows `scripts/k8s-features.py table` run with a window that starts at v1.33 (`--since 2025-01` or `--releases` including v1.33).",
+        "The answer shows a filtered set of DRA rows (KEP numbers and stages) from the script output, and no file under `skills/k8s-catch-up/` was modified."
+      ]
+    },
+    {
+      "id": 12,
+      "name": "updater-restore-missing-feature",
+      "category": "updater",
+      "prompt": "The k8s-catch-up skill in this repo (skills/k8s-catch-up) is missing at least one kubectl feature that reached GA in v1.37: someone deleted its feature file under references/kubectl-cli/ and regenerated the index. Refresh the kubectl and CLI category for v1.35 through v1.37 following the skill's own update procedure, restore whatever is missing, regenerate the index, and update the SKILL.md date. Use the local sources; don't invent field names.",
+      "expected_output": "Reads references/how-to-update.md, runs k8s-features.py table for the window, notices KYAML (KEP 5295: beta v1.35, GA v1.37) has no file under references/kubectl-cli/ and no link in SKILL.md, writes references/kubectl-cli/kyaml-output-format.md (or a similar slug) with Status/Where/paragraphs/example/Docs from the kep, blog, and docs subcommands, runs `index --write` so SKILL.md links it, sets the Updated date to today, and reports what it restored.",
+      "files": [],
+      "expectations": [
+        "A file under `references/kubectl-cli/` describes KYAML (`-o kyaml`): its Status line says beta in v1.35 and GA in v1.37, it has a `kubectl ... -o kyaml` example and a Docs link.",
+        "The transcript shows the update procedure was followed: `references/how-to-update.md` was read and `scripts/k8s-features.py` was run (table, and kep/blog/docs for KYAML) before the file was written.",
+        "`SKILL.md` links the restored file (the `index` subcommand reports up to date) and its `Updated:` date is today's date.",
+        "The two other kubectl feature files (command headers, kuberc credential plugin policy) are unchanged in substance: same Status lines."
+      ],
+      "setup": "Copy skills/k8s-catch-up into work/skills/k8s-catch-up, delete references/kubectl-cli/kyaml-output-format.md, run scripts/k8s-features.py index --write in the copy, commit."
+    },
+    {
+      "id": 13,
+      "name": "removals-legacy-stack-upgrade",
+      "category": "removals",
+      "prompt": "We are upgrading from Kubernetes v1.30 to v1.37. Review the attached `legacy-stack.yaml` (a Pod, a Service, and our kube-proxy config) and tell me exactly what will stop working or is deprecated on v1.37, in which version each change landed, and give me the corrected manifests. Do not guess: if something still works but is deprecated, say so and name the replacement.",
+      "expected_output": "Finds three problems: the gitRepo volume (driver disabled in v1.36 behind GitRepoVolumeDriver off by default; replace with an init container that runs git clone into an emptyDir), Service.spec.externalIPs (deprecated in v1.36; still served, replacement such as a LoadBalancer Service or an ingress/gateway), and kube-proxy ipvs mode (deprecated in v1.35, gated by KubeProxyIPVS in v1.37, removal planned; move to nftables or iptables). Corrected YAML for the Pod and the kube-proxy config.",
+      "files": ["evals/k8s-catch-up/fixtures/legacy-stack.yaml"],
+      "expectations": [
+        "The answer states that the `gitRepo` volume no longer works on v1.37 (driver disabled in v1.36, gate `GitRepoVolumeDriver` off by default) and the corrected Pod replaces it with an init container that clones into an `emptyDir` shared with the `hugo` container.",
+        "The answer states that `service.spec.externalIPs` is deprecated (v1.36) but still served on v1.37, and names a replacement rather than deleting the Service silently.",
+        "The answer states that kube-proxy `ipvs` mode is deprecated (v1.35 warning, `KubeProxyIPVS` gate in v1.37) and the corrected KubeProxyConfiguration uses `mode: nftables` or `mode: iptables`.",
+        "The answer gives a version for each finding and does not report a problem the manifests do not have (for example it does not claim `emptyDir` or the Pod's `command` changed).",
+        "Process (with the skill only): the transcript shows that the reference files read are individual feature files under `references/<category>/`, at most four of them, and no file outside the skill was searched for the answer; a without-skill run passes this vacuously."
+      ]
+    }
+  ]
+}
