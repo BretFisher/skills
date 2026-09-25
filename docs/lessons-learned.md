@@ -37,6 +37,15 @@ assertion, executor, or grader are new.
     rerunning it.** Task notifications are the only place token counts exist; a half-finished run graded
     as if complete is a false score.
 
+15. **Match the storage unit to the lookup unit.** When the agent looks up one feature, store one feature
+    per file and link each from the skill. A tool that extracts a section from a long file fought the
+    model's trained habit of reading the linked reference and lost half the time; one small file per
+    lookup won 12 of 12.
+16. **Treat upstream metadata as a plan until a release note confirms it.** Kubernetes `kep.yaml`
+    milestones named GA versions that never shipped. Rank sources (release post, then docs, then the
+    plan file), have a program cross-check every claim, and generate the index from the files so the
+    two cannot drift.
+
 ## The details
 
 ### 1. Grade with programs first
@@ -183,3 +192,21 @@ on a session rate limit with outputs half written and no transcript. Grading the
 a false cell; the fix was to check each run for a transcript, reset `work/` to its initial commit, empty
 `outputs/`, and rerun. The `--finalize` step refuses to close an iteration with a null verdict for the
 same reason.
+
+### 15. Match the storage unit to the lookup unit
+
+`k8s-catch-up` (2026-09-19) started with eleven category files of 300 to 650 lines. A lookup for one
+field read 2,000 tokens. A `show` subcommand that printed one section was added and named in
+`SKILL.md`; Haiku used it first in 2 of 12 runs, then 6 of 12 after the exact call was spelled out.
+Splitting into 96 one-feature files, each linked from a generated index in `SKILL.md`, made 12 of 12
+runs read exactly the one to three files the task needed, with no instruction about tools at all. The
+model's trained habit is to read the linked reference; give it a reference the size of the lookup.
+
+### 16. Treat upstream metadata as a plan until a release note confirms it
+
+Of 126 (release, KEP) rows the KEP metadata claimed for v1.35 to v1.37, the writers could not confirm 11
+at the stated stage and found several "GA" claims that the release post did not list. The fix was a
+source ranking (release post, then docs page, then `kep.yaml`), a `verify` subcommand that checks each
+Status line against those sources and fails on an unsupported claim unless a maintainer signs it off
+in a comment, and an `index` subcommand that regenerates the skill's feature list from the files.
+Unconfirmed items live in a maintainer file outside the skill, never in what the agent reads.

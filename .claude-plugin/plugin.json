@@ -20,6 +20,7 @@
   "skills": [
     "./skills/docker-pro",
     "./skills/github-actions-workflow-pro",
+    "./skills/k8s-catch-up",
     "./skills/gha-audit",
     "./skills/super-linting"
   ]
