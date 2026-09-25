@@ -1,5 +1,13 @@
 ---
+# super-linter's default (TEMPLATES/trivy.yaml) plus skip-dirs.
 # Eval fixtures are deliberately insecure or outdated inputs that the evals ask the agent to fix.
+exit-code: 1
+exit-on-eol: 2
 scan:
+  disable-telemetry: true
+  scanners:
+    - vuln
+    - misconfig
+    - secret
   skip-dirs:
     - evals/*/fixtures

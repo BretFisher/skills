@@ -1,3 +1,6 @@
 [codespell]
+# super-linter's default (TEMPLATES/.codespellrc) plus ignore-words-list.
+check-hidden =
+skip = package-lock.json,*/package-lock.json,*/go.mod,*/go.sum,*.log,.git
 # NotIn is a Kubernetes label-selector operator, not a misspelling of "noting"
 ignore-words-list = notin

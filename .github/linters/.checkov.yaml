@@ -1,5 +1,7 @@
 ---
-# Eval fixtures are deliberately insecure or outdated inputs that the evals ask the agent to fix.
+# super-linter's default (TEMPLATES/.checkov.yaml) plus skip-path.
+# Don't report passed checks in output
 quiet: true
+# Eval fixtures are deliberately insecure or outdated inputs that the evals ask the agent to fix.
 skip-path:
   - evals/[^/]+/fixtures
