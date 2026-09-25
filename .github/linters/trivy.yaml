@@ -1,0 +1,5 @@
+---
+# Eval fixtures are deliberately insecure or outdated inputs that the evals ask the agent to fix.
+scan:
+  skip-dirs:
+    - evals/*/fixtures

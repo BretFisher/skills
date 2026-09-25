@@ -1,6 +1,7 @@
 # CPU alignment by uncore (L3) cache
 
 **Status:** Beta since v1.34, gate `CPUManagerPolicyOptions` on by default (GA and locked since v1.33). GA in v1.36 (the v1.36 release post lists it under the title "Split L3 Cache Topology Awareness in CPU Manager" and links KEP 5109; the docs and the KEP file for 4800 both say GA in v1.36).
+
 <!-- verified: GA v1.36 per the CPU management policies docs page and the v1.36 post ("Split L3 Cache Topology Awareness", linked to a wrong KEP number) -->
 
 **Where:** `KubeletConfiguration.cpuManagerPolicyOptions`, option `prefer-align-cpus-by-uncorecache`

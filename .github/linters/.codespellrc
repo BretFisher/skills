@@ -1,0 +1,3 @@
+[codespell]
+# NotIn is a Kubernetes label-selector operator, not a misspelling of "noting"
+ignore-words-list = notin
