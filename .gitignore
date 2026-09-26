@@ -9,3 +9,7 @@ evals/_dashboard/
 
 # Python bytecode from make lint-py
 __pycache__/
+
+# A global `*secret*` ignore rule would hide feature files named after Kubernetes Secrets.
+# These are docs, not credentials, so un-ignore Markdown under skills/.
+!skills/**/*secret*.md
