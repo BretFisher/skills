@@ -16,8 +16,8 @@ profiles:
       - name: VolumeBinding
         args:
           # utilization = requested / capacity, 0-100; score 0-10.
-          # The default prefers the node with the most free capacity.
-          # These points give the fullest node that still fits the top score (bin-pack).
+          # This shape bin-packs: the fullest node that still fits gets the top score.
+          # Without a shape, the default is the opposite and prefers the node with the most free capacity.
           shape:
             - utilization: 0
               score: 0

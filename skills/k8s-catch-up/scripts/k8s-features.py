@@ -256,7 +256,8 @@ def cmd_table(repos, args):
         json.dump(rows, sys.stdout, indent=1)
         print()
         return
-    print(f"Releases: {', '.join(f'{v} ({blogs[v]['date']})' if v in blogs else v for v in releases)}")
+    labels = [f"{v} ({blogs[v]['date']})" if v in blogs else v for v in releases]
+    print(f"Releases: {', '.join(labels)}")
     print("in_blog = the release announcement links this KEP, so it shipped as planned; a row without it")
     print("may have slipped: confirm against the changelog before writing it up. default = the feature")
     print("gate's default in that release, from the docs' feature-gate pages. A row whose kep.yaml `stage:` is")

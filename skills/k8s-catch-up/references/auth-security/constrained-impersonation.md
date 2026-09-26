@@ -25,6 +25,7 @@ kind: ClusterRole
 metadata:
   name: impersonate-jane-identity
 rules:
+  # Constrained verbs use authentication.k8s.io; only the legacy `impersonate` verb uses the core group "".
   - apiGroups: ["authentication.k8s.io"]
     resources: ["users"]
     resourceNames: ["jane.doe@example.com"]
