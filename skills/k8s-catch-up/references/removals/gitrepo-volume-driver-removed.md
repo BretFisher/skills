@@ -2,6 +2,7 @@
 
 **Status:** Removal. The `gitRepo` volume type was deprecated in v1.11. The `GitRepoVolumeDriver` gate (`deprecated`, off by default) disabled the plugin in v1.33 through v1.35, where an operator could still turn it back on. In v1.36 the driver is removed and the gate has no effect; the KEP file calls this stage "beta v1.36" and targets full API cleanup for v1.39.
 **Where:** `pod.spec.volumes[].gitRepo`
+**Instead:** an init container that clones into an `emptyDir` volume, or a `git-sync` sidecar
 
 The API field stays, so a Pod with a `gitRepo` volume is admitted by the API server, but a v1.36 or later kubelet refuses to run it and reports an error on the Pod. Clone the repository in an init container into an `emptyDir` volume instead, or run a `git-sync` sidecar.
 

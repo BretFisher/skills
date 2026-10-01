@@ -3,6 +3,7 @@
 **Status:** Deprecated in v1.35 (startup warning). v1.37 adds gate `KubeProxyIPVS`, on by default; planned
 off by default in v1.40 and locked (mode removed) in v1.43.
 **Where:** `KubeProxyConfiguration.mode: ipvs`, `kube-proxy --proxy-mode=ipvs`
+**Instead:** `mode: nftables` (or `iptables`)
 
 kube-proxy in `ipvs` mode logs a deprecation warning at startup since v1.35. In v1.37 the mode sits
 behind the `KubeProxyIPVS` feature gate, still on by default. From v1.40 the plan is that kube-proxy

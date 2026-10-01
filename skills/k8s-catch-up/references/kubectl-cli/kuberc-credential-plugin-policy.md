@@ -1,4 +1,4 @@
-# kuberc credential plugin policy
+# kuberc preferences: aliases, defaults, and credential plugin policy
 
 **Status:** Beta in v1.35 (the docs page marks the fields `v1.35 beta`; the v1.36 release post
 describes them again as a v1.36 addition), gate `KUBECTL_KUBERC` on by default; not GA yet. The
@@ -7,7 +7,11 @@ describes them again as a v1.36 addition), gate `KUBECTL_KUBERC` on by default; 
 **Where:** top-level fields `credentialPluginPolicy` and `credentialPluginAllowlist` in `~/.kube/kuberc` (`apiVersion: kubectl.config.k8s.io/v1beta1`, `kind: Preference`); `kubectl kuberc set --section credentialplugin`
 
 The `kuberc` file (default `$HOME/.kube/kuberc`, or `--kuberc <path>`/`KUBERC=<path>`) holds kubectl
-preferences (`aliases`, `defaults`) separate from kubeconfig credentials. v1.35 adds
+preferences separate from kubeconfig credentials. `defaults` entries take a `command` (subcommands
+such as `create role` work) and `options`, each a `name` and a string `default`; an explicit flag on
+the command line wins. `aliases` entries add a `name` that must not collide with a built-in command,
+plus optional `prependArgs` (inserted right after the command) and `appendArgs` (added at the end).
+v1.35 adds
 `credentialPluginPolicy` as an authentication control, since an untrusted kubeconfig can name any
 executable as its credential plugin: `AllowAll` (default), `DenyAll` (no exec plugin runs), or
 `Allowlist`, which requires `credentialPluginAllowlist` entries, each a `command:` with a basename
@@ -23,6 +27,18 @@ Emit `command`, not the deprecated `name` alias (removed at GA; both together is
 # ~/.kube/kuberc
 apiVersion: kubectl.config.k8s.io/v1beta1
 kind: Preference
+defaults:
+  - command: apply
+    options:
+      - name: server-side
+        default: "true"
+aliases:
+  - name: gns # kubectl gns <name> -> kubectl get namespace <name> --output json
+    command: get
+    prependArgs: [namespace]
+    options:
+      - name: output
+        default: json
 credentialPluginPolicy: Allowlist
 credentialPluginAllowlist:
   - command: my-trusted-binary
@@ -37,4 +53,4 @@ kubectl kuberc set --section credentialplugin \
     --allowlist-entry command=/usr/local/bin/my-other-trusted-binary
 ```
 
-Docs: <https://kubernetes.io/docs/reference/kubectl/kuberc/#credential-plugin-policy> · KEP: <https://kep.k8s.io/3104>
+Docs: <https://kubernetes.io/docs/reference/kubectl/kuberc/> · KEP: <https://kep.k8s.io/3104>

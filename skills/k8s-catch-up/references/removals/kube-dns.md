@@ -2,7 +2,8 @@
 
 **Status:** Deprecated in v1.37 (release post announcement; no KEP). No new `kube-dns` packages are
 expected after v1.40.
-**Where:** cluster DNS add-on
+**Where:** `kube-dns` as the cluster DNS add-on (its Deployment, image, or ConfigMap)
+**Instead:** CoreDNS
 
 `kube-dns` is deprecated as the cluster DNS add-on. CoreDNS has been the default since v1.13, and
 `kube-dns` lacks EndpointSlice support and dual-stack Services. The kube-dns subproject is retired;

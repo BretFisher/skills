@@ -2,6 +2,7 @@
 
 **Status:** Beta in v1.35, no feature gate; the KEP has no alpha stage and no GA date. The v1.37 release post repeats the notice under "Ongoing major change: Future removal of cgroup v1 support".
 **Where:** `KubeletConfiguration.failCgroupV1`
+**Instead:** nodes on cgroup v2; `failCgroupV1: false` only as a temporary override
 
 Since v1.35 the default of `failCgroupV1` is `true`: a kubelet on a host whose cgroup hierarchy is
 cgroup v1 fails at startup instead of running in maintenance mode. Setting `failCgroupV1: false`

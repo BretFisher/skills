@@ -5,7 +5,7 @@ description: Kubernetes features that reached beta or GA in v1.35 to v1.37 (Dec 
 
 # Kubernetes catch-up
 
-**Updated:** 2026-09-19. **Covers:** v1.35 (2025-12-17), v1.36 (2026-04-22), v1.37 (2026-08-26).
+**Updated:** 2026-09-30. **Covers:** v1.35 (2025-12-17), v1.36 (2026-04-22), v1.37 (2026-08-26).
 
 Your training data ends before some or all of these releases, so the YAML you write from memory can
 use an alpha field shape, an old API version, or a workaround for a problem Kubernetes now solves.
@@ -22,9 +22,10 @@ agent must stop emitting.
    is off by default needs the cluster to enable it, so tell the user before you rely on it.
 3. Check the user's cluster version against the feature's version. A field from v1.37 fails on a
    v1.35 API server, so name the older way as well when the version is unknown.
-4. Before you hand back a manifest or component config, check it against the **Removals and
-   deprecations** files: a removed volume type or a deprecated proxy mode does more damage than a
-   missed new field.
+4. Before you hand back a manifest, command, or component config, match it against the **Removals
+   and deprecations** table at the end of the index, and open the file of each row that matches for the
+   version and the fix: a removed volume type or a deprecated proxy mode does more damage than a
+   missed new field. A row that does not match needs no file.
 5. Alpha features are not in these files on purpose; an alpha API can change or vanish. If the user
    asks for one, say it is alpha and that this skill does not track it.
 
@@ -49,13 +50,23 @@ that match the task.
 
 **API server, admission, and API machinery** (In-process admission, storage migration, encodings, control-plane upgrades): [Storage version migration](references/api-admission/storage-version-migration.md); [Declarative validation of built-in types](references/api-admission/declarative-validation-of-built-in-types.md); [Mutating admission policies](references/api-admission/mutating-admission-policies.md); [Comparable resource versions](references/api-admission/comparable-resource-versions.md); [WebSockets for kubectl exec, attach, cp, and port-forward](references/api-admission/websockets-for-kubectl-exec-attach-cp-and-port-forward.md); [Resilient watch cache initialization](references/api-admission/resilient-watch-cache-initialization.md); [Admission webhooks skip virtual auth resources](references/api-admission/admission-webhooks-skip-virtual-auth-resources.md); [Manifest-based admission control](references/api-admission/manifest-based-admission-control.md); [Mixed version proxy](references/api-admission/mixed-version-proxy.md).
 
-**kubectl and the CLI** (Output formats and the kuberc preferences file): [KYAML output format (`-o kyaml`)](references/kubectl-cli/kyaml-output-format.md); [kubectl command metadata in HTTP request headers](references/kubectl-cli/kubectl-command-metadata-in-http-request-headers.md); [kuberc credential plugin policy](references/kubectl-cli/kuberc-credential-plugin-policy.md).
+**kubectl and the CLI** (Output formats and the kuberc preferences file): [KYAML output format (`-o kyaml`)](references/kubectl-cli/kyaml-output-format.md); [kubectl command metadata in HTTP request headers](references/kubectl-cli/kubectl-command-metadata-in-http-request-headers.md); [kuberc preferences: aliases, defaults, and credential plugin policy](references/kubectl-cli/kuberc-credential-plugin-policy.md).
 
 **Metrics, logs, and component status** (What the kubelet and control plane expose over HTTP): [The metrics.k8s.io API is stable](references/observability/the-metrics-k8s-io-api-is-stable.md); [Node log query through the kubelet](references/observability/node-log-query-through-the-kubelet.md); [Pressure Stall Information (PSI) metrics from the kubelet](references/observability/pressure-stall-information-metrics-from-the-kubelet.md); [Native histograms in component metrics](references/observability/native-histograms-in-component-metrics.md); [Pod and container stats from the CRI, not cAdvisor](references/observability/pod-and-container-stats-from-the-cri-not-cadvisor.md); [Component `/flagz` endpoint](references/observability/component-flagz-endpoint.md); [Component `/statusz` endpoint](references/observability/component-statusz-endpoint.md).
 
 **Node and kubelet operations** (KubeletConfiguration fields, CPU and memory managers, cgroups): [CPU alignment by uncore (L3) cache](references/node-kubelet/cpu-alignment-by-uncore-cache.md); [Image GC by maximum unused age](references/node-kubelet/image-gc-by-maximum-unused-age.md); [Kubelet drop-in configuration directory](references/node-kubelet/kubelet-drop-in-configuration-directory.md); [Limit on parallel image pulls](references/node-kubelet/limit-on-parallel-image-pulls.md); [Strict reservation of system CPUs](references/node-kubelet/strict-reservation-of-system-cpus.md); [Topology manager NUMA node limit above 8](references/node-kubelet/topology-manager-numa-node-limit-above-8.md); [Kubelet Pods gRPC API](references/node-kubelet/kubelet-pods-grpc-api.md); [Kubelet in a user namespace (rootless)](references/node-kubelet/kubelet-in-a-user-namespace.md); [Memory QoS with cgroup v2](references/node-kubelet/memory-qos-with-cgroup-v2.md); [Pod-level resource managers](references/node-kubelet/pod-level-resource-managers.md); [Watch-based route controller reconciliation](references/node-kubelet/watch-based-route-controller-reconciliation.md); [Configurable CrashLoopBackOff maximum](references/node-kubelet/configurable-crashloopbackoff-maximum.md).
 
-**Removals and deprecations** (Things to stop emitting; check every manifest against this list): [cgroup v1 removal: kubelet refuses cgroup v1 nodes](references/removals/cgroup-v1-removal-kubelet-refuses-cgroup-v1-nodes.md); [Deprecation: `kube-dns`](references/removals/kube-dns.md); [Deprecation: `service.spec.externalIPs`](references/removals/service-spec-externalips.md); [Deprecation: kube-proxy `ipvs` mode](references/removals/kube-proxy-ipvs-mode.md); [Static Pods cannot reference Secrets or ConfigMaps](references/removals/static-pods-cannot-reference-secrets-or-configmaps.md); [`gitRepo` volume driver removed](references/removals/gitrepo-volume-driver-removed.md); [`kubectl run --filename/-f` deprecated](references/removals/kubectl-run-filename-f-deprecated.md).
+**Removals and deprecations** (Things to stop emitting). Match what you wrote against the first column; open the file of each matching row for the version and the details.
+
+| If the output has                                                                                                  | Use instead                                                                                       | File                                                                                                                            |
+| ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `KubeletConfiguration.failCgroupV1`                                                                                | nodes on cgroup v2; `failCgroupV1: false` only as a temporary override                            | [cgroup v1 removal: kubelet refuses cgroup v1 nodes](references/removals/cgroup-v1-removal-kubelet-refuses-cgroup-v1-nodes.md)  |
+| `kube-dns` as the cluster DNS add-on (its Deployment, image, or ConfigMap)                                         | CoreDNS                                                                                           | [Deprecation: `kube-dns`](references/removals/kube-dns.md)                                                                      |
+| `service.spec.externalIPs`                                                                                         | `type: LoadBalancer`, `type: NodePort`, or Gateway API                                            | [Deprecation: `service.spec.externalIPs`](references/removals/service-spec-externalips.md)                                      |
+| `KubeProxyConfiguration.mode: ipvs`, `kube-proxy --proxy-mode=ipvs`                                                | `mode: nftables` (or `iptables`)                                                                  | [Deprecation: kube-proxy `ipvs` mode](references/removals/kube-proxy-ipvs-mode.md)                                              |
+| a static Pod manifest (under the kubelet's `staticPodPath`) that references a ConfigMap, Secret, or ServiceAccount | files on the node (`hostPath` volumes, literal `env` values), or a DaemonSet                      | [Static Pods cannot reference Secrets or ConfigMaps](references/removals/static-pods-cannot-reference-secrets-or-configmaps.md) |
+| `pod.spec.volumes[].gitRepo`                                                                                       | an init container that clones into an `emptyDir` volume, or a `git-sync` sidecar                  | [`gitRepo` volume driver removed](references/removals/gitrepo-volume-driver-removed.md)                                         |
+| `kubectl run ... -f <file>` / `--filename`                                                                         | `kubectl apply -f` or `kubectl create -f`; `kubectl run <name> --image=<image>` for an ad hoc Pod | [`kubectl run --filename/-f` deprecated](references/removals/kubectl-run-filename-f-deprecated.md)                              |
 
 ## Updating this skill
 

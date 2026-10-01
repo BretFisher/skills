@@ -368,7 +368,7 @@ CATEGORIES = [
     ("kubectl-cli", "kubectl and the CLI", "Output formats and the kuberc preferences file"),
     ("observability", "Metrics, logs, and component status", "What the kubelet and control plane expose over HTTP"),
     ("node-kubelet", "Node and kubelet operations", "KubeletConfiguration fields, CPU and memory managers, cgroups"),
-    ("removals", "Removals and deprecations", "Things to stop emitting; check every manifest against this list"),
+    ("removals", "Removals and deprecations", "Things to stop emitting"),
 ]
 
 
@@ -381,7 +381,8 @@ def feature(path):
     t = read(path)
     h = re.search(r"^# (.*)$", t, re.M)
     st = re.search(r"\*\*Status:\*\*(.*?)(?=\n\*\*Where|\n\n)", t, re.S)
-    wh = re.search(r"\*\*Where:\*\*(.*?)(?=\n\n)", t, re.S)
+    wh = re.search(r"\*\*Where:\*\*(.*?)(?=\n\n|\n\*\*)", t, re.S)
+    ins = re.search(r"\*\*Instead:\*\*(.*?)(?=\n\n|\n\*\*)", t, re.S)
     kep = re.search(r"kep\.k8s\.io/(\d+)", t)
     status = " ".join(st.group(1).split()) if st else ""
     return {
@@ -391,6 +392,7 @@ def feature(path):
         "heading": h.group(1).strip() if h else os.path.basename(path)[:-3],
         "status": status,
         "where": " ".join(wh.group(1).split()) if wh else "",
+        "instead": " ".join(ins.group(1).split()) if ins else "",
         "kep": kep.group(1) if kep else "",
         "gates": re.findall(r"`([A-Z][A-Za-z0-9]+)`", status),
         "beta": (re.search(r"[Bb]eta (?:in|since) (v1\.\d+)", status) or [None, ""])[1],
@@ -412,6 +414,14 @@ def index_text(feats):
         if not fs:
             continue
         fs.sort(key=lambda f: (0 if f["ga"] else 1 if f["beta"] else 2, -vkey(f["ga"] or f["beta"]), f["heading"]))
+        if d == "removals":
+            # a table, not a link line: working-style step 4 matches every manifest against the Where
+            # column, so it must be readable without opening a file
+            lines += [f"**{title}** ({scope}). Match what you wrote against the first column; open the file of each matching row for the version and the details.", "",
+                      "| If the output has | Use instead | File |", "| --- | --- | --- |"]
+            lines += [f"| {f['where']} | {f['instead']} | [{f['heading']}]({f['rel']}) |" for f in fs]
+            lines.append("")
+            continue
         links = "; ".join(f"[{f['heading']}]({f['rel']})" for f in fs)
         lines.append(f"**{title}** ({scope}): {links}.")
         lines.append("")
@@ -424,7 +434,8 @@ def cmd_index(args):
     skill = read(skill_path)
     a, b = skill.index("## Categories"), skill.index("## Updating this skill")
     new = index_text(feats) + "\n"
-    norm = lambda x: re.sub(r"\s+", " ", x)
+    # compare text, not layout: prettier pads table cells and separator dashes after `make fmt`
+    norm = lambda x: re.sub(r"\s+", " ", re.sub(r"-{3,}", "---", x))
     if norm(skill[a:b]) == norm(new):
         print(f"SKILL.md index up to date ({len(feats)} features)")
         return
@@ -447,6 +458,8 @@ def cmd_verify(repos, args):
         notes = []
         if not f["status"] or not f["where"] or not f["has_docs"]:
             notes.append("missing Status, Where, or Docs")
+        if f["category"] == "removals" and not f["instead"]:
+            notes.append("missing Instead (the removals table needs it)")
         if f["category"] not in {c[0] for c in CATEGORIES}:
             notes.append(f"directory {f['category']} is not a known category")
         k = keps.get(f["kep"])

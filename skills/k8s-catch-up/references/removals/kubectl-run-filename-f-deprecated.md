@@ -2,6 +2,7 @@
 
 **Status:** Deprecated in v1.37 (release post "Deprecations and removals"); no KEP, no gate; still accepted in v1.37.
 **Where:** `kubectl run ... -f <file>` / `--filename`
+**Instead:** `kubectl apply -f` or `kubectl create -f`; `kubectl run <name> --image=<image>` for an ad hoc Pod
 
 `kubectl run` builds its Pod purely from command-line arguments (`NAME`, `--image`, and the other
 flags), so a manifest passed with `--filename`/`-f` never contributed to the generated Pod. The

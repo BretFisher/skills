@@ -3,6 +3,7 @@
 **Status:** Deprecated in v1.36. kube-proxy gate `AllowServiceExternalIPs` on by default; planned off by
 default in v1.40 and locked off (kube-proxy support removed) in v1.43.
 **Where:** `service.spec.externalIPs`
+**Instead:** `type: LoadBalancer`, `type: NodePort`, or Gateway API
 
 From v1.36 the apiserver returns a deprecation warning on any create or update of a Service that sets
 `externalIPs`; the field still works. The kube-proxy feature gate `AllowServiceExternalIPs` controls

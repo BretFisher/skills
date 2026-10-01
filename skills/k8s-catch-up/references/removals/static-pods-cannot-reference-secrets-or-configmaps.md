@@ -1,7 +1,8 @@
 # Static Pods cannot reference Secrets or ConfigMaps
 
 **Status:** Enforced in v1.37 with no opt-out; the `PreventStaticPodAPIReferences` gate (beta, on by default since v1.34) is removed. No KEP; tracked in kubernetes/kubernetes#140226.
-**Where:** static Pod manifests under the kubelet's `staticPodPath`
+**Where:** a static Pod manifest (under the kubelet's `staticPodPath`) that references a ConfigMap, Secret, or ServiceAccount
+**Instead:** files on the node (`hostPath` volumes, literal `env` values), or a DaemonSet
 
 A static Pod manifest may not reference other API objects such as a ServiceAccount, ConfigMap, or
 Secret; the release post names `configMapRef` and `secretRef` as examples of the fields that are now
