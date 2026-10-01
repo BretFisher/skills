@@ -14,10 +14,10 @@ need = command -v $(1) >/dev/null 2>&1 || { echo "missing: $(1)  ->  brew instal
 # scan.sh sets the GitHub token inside its own process; never inline `gh auth token` in a recipe
 SCAN := skills/github-actions-workflow-pro/scripts/scan.sh
 
-.PHONY: help lint lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins fmt eval-check eval-batch eval-finalize eval-benchmark eval-view pin run-stats
+.PHONY: help lint lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins fmt eval-check eval-batch eval-finalize eval-benchmark eval-view pin run-stats k8s-features k8s-verify k8s-check
 
 help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
 	@echo
 	@echo "Variables: SKILL=$(SKILL)  ITER=$(ITER)  SKILL_CREATOR=$(SKILL_CREATOR)"
 
@@ -80,6 +80,16 @@ eval-view: ## Open the skill-creator review viewer on the latest iteration (SKIL
 
 run-stats: ## Rank this repo's workflows and jobs by duration over the last RUNS runs (REPO= for another repo)
 	@skills/github-actions-workflow-pro/scripts/run-stats.py --markdown --runs $(or $(RUNS),3) $(if $(REPO),--repo $(REPO),)
+
+k8s-features: ## Table of Kubernetes features that reached beta/GA in the last 12 months (SINCE=YYYY-MM or RELEASES=v1.36,v1.37 to change the window); clones two sparse repos into ~/.cache/k8s-catch-up on first run
+	@skills/k8s-catch-up/scripts/k8s-features.py table $(if $(SINCE),--since $(SINCE),) $(if $(RELEASES),--releases $(RELEASES),)
+
+k8s-verify: ## Check every k8s-catch-up feature file's Status line against the release posts, gate pages, and kep.yaml, and SKILL.md's links and index (STRICT=1 to fail on any note)
+	@skills/k8s-catch-up/scripts/k8s-features.py verify $(if $(STRICT),--strict,)
+	@skills/k8s-catch-up/scripts/k8s-features.py index
+
+k8s-check: ## Exit 1 when a Kubernetes minor release newer than k8s-catch-up's Covers line exists (run it after each Kubernetes release, about three times a year)
+	@skills/k8s-catch-up/scripts/k8s-features.py check
 
 pin: ## Pin this repo's workflows with pinact (newest release at least 7 days old); FILES= to limit
 	@$(call need,pinact,pinact)

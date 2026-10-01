@@ -37,6 +37,15 @@ assertion, executor, or grader are new.
     rerunning it.** Task notifications are the only place token counts exist; a half-finished run graded
     as if complete is a false score.
 
+15. **Match the storage unit to the lookup unit.** When the agent looks up one feature, store one feature
+    per file and link each from the skill. A tool that extracts a section from a long file fought the
+    model's trained habit of reading the linked reference and lost half the time; one small file per
+    lookup won 12 of 12.
+16. **Treat upstream metadata as a plan until a release note confirms it.** Kubernetes `kep.yaml`
+    milestones named GA versions that never shipped. Rank sources (release post, then docs, then the
+    plan file), have a program cross-check every claim, and generate the index from the files so the
+    two cannot drift.
+
 ## The details
 
 ### 1. Grade with programs first
@@ -183,3 +192,49 @@ on a session rate limit with outputs half written and no transcript. Grading the
 a false cell; the fix was to check each run for a transcript, reset `work/` to its initial commit, empty
 `outputs/`, and rerun. The `--finalize` step refuses to close an iteration with a null verdict for the
 same reason.
+
+### 15. Match the storage unit to the lookup unit
+
+`k8s-catch-up` (2026-09-19) started with eleven category files of 300 to 650 lines. A lookup for one
+field read 2,000 tokens. A `show` subcommand that printed one section was added and named in
+`SKILL.md`; Haiku used it first in 2 of 12 runs, then 6 of 12 after the exact call was spelled out.
+Splitting into 96 one-feature files, each linked from a generated index in `SKILL.md`, made 12 of 12
+runs read exactly the one to three files the task needed, with no instruction about tools at all. The
+model's trained habit is to read the linked reference; give it a reference the size of the lookup.
+
+### 16. Treat upstream metadata as a plan until a release note confirms it
+
+Of 126 (release, KEP) rows the KEP metadata claimed for v1.35 to v1.37, the writers could not confirm 11
+at the stated stage and found several "GA" claims that the release post did not list. The fix was a
+source ranking (release post, then docs page, then `kep.yaml`), a `verify` subcommand that checks each
+Status line against those sources and fails on an unsupported claim unless a maintainer signs it off
+in a comment, and an `index` subcommand that regenerates the skill's feature list from the files.
+Unconfirmed items live in a maintainer file outside the skill, never in what the agent reads.
+
+### 17. Inline the check that every branch runs
+
+`k8s-catch-up` told the agent to check every manifest against the removals files. Across 33
+with-skill runs of tasks that were not about removals, the files were opened in 4; when a task was
+about removals, both Sonnet models opened all seven. A check that costs a file read is skipped or done
+in bulk. The fix (2026-09-30) put a generated table in `SKILL.md`, one row per removal (what to look
+for, what to use instead, the link), and told the agent to open only the files of matching rows. A new
+eval whose prompt never mentions an upgrade, a Service task whose natural answer is `externalIPs`, went
+from 0/3 without the skill to 3/3 with it on Sonnet 5 and Haiku 4.5, and the upgrade-review eval read
+exactly the three matching files. About 250 tokens on every call bought it.
+
+### 18. Keep the eval's intent out of anything the executor can see
+
+The executor sees its run path, and the path carries the eval name. An eval first named
+`removals-unprompted-service-ipvs` told the Haiku no-skill run what was being tested: its answer was all
+about removals, with invented versions, and it passed one assertion on the hint alone. Name evals by
+the task, not by what they test (`bare-metal-edge-service-kube-proxy`), and discard a run that saw the
+intent. Opaque run directories would remove the risk entirely.
+
+### 19. Grade process from the tool calls, not from the transcript the executor writes
+
+A process assertion read `transcript.md`, which the executor writes in its own format. Haiku listed
+bare file names, so a correct three-file run failed; Sonnet 5.5 used shell brace paths
+(`removals/{a,b}.md`), so an eight-file run passed. Copy the subagent log into each run as
+`raw-transcript.jsonl` and match only the tool-call inputs (Read paths, Bash commands). Match the
+inputs, not the results: the result of reading `SKILL.md` contains every feature link, and a match on
+the whole log counted all 96 files as read.
