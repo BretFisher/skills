@@ -210,3 +210,31 @@ source ranking (release post, then docs page, then `kep.yaml`), a `verify` subco
 Status line against those sources and fails on an unsupported claim unless a maintainer signs it off
 in a comment, and an `index` subcommand that regenerates the skill's feature list from the files.
 Unconfirmed items live in a maintainer file outside the skill, never in what the agent reads.
+
+### 17. Inline the check that every branch runs
+
+`k8s-catch-up` told the agent to check every manifest against the removals files. Across 33
+with-skill runs of tasks that were not about removals, the files were opened in 4; when a task was
+about removals, both Sonnet models opened all seven. A check that costs a file read is skipped or done
+in bulk. The fix (2026-09-30) put a generated table in `SKILL.md`, one row per removal (what to look
+for, what to use instead, the link), and told the agent to open only the files of matching rows. A new
+eval whose prompt never mentions an upgrade, a Service task whose natural answer is `externalIPs`, went
+from 0/3 without the skill to 3/3 with it on Sonnet 5 and Haiku 4.5, and the upgrade-review eval read
+exactly the three matching files. About 250 tokens on every call bought it.
+
+### 18. Keep the eval's intent out of anything the executor can see
+
+The executor sees its run path, and the path carries the eval name. An eval first named
+`removals-unprompted-service-ipvs` told the Haiku no-skill run what was being tested: its answer was all
+about removals, with invented versions, and it passed one assertion on the hint alone. Name evals by
+the task, not by what they test (`bare-metal-edge-service-kube-proxy`), and discard a run that saw the
+intent. Opaque run directories would remove the risk entirely.
+
+### 19. Grade process from the tool calls, not from the transcript the executor writes
+
+A process assertion read `transcript.md`, which the executor writes in its own format. Haiku listed
+bare file names, so a correct three-file run failed; Sonnet 5.5 used shell brace paths
+(`removals/{a,b}.md`), so an eight-file run passed. Copy the subagent log into each run as
+`raw-transcript.jsonl` and match only the tool-call inputs (Read paths, Bash commands). Match the
+inputs, not the results: the result of reading `SKILL.md` contains every feature link, and a match on
+the whole log counted all 96 files as read.

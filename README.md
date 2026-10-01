@@ -104,17 +104,22 @@ and get their next refresh from a full 125-assertion run.
 
 #### k8s-catch-up
 
-|                 | Haiku 4.5 (knowledge evals 0 to 10, 13) | Sonnet 5 (updater evals 11, 12) |
-| --------------- | --------------------------------------- | ------------------------------- |
-| Executor effort | high                                    | high                            |
-| Without skill   | 8/38                                    | —                               |
-| With skill      | 38/38                                   | 7/7                             |
+|                 | Haiku 4.5 | Sonnet 5 | Sonnet 5.5 | Sonnet 5 (updater evals 11, 12) |
+| --------------- | --------- | -------- | ---------- | ------------------------------- |
+| Executor effort | high      | high     | high       | high                            |
+| Without skill   | 8/38      | 29/39    | 35/39      | —                               |
+| With skill      | 38/38     | 39/39    | 38/39      | 7/7                             |
 
-Iteration 4 on 2026-09-19, one file per feature. The knowledge cells count the content assertions;
-the twelve process assertions (only linked feature files read) also passed 12/12 with the skill. The
-updater evals have no baseline because the task has no meaning without the skill. Haiku 4.5's
-reliable knowledge ends in Feb 2025, before every release the skill covers, so its without-skill
-column is the model's own knowledge of v1.35 to v1.37.
+The first three columns are the twelve knowledge evals (0 to 10, 13), one run per arm, no web access:
+Haiku 4.5 in iteration 4 (2026-09-19), Sonnet 5 (`claude-sonnet-5`) in iteration 5 and Sonnet 5.5
+(`claude-sonnet-5-5`) in iteration 6 (2026-09-30), all on the same one-file-per-feature skill. The cells
+count the content assertions; the process assertion (at most four linked feature files read) passed 12/12 on
+Haiku 4.5 and 11/12 on both Sonnet models, which read every removals file for eval 13. Eval 9
+has one more assertion on the Sonnet runs, so their totals are 39. The updater evals have no baseline
+because the task has no meaning without the skill. The without-skill row follows each model's reliable
+knowledge cutoff: Feb 2025 for Haiku 4.5, before every release the skill covers; Jan 2026 for Sonnet 5;
+Jun 2026 for Sonnet 5.5, after v1.35 and v1.36. The one Sonnet 5.5 with-skill miss is a curl example
+whose credentials are elided as `...`.
 
 I build and test these skills on Fable 5 — that's my baseline, not one of the target models above.
 For comparison, the same models with no skill at all scored 55/101 (Sonnet 5) and 36/101 (Haiku 4.5).
