@@ -35,13 +35,32 @@ def read(p):
     return open(p, errors="ignore").read() if os.path.exists(p) else ""
 
 
+def tool_calls(path):
+    """The inputs of every tool call in a subagent log (Read paths, Bash commands, search patterns), one
+    per line. Tool results are left out: the result of reading SKILL.md holds every feature link, so a
+    match on the raw log counted all 96 files as read."""
+    if not os.path.exists(path):
+        return ""
+    out = []
+    for line in open(path, errors="ignore"):
+        try:
+            msg = json.loads(line).get("message", {})
+        except ValueError:
+            continue
+        for c in msg.get("content") if isinstance(msg.get("content"), list) else []:
+            if c.get("type") == "tool_use":
+                i = c.get("input", {})
+                out.append(f"{c.get('name')}: " + " ".join(str(i[k]) for k in ("file_path", "command", "pattern", "path") if k in i))
+    return "\n".join(out)
+
+
 class Run:
     def __init__(self, d):
         self.dir = d
         self.eval = int(re.search(r"eval-(\d+)", d).group(1))
         self.spec = next(e for e in EVALS if e["id"] == self.eval)
         self.answer = read(f"{d}/outputs/answer.md") or "\n".join(read(f) for f in glob.glob(f"{d}/outputs/*.md"))
-        self.transcript = read(f"{d}/transcript.md") + read(f"{d}/raw-transcript.jsonl")
+        self.transcript = read(f"{d}/transcript.md") + "\n" + tool_calls(f"{d}/raw-transcript.jsonl")
         self.work = f"{d}/work"
         files = [f for f in glob.glob(f"{d}/outputs/**/*.y*ml", recursive=True)]
         self.yaml = "\n---\n".join(read(f) for f in files)
@@ -178,7 +197,9 @@ def e9_2(r):
 
 def e9_3(r):
     """Every curl line uses https and carries credentials."""
-    curls = [l for l in r.all.splitlines() if re.search(r"\bcurl\b", l) and "http" in l]
+    # Join shell line continuations first: a multi-line curl puts its URL on a later line.
+    text = re.sub(r"\\\n[ \t]*", " ", r.all)
+    curls = [l for l in text.splitlines() if re.search(r"\bcurl\b", l) and "http" in l]
     if not curls:
         return (False, "no curl command")
     bad = [l for l in curls if not re.search(r"--cert|--key|Authorization: ?Bearer|\$TOKEN|--cacert.*--cert|-H ['\"]Authorization", l)]
@@ -224,19 +245,48 @@ def e13_1(r):
     return ok(r.has(r"gitRepo") and r.has(r"GitRepoVolumeDriver|disabled|removed") and r.has(r"initContainers:", r.yaml) and r.has(r"git\s+clone|alpine/git|bitnami/git|[\"']?clone[\"']?\s*$", r.yaml) and r.has(r"emptyDir", r.yaml), "gitRepo removal named; init-container clone into emptyDir")
 
 
+NEGATED = re.compile(r"(not|no record of|never|isn'?t|wasn'?t)\b[^.\n|]{0,60}deprecat", re.I)
+
+
+def deprecation_claim(r, subject, version):
+    """A deprecation claim about `subject` naming `version`, in one paragraph or table row, not negated
+    ("not deprecated", "no record of ... being deprecated"); a loose match passed an answer saying the opposite."""
+    blocks = [b for b in re.split(r"\n\s*\n|\n(?=\|)", r.answer) if re.search(subject, b)]
+    return any(re.search(r"deprecat", b, re.I) and re.search(version, b) and not NEGATED.search(b) for b in blocks)
+
+
 def e13_2(r):
-    return ok(r.has(r"externalIPs") and r.has(r"deprecat", flags=re.I | re.M) and r.has(r"v?1\.36") and r.has(r"LoadBalancer|Gateway|Ingress|MetalLB|ExternalName", flags=re.I | re.M), "externalIPs deprecated in v1.36 with a replacement")
+    claim = deprecation_claim(r, r"externalIPs", r"v?1\.36")
+    return ok(claim and r.has(r"LoadBalancer|Gateway|Ingress|MetalLB|ExternalName", flags=re.I | re.M), "externalIPs deprecated in v1.36 with a replacement")
 
 
 def e13_3(r):
     return ok(r.has(r"ipvs") and r.has(r"deprecat", flags=re.I | re.M) and r.has(r"mode:\s*(nftables|iptables)", r.yaml), "ipvs deprecated; config moved to nftables or iptables")
 
 
+
+def e14_1(r):
+    # an uncommented externalIPs key in the produced YAML; a comment that explains why it is absent is fine
+    used = re.search(r"^[ \t]*externalIPs:", r.yaml, re.M)
+    return ok(bool(r.yaml.strip()) and not used, "no spec.externalIPs in the YAML" if not used else "externalIPs set in the YAML")
+
+
+def e14_2(r):
+    claim = deprecation_claim(r, r"externalIPs", r"v?1\.36")
+    return ok(claim and r.has(r"LoadBalancer|Gateway|NodePort|MetalLB", flags=re.I | re.M), "externalIPs deprecated in v1.36 with a replacement")
+
+
+def e14_3(r):
+    claim = deprecation_claim(r, r"(?i)ipvs", r"v?1\.35")
+    return ok(claim and r.has(r"nftables"), "ipvs deprecated in v1.35; nftables given")
+
 def process_show(r):
     """The lookup path: only per-feature files under references/<category>/ were read, at most four."""
     if "with_skill" not in r.dir:
         return (True, "no skill in this run; vacuous")
-    t = r.transcript
+    # Expand shell brace paths first: `removals/{a,b,c}.md` names three files, and a match on the literal
+    # text found none of them, so an eight-file read passed.
+    t = re.sub(r"references/([a-z-]+)/\{([a-z0-9,-]+)\}\.md", lambda m: " ".join(f"references/{m.group(1)}/{f}.md" for f in m.group(2).split(",")), r.transcript)
     reads = re.findall(r"references/([a-z-]+)/([a-z0-9-]+)\.md", t)
     other = re.findall(r"references/([a-z-]+)\.md", t)  # a whole-category file no longer exists; a read of one is a stale path
     if not reads:
@@ -291,9 +341,10 @@ CHECKS = {
     (11, 1): e11_1, (11, 2): e11_2, (11, 3): e11_3,
     (12, 1): e12_1, (12, 2): e12_2, (12, 3): e12_3, (12, 4): e12_4,
     (13, 1): e13_1, (13, 2): e13_2, (13, 3): e13_3,
+    (14, 1): e14_1, (14, 2): e14_2, (14, 3): e14_3,
     (0, 5): process_show, (1, 4): process_show, (2, 4): process_show, (3, 4): process_show, (4, 4): process_show,
     (5, 4): process_show, (6, 4): process_show, (7, 4): process_show, (8, 4): process_show, (9, 5): process_show,
-    (10, 4): process_show, (13, 5): process_show,
+    (10, 4): process_show, (13, 5): process_show, (14, 4): process_show,
 }
 SPLIT = {(2, 2), (2, 3), (7, 3), (9, 2)}
 

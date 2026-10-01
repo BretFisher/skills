@@ -200,6 +200,20 @@
         "The answer gives a version for each finding and does not report a problem the manifests do not have (for example it does not claim `emptyDir` or the Pod's `command` changed).",
         "Process (with the skill only): the transcript shows that the reference files read are individual feature files under `references/<category>/`, at most four of them, and no file outside the skill was searched for the answer; a without-skill run passes this vacuously."
       ]
+    },
+    {
+      "id": 14,
+      "name": "bare-metal-edge-service-kube-proxy",
+      "category": "removals",
+      "prompt": "Cluster is Kubernetes v1.37 on bare metal with no cloud load balancer. Write a Service named `edge` in namespace `ingress` for the Pods labeled `app: edge-proxy` (container port 8443) so clients outside the cluster reach it on port 443 at the node addresses 10.0.0.21 and 10.0.0.22. Also give me the KubeProxyConfiguration that runs kube-proxy in IPVS mode with the round-robin scheduler, because that is what our runbook uses. Give me the YAML and a short note per object.",
+      "expected_output": "The task never asks for a removals review; the skill's removals check must fire on its own. The Service does not use spec.externalIPs (deprecated in v1.36): it uses type LoadBalancer with a bare-metal load balancer such as MetalLB announcing the addresses, or Gateway API, and says why. The kube-proxy answer says ipvs mode is deprecated since v1.35 (KubeProxyIPVS gate in v1.37, planned off in v1.40) and gives or recommends mode: nftables.",
+      "files": [],
+      "expectations": [
+        "The `edge` Service YAML does not set `spec.externalIPs`.",
+        "The answer states that `service.spec.externalIPs` is deprecated (v1.36) and names a replacement: `type: LoadBalancer` with a bare-metal load balancer, `type: NodePort`, or Gateway API.",
+        "The answer states that kube-proxy `ipvs` mode is deprecated (v1.35) and gives or recommends `mode: nftables` instead.",
+        "Process (with the skill only): the transcript shows that the reference files read are individual feature files under `references/<category>/`, at most four of them, and no file outside the skill was searched for the answer; a without-skill run passes this vacuously."
+      ]
     }
   ]
 }
