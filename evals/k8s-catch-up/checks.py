@@ -175,6 +175,13 @@ def e7_3(r):
     return (None, "no webhook; model judges the namespace scoping") if r.has(r"platform", r.yaml) else (False, "binding never names the platform namespace")
 
 
+def e7_4(r):
+    y = re.sub(r"^\s*#.*\n", "", r.yaml, flags=re.M)
+    nested = r.has(r"^\s*(applyConfiguration|jsonPatch):\s*\n\s+expression:", y)
+    flat = r.has(r"^\s*mutations:\s*\n\s*-\s*(patchType:[^\n]*\n\s*)?expression:", y)
+    return ok(nested and not flat, "expression set directly on the mutation" if flat else "CEL nested under applyConfiguration/jsonPatch" if nested else "no nested mutation expression")
+
+
 def e8_1(r):
     return ok(r.has(r"kubectl\.config\.k8s\.io/v1beta1") and r.has(r"kind:\s*Preference"), "kuberc Preference v1beta1")
 
@@ -334,7 +341,7 @@ CHECKS = {
     (4, 1): e4_1, (4, 2): e4_2,
     (5, 1): e5_1, (5, 2): e5_2,
     (6, 1): e6_1, (6, 2): e6_2,
-    (7, 1): e7_1, (7, 2): e7_2, (7, 3): e7_3,
+    (7, 1): e7_1, (7, 2): e7_2, (7, 3): e7_3, (7, 4): e7_4,
     (8, 1): e8_1, (8, 2): e8_2, (8, 3): e8_3,
     (9, 1): e9_1, (9, 2): e9_2, (9, 3): e9_3, (9, 4): e9_4,
     (10, 1): e10_1, (10, 2): e10_2, (10, 3): e10_3,
@@ -343,7 +350,7 @@ CHECKS = {
     (13, 1): e13_1, (13, 2): e13_2, (13, 3): e13_3,
     (14, 1): e14_1, (14, 2): e14_2, (14, 3): e14_3,
     (0, 5): process_show, (1, 4): process_show, (2, 4): process_show, (3, 4): process_show, (4, 4): process_show,
-    (5, 4): process_show, (6, 4): process_show, (7, 4): process_show, (8, 4): process_show, (9, 5): process_show,
+    (5, 4): process_show, (6, 4): process_show, (7, 5): process_show, (8, 4): process_show, (9, 5): process_show,
     (10, 4): process_show, (13, 5): process_show, (14, 4): process_show,
 }
 SPLIT = {(2, 2), (2, 3), (7, 3), (9, 2)}

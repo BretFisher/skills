@@ -112,6 +112,7 @@
         "The manifests use `kind: MutatingAdmissionPolicy` and `kind: MutatingAdmissionPolicyBinding` with `apiVersion: admissionregistration.k8s.io/v1` (not v1alpha1 or v1beta1).",
         "The policy matches CREATE of `apps/v1` `deployments` and its mutation sets the label `team: platform` (ApplyConfiguration or JSONPatch expressed in CEL).",
         "The mutation is limited to the `platform` namespace, either by the binding (`matchResources.namespaceSelector`) or by a `matchConditions` CEL expression on the policy, and the answer does not fall back to a MutatingWebhookConfiguration.",
+        "The policy YAML nests each mutation's CEL under `applyConfiguration.expression` or `jsonPatch.expression`, not as an `expression` key directly on the `spec.mutations[]` entry.",
         "Process (with the skill only): the transcript shows that the reference files read are individual feature files under `references/<category>/`, at most four of them, and no file outside the skill was searched for the answer; a without-skill run passes this vacuously."
       ]
     },
