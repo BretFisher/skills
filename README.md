@@ -104,18 +104,20 @@ and get their next refresh from a full 125-assertion run.
 
 #### k8s-catch-up
 
-|                 | Haiku 4.5 | Sonnet 5 | Sonnet 5.5 | Sonnet 5 (updater evals 11, 12) |
-| --------------- | --------- | -------- | ---------- | ------------------------------- |
-| Executor effort | high      | high     | high       | high                            |
-| Without skill   | 8/38      | 29/39    | 35/39      | —                               |
-| With skill      | 38/38     | 39/39    | 38/39      | 7/7                             |
+|                 | Haiku 4.5 | Haiku 5.5 | Sonnet 5 | Sonnet 5.5 | Sonnet 5 (updater evals 11, 12) |
+| --------------- | --------- | --------- | -------- | ---------- | ------------------------------- |
+| Executor effort | high      | high      | high     | high       | high                            |
+| Without skill   | 8/38      | 31/39     | 29/39    | 35/39      | —                               |
+| With skill      | 38/38     | 39/39     | 39/39    | 38/39      | 7/7                             |
 
-The first three columns are the twelve knowledge evals (0 to 10, 13), one run per arm, no web access:
+The first four columns are the twelve knowledge evals (0 to 10, 13), one run per arm, no web access:
 Haiku 4.5 in iteration 4 (2026-09-19), Sonnet 5 (`claude-sonnet-5`) in iteration 5 and Sonnet 5.5
-(`claude-sonnet-5-5`) in iteration 6 (2026-09-30), all on the same one-file-per-feature skill. The cells
+(`claude-sonnet-5-5`) in iteration 6 (2026-09-30), and Haiku 5.5 (`claude-haiku-5-5`) in iteration 9
+(2026-10-09), all on the same one-file-per-feature skill. The Haiku 5.5 no-skill runs could call a local
+`kubectl` 1.37.1, which the Haiku 4.5 runs could not; see `evals/k8s-catch-up/coverage.md`. The cells
 count the content assertions; the process assertion (at most four linked feature files read) passed 12/12 on
-Haiku 4.5 and 11/12 on both Sonnet models, which read every removals file for eval 13. Eval 9
-has one more assertion on the Sonnet runs, so their totals are 39. The updater evals have no baseline
+Haiku 4.5, 13/13 on Haiku 5.5 (eval 14 included), and 11/12 on both Sonnet models, which read every removals file for eval 13. Eval 9
+has one more assertion on the Sonnet and Haiku 5.5 runs, so their totals are 39. The updater evals have no baseline
 because the task has no meaning without the skill. The without-skill row follows each model's reliable
 knowledge cutoff: Feb 2025 for Haiku 4.5, before every release the skill covers; Jan 2026 for Sonnet 5;
 Jun 2026 for Sonnet 5.5, after v1.35 and v1.36. The one Sonnet 5.5 with-skill miss is a curl example

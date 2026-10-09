@@ -32,7 +32,7 @@ in that directory is a coverage gap until the per-feature eval set is generated 
 | `references/storage/`                                 | volume group snapshots                                                     | e4#1 e4#2 e4#3          | the other 7                                    |
 | `references/networking/`                              | PreferSameNode traffic distribution                                        | e5#1 e5#2 e5#3          | the other 2                                    |
 | `references/auth-security/`                           | Pod certificates                                                           | e6#1 e6#2 e6#3          | the other 7                                    |
-| `references/api-admission/`                           | mutating admission policies GA                                             | e7#1 e7#2 e7#3          | the other 8                                    |
+| `references/api-admission/`                           | mutating admission policies GA                                             | e7#1 e7#2 e7#3 e7#4     | the other 8                                    |
 | `references/kubectl-cli/`                             | kuberc, KYAML                                                              | e8#1 e8#2 e8#3          | command metadata in HTTP headers               |
 | `references/observability/`                           | `/statusz`, `/flagz` (beta since v1.36)                                    | e9#1 e9#2 e9#3          | the other 5                                    |
 | `references/node-kubelet/`                            | CrashLoopBackOff max, imageMaximumGCAge, drop-in config dir                | e10#1 e10#2 e10#3       | the other 9                                    |
@@ -59,7 +59,7 @@ Output of `checks.py --kinds`; regenerate when `evals.json` or `checks.py` chang
 | e4      | 4          | 3       | 0     | 1     | —             | #3            |
 | e5      | 4          | 3       | 0     | 1     | —             | #3            |
 | e6      | 4          | 3       | 0     | 1     | —             | #3            |
-| e7      | 4          | 3       | 1     | 0     | #3            | —             |
+| e7      | 5          | 4       | 1     | 0     | #3            | —             |
 | e8      | 4          | 4       | 0     | 0     | —             | —             |
 | e9      | 5          | 4       | 1     | 0     | #2            | —             |
 | e10     | 4          | 4       | 0     | 0     | —             | —             |
@@ -67,7 +67,7 @@ Output of `checks.py --kinds`; regenerate when `evals.json` or `checks.py` chang
 | e12     | 4          | 4       | 0     | 0     | —             | —             |
 | e13     | 5          | 4       | 0     | 1     | —             | #4            |
 | e14     | 4          | 4       | 0     | 0     | —             | —             |
-| **all** | **62**     | **52**  | **4** | **6** |               |               |
+| **all** | **63**     | **53**  | **4** | **6** |               |               |
 
 ## Non-discriminating assertions
 
@@ -249,6 +249,53 @@ Harness findings in this round:
   paths, Bash commands), never tool results, because the result of reading `SKILL.md` holds every
   feature link. Rechecking 505 stored program verdicts changed only i8 e13#5 (False to True) in
   iterations 5 to 8.
+
+### Iteration 9 (2026-10-09, Haiku 5.5)
+
+Question tested: how much of the skill Haiku 5.5 already knows. Same skill as iteration 8, knowledge
+evals e0 to e10, e13, and e14, both arms, no web access. Executor `eval-executor-haiku-5-5-high`
+(`claude-haiku-5-5`), residual grader `eval-grader-sonnet-5-high`. Counts exclude the process assertion.
+
+| Model     | Iteration | Without skill | With skill | e14 without / with | Process (with skill) | Mean tokens with / without | Mean seconds with / without |
+| --------- | --------- | ------------- | ---------- | ------------------ | -------------------- | -------------------------- | --------------------------- |
+| Haiku 5.5 | 9         | 31/39         | 39/39      | 0/3 / 3/3          | 13/13                | 92,700 / 86,000            | 66 / 72                     |
+
+| Eval | Both arms | Only with skill                                                       |
+| ---- | --------- | --------------------------------------------------------------------- |
+| e0   | #1 #2     | #3 #4 (`fileKeyRef`; the baseline sourced the file in the entrypoint) |
+| e1   | #1 #2 #3  | —                                                                     |
+| e2   | #1 #3     | #2 (gate off by default)                                              |
+| e3   | #1 #2 #3  | —                                                                     |
+| e4   | #1 #2     | #3 (GA in v1.36)                                                      |
+| e5   | #1 #2     | #3 (GA in v1.35, fallback order)                                      |
+| e6   | #1 #2     | #3 (GA in v1.37)                                                      |
+| e7   | #1 #2 #3  | —                                                                     |
+| e8   | #1 #2 #3  | —                                                                     |
+| e9   | #1 #3 #4  | #2 (beta since v1.36)                                                 |
+| e10  | #1 #2 #3  | —                                                                     |
+| e13  | #1 #2 #3  | #4 (a version for each finding)                                       |
+| e14  | —         | #1 #2 #3                                                              |
+
+- Haiku 5.5 without the skill writes the right fields and kinds for most features; it fails on the stage
+  claims (e2#2, e4#3, e5#3, e6#3, e9#2), on `fileKeyRef` (e0), and on the removals (e13#4, e14). The
+  pattern is the Sonnet 5.5 one, with three more stage misses.
+- Confounder: every no-skill run called the local `kubectl` 1.37.1 (installed 2026-09-24, after the
+  Haiku 4.5 baseline of iteration 4). The e8 run tested `-o kyaml` on it and the e7 run read API struct
+  tags from it with `strings`. The 8 to 31 change from Haiku 4.5 is not all model knowledge.
+- No-skill isolation checked from `raw-transcript.jsonl`: no no-skill run named a path under
+  `skills/k8s-catch-up`.
+- Token totals are not comparable with the September iterations (the same note as iterations 7 and 8).
+
+Skill finding from the executors, fixed:
+
+- `references/api-admission/mutating-admission-policies.md` put the CEL `expression` directly on the
+  `spec.mutations[]` entry. The `Mutation` type in `k8s.io/api` `admissionregistration/v1` has no
+  `expression` field; the CEL goes under `applyConfiguration.expression` or `jsonPatch.expression`. The
+  e7 Haiku 5.5 with-skill run found this from the kubectl struct tags and used the nested shape. New
+  program assertion e7#4 checks the nesting. Checked against every stored e7 run: it fails every
+  with-skill run of iterations 1 to 6 (they copied the skill's example) and passes the Sonnet 5 and
+  Sonnet 5.5 no-skill runs, so the old example made the result worse than no skill on those models.
+  The iteration-9 runs pass in both arms. The counts above are on the 39-assertion set from before e7#4.
 
 ## Planned: full per-feature coverage
 
