@@ -38,7 +38,9 @@
       "id": 2,
       "prompt": "Review and improve this workflow for safety and speed: it uses pull_request_target, permissions: write-all, docker build && docker push in a shell step, and AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY secrets to deploy. Produce the corrected workflow and explain the important changes.",
       "expected_output": "A hardened rewrite that avoids dangerous pull_request_target behavior, removes write-all permissions, uses Docker actions instead of shell push logic, recommends OIDC for AWS auth, and includes speed/maintainability improvements.",
-      "files": [],
+      "files": [
+        "evals/github-actions-workflow-pro/fixtures/harden-existing.yml"
+      ],
       "expectations": [
         "The answer identifies pull_request_target with privileged operations as risky and avoids or constrains it.",
         "The corrected workflow removes permissions: write-all and uses explicit least-privilege permissions.",
