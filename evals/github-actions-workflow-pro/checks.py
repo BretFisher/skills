@@ -79,8 +79,16 @@ class Run:
         self.all_text = "\n".join(t for t, _ in self.wf.values())
 
     def one(self):
-        """The single primary workflow (build/edit evals)."""
-        for n, v in self.wf.items():
+        """The single primary workflow (build/edit evals): the output named like an input workflow
+        when there is one, so a fix that adds a second file (a split-out comment job) is not graded
+        in place of the corrected original; otherwise the first output."""
+        orig = set()
+        if os.path.isdir(f"{self.dir}/work/.git"):
+            first = subprocess.run(["git", "rev-list", "--max-parents=0", "HEAD"], cwd=f"{self.dir}/work", capture_output=True, text=True).stdout.split()
+            if first:
+                tree = subprocess.run(["git", "ls-tree", "--name-only", first[-1], ".github/workflows/"], cwd=f"{self.dir}/work", capture_output=True, text=True).stdout
+                orig = {os.path.basename(p) for p in tree.split()}
+        for n, v in sorted(self.wf.items(), key=lambda kv: kv[0] not in orig):
             return n, v[0], v[1]
         return None, "", None
 

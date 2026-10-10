@@ -387,3 +387,49 @@ from what `ubuntu-latest` gives today. So the finding is never "this fails on Gi
 Harness note: `.claude/agents/` is read at session start, so `eval-grader-sonnet-high` was added but not callable in
 the session that created it; iteration-18's residuals were graded by `eval-executor-sonnet-high` instead — the same
 model and effort (sonnet/high), with the grading instructions passed in the prompt.
+
+## Iteration 20 (2026-10-09, Haiku 5.5, all evals)
+
+Executor `eval-executor-haiku-5-5-high` (`claude-haiku-5-5`), residual grader `eval-grader-sonnet-5-high`, one run
+per cell, both arms, the 136-assertion set. Eval 2 with skill is missing (see below).
+
+| Eval | Haiku 4.5 (i13) with / without | Sonnet 5 (i14) with / without | Haiku 5.5 (i20) with / without |
+| ---- | ------------------------------ | ----------------------------- | ------------------------------ |
+| e0   | 9/9 / 4/9                      | 9/9 / 5/9                     | 9/9 / 5/9                      |
+| e1   | 8/8 / 4/8                      | 8/8 / 6/8                     | 8/8 / 4/8                      |
+| e2   | 9/11 / 6/11                    | 11/11 / 9/11                  | — / 8/11                       |
+| e3   | 9/11 / 4/11                    | 8/11 / 6/11                   | 11/11 / 4/11                   |
+| e4   | 10/12 / 6/12                   | 12/12 / 9/12                  | 12/12 / 7/12                   |
+| e5   | 10/10 / 10/10                  | 9/11 / 9/11                   | 11/11 / 9/11                   |
+| e6   | 7/12 / 4/12                    | 11/12 / 4/12                  | 10/12 / 5/12                   |
+| e7   | 8/13 / 2/13                    | 11/13 / 6/13                  | 11/13 / 8/13                   |
+| e8   | 7/10 / 3/10                    | 9/10 / 4/10                   | 10/10 / 2/10                   |
+| e9   | 8/9 / 6/9                      | 9/9 / 5/9                     | 9/9 / 5/9                      |
+| e10  | —                              | —                             | 8/9 / 3/9                      |
+| e11  | —                              | —                             | 10/10 / 6/10                   |
+| e12  | —                              | —                             | 4/4 / 4/4                      |
+| e13  | —                              | —                             | 7/7 / 5/7                      |
+
+Haiku 5.5 totals: 120/125 with the skill (e2 excluded), 75/136 without. The with-skill misses: e6#6 (deploy
+`cancel-in-progress` not named in the speed section), e6#12 and e7#13 (new SHAs from `gh api` release lookups, not
+`pinact run`), e7#12 (no `## Hard findings` heading for the top-level `contents: read`), and e10#7 (the parallel step
+keys not called a June 2026 feature). The provenance miss is the Haiku 4.5 one again, on two of fourteen runs.
+
+Harness findings:
+
+- Eval 2 has no fixture, and its prompt says "this workflow". With the skill, Haiku 5.5 searched outside the empty work
+  repo and read `evals.json` in two of two runs; both runs are under `runs/discarded/iteration-20-e2-with-skill/`. The
+  no-skill run rebuilt the workflow from the prompt. Fix before the next run: give eval 2 a fixture file.
+- `checks.py` `Run.one()` took the first output workflow. The e3 Haiku 5.5 run split the PR comment into a new
+  `ci-comment.yml`, which sorted first, so e3#4 and e3#10 read a file with no `uses:` lines. `one()` now prefers the
+  output named like an input workflow in the work repo's first commit. Checked against all 216 stored runs: it changes
+  the file for two (i14 and i20 e3 with skill). i20 e3 went 9/11 to 11/11; i14 e3 went 7/11 to 8/11 (#4 and #10 to
+  pass, #9 to fail, since #9 now reads the real `ci.yml`, where the run jumped majors).
+- Two executors stopped before writing `answer.md` (e11 without skill mid-task; e6 with skill applied a
+  no-report-files rule over the executor prompt). Each was resumed once with a continue-only message; `timing.json`
+  records it.
+- Two no-skill executors called the session's `spawn_task` tool and dismissed the chip. The executor definitions do
+  not restrict tools.
+- Wall time is not comparable: the model API stalled for up to 15 minutes per call during this run (gaps in the raw
+  logs before assistant turns, one cut-off stream), so durations are 1,600 to 3,400 seconds. Mean tokens: 138,000 with
+  the skill, 105,000 without.

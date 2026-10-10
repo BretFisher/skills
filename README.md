@@ -96,10 +96,14 @@ and an assertion that passes without the skill on every model is a rule the skil
 | --------------- | --------- | -------- | -------- | ------ | ----------- | ------------ | -------------- | ------- | -------- | ------------- | ---------- | ------------ |
 | Executor effort | high      | high     | —        | —      | —           | —            | —              | —       | —        | —             | —          | —            |
 | Without skill   | 49/105    | 63/106   | —        | —      | —           | —            | —              | —       | —        | —             | —          | —            |
-| With skill      | 85/105    | 96/106   | —        | —      | —           | —            | —              | —       | —        | —             | —          | —            |
+| With skill      | 85/105    | 97/106   | —        | —      | —           | —            | —              | —       | —        | —             | —          | —            |
 
 Evals 10 and 11 (parallel steps, slow-step audit; 19 assertions) were added on 2026-09-12 and ran on their own,
-Sonnet 5 at high effort: 19/19 with the skill, 12/19 without. The cells above are still the 106-assertion set
+Sonnet 5 at high effort: 19/19 with the skill, 12/19 without. The Sonnet 5 cell was 96/106 until a 2026-10-09
+`checks.py` fix graded the corrected workflow instead of a split-out second file on eval 3. Haiku 5.5 (2026-10-09,
+iteration 20) ran every eval but one: on evals 0 to 9 without eval 2 it scored 91/95 with the skill and 49/95
+without, against 76/94 and 43/94 for Haiku 4.5; its eval 2 with-skill run is missing, so it has no column yet.
+The cells above are still the 106-assertion set
 and get their next refresh from a full 125-assertion run.
 
 #### k8s-catch-up
