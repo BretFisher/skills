@@ -39,24 +39,53 @@ grader. The score is the share of assertions passed.
 
 ### github-actions-workflow-pro
 
-| Model     | Without skill | With skill |
-| --------- | ------------- | ---------- |
-| Haiku 4.5 | 47%           | 81%        |
-| Haiku 5.5 | 57%           | 96%        |
-| Sonnet 5  | 59%           | 92%        |
+| Model      | Without skill | With skill |
+| ---------- | ------------- | ---------- |
+| Haiku 4.5  | 47%           | 81%        |
+| Haiku 5.5  | 60%           | 98%        |
+| Sonnet 5   | 59%           | 92%        |
+| Sonnet 5.5 | 64%           | 95%        |
+| Opus 5.5   | 62%           | 97%        |
 
 ### k8s-catch-up
 
 | Model      | Without skill | With skill |
 | ---------- | ------------- | ---------- |
 | Haiku 4.5  | 21%           | 100%       |
-| Haiku 5.5  | 79%           | 100%       |
+| Haiku 5.5  | 80%           | 100%       |
 | Sonnet 5   | 74%           | 100%       |
-| Sonnet 5.5 | 90%           | 97%        |
+| Sonnet 5.5 | 89%           | 96%        |
+| Opus 5.5   | 91%           | 96%        |
 
 The newer the model, the more it already knows, so the gap shrinks. What a newer model still gets wrong
 without `k8s-catch-up` is mostly the stage of a feature (beta or GA, and in which version) and recent
 deprecations.
+
+### docker-pro
+
+| Model      | Without skill | With skill |
+| ---------- | ------------- | ---------- |
+| Haiku 5.5  | 68%           | 96%        |
+| Sonnet 5.5 | 56%           | 100%       |
+| Opus 5.5   | 72%           | 100%       |
+
+### super-linting
+
+| Model      | Without skill | With skill |
+| ---------- | ------------- | ---------- |
+| Haiku 5.5  | 41%           | 100%       |
+| Sonnet 5.5 | 35%           | 100%       |
+| Opus 5.5   | 35%           | 100%       |
+
+### gha-audit
+
+| Model      | Without skill | With skill |
+| ---------- | ------------- | ---------- |
+| Haiku 5.5  | 71%           | 100%       |
+| Sonnet 5.5 | 71%           | 100%       |
+| Opus 5.5   | 43%           | 100%       |
+
+`screencapture` has no evals yet.
 
 ## Repo layout
 
@@ -78,6 +107,7 @@ Evals sit outside `skills/` so an installer copies only the skill. How a run wor
 | ---------------------------------------- | ------------------------------------------------------------------------------------- |
 | `make lint`                              | Pre-commit gate: the same linters CI runs, plus the scanners on this repo's workflows |
 | `make fmt`                               | `prettier --write` on Markdown and JSON                                               |
+| `make eval-key`                          | Create the eval-only signing key that eval work repos use instead of yours (once)     |
 | `make eval-check [SKILL=… ITER=…]`       | Program-grade every run of an iteration; leaves judgment assertions for the model     |
 | `make eval-batch [SKILL=… ITER=…]`       | Write one grader prompt per group of runs that still need a model grader              |
 | `make eval-finalize [SKILL=… ITER=…]`    | Recompute every grading summary; fails if an assertion is still ungraded              |

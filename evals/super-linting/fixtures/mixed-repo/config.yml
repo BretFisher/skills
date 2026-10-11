@@ -1,0 +1,4 @@
+# Eval fixture for the super-linting skill: app settings.
+service:
+  name: report-builder
+  port: 8080

@@ -1,0 +1,38 @@
+{
+  "skill_name": "gha-audit",
+  "notes": "gha-audit is a user-invoked wrapper around the audit path of github-actions-workflow-pro. These evals test only what the wrapper adds: the argument scopes the audit, the workflow files stay untouched, and the report uses the audit template. Fixtures are reused from evals/github-actions-workflow-pro/fixtures/ and placed under .github/workflows/.",
+  "evals": [
+    {
+      "id": 0,
+      "name": "audit-all",
+      "prompt": "/gha-audit",
+      "expected_output": "Audits every workflow under .github/workflows/ (three files), runs the scanners, writes the report in the audit template with a proposed diff, and leaves the workflow files in the repo untouched.",
+      "files": [
+        "evals/github-actions-workflow-pro/fixtures/insecure-ci.yml",
+        "evals/github-actions-workflow-pro/fixtures/slow-ci.yml",
+        "evals/github-actions-workflow-pro/fixtures/deploy-static-keys.yml"
+      ],
+      "expectations": [
+        "The workflow files in the work repo are unchanged: `git status --porcelain .github/workflows` is empty.",
+        "The report has the audit template headings `## Hard findings`, `## Speed`, and `## Proposed diff`.",
+        "The report names all three workflow files: `insecure-ci.yml`, `slow-ci.yml`, and `deploy-static-keys.yml`.",
+        "The raw log shows `actionlint` and `zizmor` commands."
+      ]
+    },
+    {
+      "id": 1,
+      "name": "audit-one-file",
+      "prompt": "/gha-audit .github/workflows/insecure-ci.yml",
+      "expected_output": "Audits only insecure-ci.yml, leaves both workflow files untouched, and proposes changes only for the named file.",
+      "files": [
+        "evals/github-actions-workflow-pro/fixtures/insecure-ci.yml",
+        "evals/github-actions-workflow-pro/fixtures/slow-ci.yml"
+      ],
+      "expectations": [
+        "The workflow files in the work repo are unchanged: `git status --porcelain .github/workflows` is empty.",
+        "The report has the audit template headings `## Hard findings` and `## Proposed diff`.",
+        "No proposed file for `slow-ci.yml` is in outputs/, and the report's `## Proposed diff` section does not name `slow-ci.yml`."
+      ]
+    }
+  ]
+}

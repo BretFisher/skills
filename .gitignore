@@ -3,6 +3,8 @@
 # The eval *definitions* (evals/<name>/evals.json, fixtures/, coverage.md) ARE committed — only runs are ignored.
 evals/*/runs/
 evals/_dashboard/
+# eval-only signing key from `make eval-key`; a private key is never committed, even a throwaway one
+evals/.eval-key/
 
 # macOS Finder metadata
 .DS_Store

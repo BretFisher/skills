@@ -102,7 +102,7 @@ def e0_3(r):
 def e1_1(r):
     up = re.search(r"scaleUp:(?:\n[ \t]+.*)+", r.yaml)
     down = re.search(r"scaleDown:(?:\n[ \t]+.*)+", r.yaml)
-    return ok(up and re.search(r"tolerance:\s*0?\.05\b", up.group(0)) and down and re.search(r"tolerance:\s*0?\.15\b", down.group(0)), "behavior.scaleUp.tolerance 0.05, scaleDown.tolerance 0.15")
+    return ok(up and re.search(r"tolerance:\s*[\"']?0?\.05\b", up.group(0)) and down and re.search(r"tolerance:\s*[\"']?0?\.15\b", down.group(0)), "behavior.scaleUp.tolerance 0.05, scaleDown.tolerance 0.15")
 
 
 def e1_3(r):

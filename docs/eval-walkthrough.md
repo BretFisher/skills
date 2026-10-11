@@ -231,7 +231,8 @@ it never appears on a command line).
 Harness notes learned the hard way: graders never embed a `timing` object in `grading.json` (it breaks
 `aggregate_benchmark`; timing belongs in the sibling `timing.json`); never use `set -x` near a
 token-bearing command; executors commit the pristine input files as the work repo's first commit before
-editing. When a rate limit kills graders mid-run, validate every surviving `grading.json` (expectation
+editing. That commit uses `evals/eval.gitconfig` (included from each work repo's `.git/config`):
+an eval identity and the eval-only key from `make eval-key`, never the owner's name or signing key. When a rate limit kills graders mid-run, validate every surviving `grading.json` (expectation
 count, field names, no `timing`) and relaunch only the missing runs.
 
 ## Glossary

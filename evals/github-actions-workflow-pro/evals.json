@@ -69,7 +69,7 @@
         "Under a `## Tools` heading, the report lists actionlint, shellcheck, zizmor, poutine, pinact, gasa, and run-stats, each marked ran, absent, or skipped: <reason>; a sentence that only says the scanners were run fails this.",
         "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset), and zizmor `dangerous-triggers` when the output keeps `pull_request_target` and the answer states why (Collaborators-only PR access, or private repo with the split-job pattern).",
         "The corrected workflow still does what the original did: tests run on the same events, and the PR comment step is kept in a safe shape (env-passed values, no pull_request_target) or its removal is stated with the reason. Correctness names the step that can never succeed as written: `gh pr comment` also runs on `push` events, where there is no PR number.",
-        "If pinact moved an action to a newer major than the original (`@v4` becomes a `# v7.x` comment), the hand-back names each such action and gives the way to keep the old major: write the tag in the file (`actions/checkout@v4`) and run `scripts/scan.sh pinact run -min-age 7 -i 'actions/checkout' <file>` without `-update`; silent major jumps fail this, and so does quoting `-i 'actions/checkout@v4'` (pinact's `-i` is a regex over the action name, so that matches nothing).",
+        "The corrected workflow keeps `actions/checkout` and `actions/setup-node` on major v4, the major the fixture uses: each version comment starts with `# v4.`. A pin on a newer major fails this, even when the report names it.",
         "The report flags the upload-artifact line whose version comment carries extra text after the version (Dependabot skips updating a comment with anything besides the version, so the pin silently goes stale), and in the corrected file that comment is the version alone.",
         "Every commit SHA that is new in a `uses:` line (not present in the input files) was written by `pinact run` on the file: the transcript shows the `pinact run` command, and shows no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`), `git ls-remote`, or copy of a SHA from another file that then went into the YAML. A run that wrote no new SHA passes this assertion."
       ]
@@ -111,7 +111,7 @@
         "No path filters, workflow_dispatch, or other unrequested triggers are added.",
         "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset), and zizmor `dangerous-triggers` when the output keeps `pull_request_target` and the answer states why (Collaborators-only PR access, or private repo with the split-job pattern).",
         "The lint job runs `npm ci` and then `npm run lint`; a copied test job that still runs `npm test`, or a lint step without a preceding install, fails this.",
-        "The pre-existing `actions/upload-artifact@v4` line is SHA-pinned with a version comment in the output (the skill pins every tag it touches, scoped with `-i` so nothing else moves); a tag left in place fails this.",
+        "The pre-existing `actions/upload-artifact@v4` line is SHA-pinned with a version comment that starts with `# v4.` in the output (the skill pins every tag it touches without `--update`, scoped with `-i`, so it keeps its major and nothing else moves); a tag left in place, or a pin on a newer major, fails this.",
         "Every commit SHA that is new in a `uses:` line (not present in the input files) was written by `pinact run` on the file: the transcript shows the `pinact run` command, and shows no `gh api` call (`git/refs/tags`, `/commits/`, `/releases`), `git ls-remote`, or copy of a SHA from another file that then went into the YAML. A run that wrote no new SHA passes this assertion."
       ]
     },
@@ -153,7 +153,7 @@
         "The deploy job declares an environment and the remaining secrets are scoped to it.",
         "Any multi-line run block that remains starts with set -euo pipefail (splitting into single-line steps, which fail fast on their own, also satisfies this).",
         "actions/checkout sets persist-credentials: false and the job has timeout-minutes.",
-        "The answer recommends a Dependabot github-actions entry (daily, cooldown 7) because none exists, as a complete file.",
+        "The repo has no update-bot config, so the answer asks which bot the user prefers, naming both Dependabot and Renovate on a line that ends in `?`, and writes neither config (no `dependabot.yml` or Renovate file in outputs/ or the work repo).",
         "Every placeholder introduced (role ARN, environment name, region) is listed for the user to confirm.",
         "The produced or corrected workflow YAML passes actionlint, zizmor (regular persona), poutine, and `pinact run -check -verify-comment -min-age 7 -verify-min-age` with zero findings when the grader runs them on the output, except poutine `default_permissions_on_risky_events` on a job whose `permissions: {}` is explicit (known false positive: the rule counts `{}` as unset), and zizmor `dangerous-triggers` when the output keeps `pull_request_target` and the answer states why (Collaborators-only PR access, or private repo with the split-job pattern).",
         "aws-actions/configure-aws-credentials runs after `npm ci` and `npm run build`, so package lifecycle scripts never run with cloud credentials in the environment; or the build runs in a separate job that has no id-token: write and hands the artifact to the deploy job.",
@@ -211,7 +211,7 @@
     },
     {
       "id": 10,
-      "prompt": "Our build job (.github/workflows/build.yml, attached) takes about 11 minutes and most of it is the three builds running one after another. There's also an API server we start with `&` and a hardcoded `sleep 30` before the e2e tests, which is flaky. Can you speed this up? Keeping it as one job matters to us \u2014 the builds share the one npm ci and the same workspace.",
+      "prompt": "Our build job (.github/workflows/build.yml, attached) takes about 11 minutes and most of it is the three builds running one after another. There's also an API server we start with `&` and a hardcoded `sleep 30` before the e2e tests, which is flaky. Can you speed this up? Keeping it as one job matters to us — the builds share the one npm ci and the same workspace.",
       "expected_output": "The three independent builds run at the same time inside the one job with a `parallel:` block (or three `background: true` steps plus a `wait`), and the API server becomes a `background: true` step with an `id`, a readiness check instead of `sleep 30`, and a `cancel:` step after the e2e tests. The job stays one job. The hand-back says the keys are new (June 2026, github.com and GHEC) and that actionlint's schema does not know them yet, so its unknown-key reports on those lines are expected.",
       "files": [
         "evals/github-actions-workflow-pro/fixtures/serial-build-job.yml",
@@ -232,7 +232,7 @@
     },
     {
       "id": 11,
-      "prompt": "CI is dragging \u2014 every push takes ~25 minutes. I ran your run-stats script and saved the output (run-stats-long-tail.md, attached) along with the workflow itself (.github/workflows/ci.yml). Where is the time actually going and what should I fix first?",
+      "prompt": "CI is dragging — every push takes ~25 minutes. I ran your run-stats script and saved the output (run-stats-long-tail.md, attached) along with the workflow itself (.github/workflows/ci.yml). Where is the time actually going and what should I fix first?",
       "expected_output": "A speed analysis driven by the step table: every step at or over 2 minutes gets a named cause and fix (no npm cache on either Install Dependencies step, plain `docker build` with no Buildx layer cache, a whole coverage directory uploaded, an integration suite whose cause is not visible in the YAML), `Set up job` is called out as runner startup with no YAML fix, and the user is asked which duration cut they want for the rest of the analysis (every step over 1 minute, 30 seconds, or only over 5) instead of the report stopping at the default 2 minutes.",
       "files": [
         "evals/github-actions-workflow-pro/fixtures/run-stats-long-tail.md",
@@ -279,7 +279,28 @@
         "The answer gives the portability reason: the steps do not work where the image does not provide the tool, naming at least one of a self-hosted runner, a `container:` job, or `act`.",
         "The answer does not silently decide the tool versions for the user: it either asks which versions they need, states that the version is their choice, says what the current runner image ships so they can choose, or uses `latest`.",
         "The answer does not propose installing the tools with a package manager inside a `run:` step (`apt-get install`, `brew install`, `curl | sh`) as the recommended fix.",
-        "The answer does not report the workflow's already-correct parts as defects: `permissions: {}` with a per-job `contents: read`, the SHA-pinned checkout with `persist-credentials: false`, the named `production` environment holding the secret, the non-cancelling deploy concurrency group, and `timeout-minutes` are all present and stay."
+        "The proposed YAML keeps `permissions: {}` at the top level and `contents: read` on the deploy job.",
+        "The proposed YAML keeps the checkout SHA-pinned (`actions/checkout@<40-hex SHA> # v…`) with `persist-credentials: false`.",
+        "The proposed YAML keeps `environment: production` on the deploy job, and the kubeconfig still comes from `secrets.KUBECONFIG_CONTENTS`.",
+        "The proposed YAML keeps a concurrency group with `cancel-in-progress: false`; a changed group name passes.",
+        "The proposed YAML keeps `timeout-minutes` on the deploy job; a changed value passes.",
+        "The answer does not call any of these five already-correct parts a defect (missing, unpinned, too broad). A suggestion to change a value (a longer timeout, a fixed concurrency group) passes when it does not say the part is missing or wrong."
+      ]
+    },
+    {
+      "id": 14,
+      "name": "renovate-repo",
+      "prompt": "Review our CI setup for supply-chain risk (the workflow and the repo's config are attached) and tell me what to change.",
+      "expected_output": "Finds the repo's Renovate config, keeps Renovate as the update bot, and recommends the GitHub Actions protections Renovate lacks: digest pinning and a 7-day minimumReleaseAge. Does not add Dependabot. Leaves the already-pinned workflow lines as they are.",
+      "files": [
+        "evals/github-actions-workflow-pro/fixtures/good-ci.yml",
+        "evals/github-actions-workflow-pro/fixtures/renovate-basic.json"
+      ],
+      "expectations": [
+        "No `.github/dependabot.yml` is created, and the answer does not propose a Dependabot config (no `package-ecosystem` in the answer or outputs/).",
+        "The answer or a proposed Renovate config sets `minimumReleaseAge` (any duration) for the GitHub Actions updates.",
+        "The answer recommends digest pinning in the Renovate config: `helpers:pinGitHubActionDigests`, `config:best-practices`, or `pinDigests: true`.",
+        "Every `uses:` line that is SHA-pinned in the fixture keeps the same SHA and version comment in any proposed workflow YAML."
       ]
     }
   ]

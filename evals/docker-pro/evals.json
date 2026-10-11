@@ -1,46 +1,71 @@
 {
   "skill_name": "docker-pro",
+  "notes": "Fixtures under fixtures/<repo>/ are placed at the work repo root. Every assertion a program can decide is graded by checks.py; the rest go to the model grader.",
   "evals": [
     {
       "id": 0,
+      "name": "greenfield-node",
       "prompt": "I have a Node.js Express app in this repo (package.json with an Express dependency, app entrypoint at src/server.js, listens on port 3000). There are no Docker files yet. Please containerize it so I can build and ship it.",
-      "expected_output": "A modern multi-stage Dockerfile with the syntax frontend line first, version ARGs at top, hardened base images, a .dockerignore derived from .gitignore plus Docker additions, a docker-bake.hcl, and the assistant asking whether to also add a compose.yaml since this is first-time Docker setup.",
-      "files": [],
+      "expected_output": "A modern multi-stage Dockerfile with the syntax frontend line first, version ARGs at top, hardened base images pinned by digest, a .dockerignore derived from .gitignore plus Docker additions, a docker-bake.hcl, and the assistant asking whether to also add a compose.yaml since this is first-time Docker setup.",
+      "files": [
+        "evals/docker-pro/fixtures/node-express/package.json",
+        "evals/docker-pro/fixtures/node-express/src/server.js",
+        "evals/docker-pro/fixtures/node-express/.gitignore"
+      ],
       "expectations": [
-        "The Dockerfile's first line is the frontend directive `# syntax=docker/dockerfile:1` (pinned to :1, not :1.0).",
-        "Base image versions are declared as global ARGs before the first FROM, and all FROM stages use explicit AS names.",
-        "The Dockerfile uses a hardened/minimal base (Chainguard cgr.dev or Docker Hardened Images dhi.io) at least for the final runtime stage, via a multi-stage build.",
-        "A .dockerignore is created that excludes .git and common secrets/junk, and reflects starting from the project's .gitignore.",
-        "A docker-bake.hcl file is created with at least one target referencing the Dockerfile and a tag.",
-        "Every external FROM image is pinned to both a tag and a digest (@sha256:...), or a clearly-marked digest placeholder with instructions to resolve it (e.g. via regctl), rather than a bare mutable tag.",
-        "Because no Docker files existed before, the assistant asks the user whether they also want a compose.yaml rather than silently creating or skipping one."
+        "The Dockerfile's first line is exactly `# syntax=docker/dockerfile:1`.",
+        "The Dockerfile declares at least one `ARG` before its first `FROM`, and every `FROM` that names an external image ends with `AS <name>`.",
+        "The final stage is built on a hardened image (following stage aliases): `cgr.dev/chainguard/` or `dhi.io/`.",
+        "Every `FROM` that names an external image carries `@sha256:` followed by 64 hex characters, or a `@sha256:` placeholder with the answer naming `regctl` or `docker buildx imagetools` to resolve it.",
+        "A `.dockerignore` exists with a `.git` entry and the `coverage/` entry copied from the repo's `.gitignore`.",
+        "A `docker-bake.hcl` exists with a `target` block that sets `dockerfile` and `tags`.",
+        "No `compose.yaml` was created, and the answer asks or offers to add one rather than deciding silently.",
+        "The final stage's `ENTRYPOINT` or `CMD` is in exec form (a JSON array).",
+        "The hand-back gives a one-line reason for each opinionated default it applied (frontend pin, hardened base, digest pin, .dockerignore, bake file)."
       ]
     },
     {
       "id": 1,
+      "name": "go-distroless",
       "prompt": "Write me a Dockerfile for a Go microservice. The module builds with `go build ./cmd/api` and the binary serves HTTP on 8080. I want the smallest, most secure production image you can reasonably make.",
-      "expected_output": "A multi-stage Dockerfile using a Chainguard go -dev (or DHI) build stage and a distroless static final stage, with the syntax line first, version ARGs, BuildKit cache mounts for the Go build, CGO disabled, and an exec-form ENTRYPOINT.",
-      "files": [],
+      "expected_output": "A multi-stage Dockerfile using a Chainguard go -dev (or DHI) build stage and a distroless static final stage, with the syntax line first, version ARGs, digest pins, BuildKit cache mounts for the Go build, CGO disabled, and an exec-form ENTRYPOINT.",
+      "files": [
+        "evals/docker-pro/fixtures/go-api/go.mod",
+        "evals/docker-pro/fixtures/go-api/cmd/api/main.go",
+        "evals/docker-pro/fixtures/go-api/.gitignore"
+      ],
       "expectations": [
-        "The Dockerfile's first line is `# syntax=docker/dockerfile:1`.",
-        "It is a multi-stage build whose final stage is a distroless/static hardened image (e.g. cgr.dev/chainguard/static) with no shell or package manager.",
-        "The Go version (and any base versions) are declared as ARGs and FROM stages are named with AS.",
-        "The build uses at least one BuildKit feature appropriate to Go builds (RUN --mount=type=cache for the Go build/module cache, or a bind mount), rather than a plain RUN go build with no cache.",
-        "Every external FROM image (build and runtime stages) is pinned to both a tag and a digest (@sha256:...), or a clearly-marked digest placeholder with resolve instructions, rather than a bare mutable tag.",
-        "The final stage uses exec-form ENTRYPOINT or CMD (JSON array) because the distroless image has no shell."
+        "The Dockerfile's first line is exactly `# syntax=docker/dockerfile:1`.",
+        "The final stage is built on a static or distroless image (following stage aliases): its image name contains `static` or `distroless`.",
+        "The Dockerfile declares at least one `ARG` before its first `FROM`, and every `FROM` that names an external image ends with `AS <name>`.",
+        "A `RUN` that runs `go build` or `go mod download` uses `--mount=type=cache`.",
+        "Every `FROM` that names an external image carries `@sha256:` followed by 64 hex characters, or a `@sha256:` placeholder with the answer naming `regctl` or `docker buildx imagetools` to resolve it.",
+        "The final stage's `ENTRYPOINT` or `CMD` is in exec form (a JSON array).",
+        "The build sets `CGO_ENABLED=0`.",
+        "A `.dockerignore` and a `docker-bake.hcl` are created."
       ]
     },
     {
       "id": 2,
+      "name": "modernize-legacy",
       "prompt": "Modernize my Docker setup. My Dockerfile starts with `FROM node:18` and has no syntax line. My docker-compose.yml has `version: \"3.8\"` at the top and uses a bind mount `- ./src:/app/src` for live code reloading during development. Please bring these up to current best practices.",
-      "expected_output": "An updated Dockerfile with the frontend directive added and modern structure, plus the compose file renamed to compose.yaml with the obsolete version key removed and the dev bind mount replaced by a develop.watch sync configuration.",
-      "files": [],
+      "expected_output": "An updated Dockerfile with the frontend directive, a supported Node version pinned by digest, and modern structure, plus the compose file renamed to compose.yaml with the obsolete version key removed and the dev bind mount replaced by a develop.watch sync configuration.",
+      "files": [
+        "evals/docker-pro/fixtures/legacy-node/Dockerfile",
+        "evals/docker-pro/fixtures/legacy-node/docker-compose.yml",
+        "evals/docker-pro/fixtures/legacy-node/package.json",
+        "evals/docker-pro/fixtures/legacy-node/src/index.js",
+        "evals/docker-pro/fixtures/legacy-node/.gitignore"
+      ],
       "expectations": [
-        "The updated Dockerfile gains `# syntax=docker/dockerfile:1` as its first line.",
-        "The obsolete top-level `version:` key is removed from the compose file.",
-        "The compose file is named (or renamed to) compose.yaml rather than docker-compose.yml.",
-        "The source bind mount used for live reload is replaced with a develop.watch configuration using action: sync (file sync over bind mount), and the assistant notes `docker compose watch` as the run command.",
-        "The assistant explains the key changes and why each modernization matters."
+        "The updated Dockerfile's first line is exactly `# syntax=docker/dockerfile:1`.",
+        "The compose file in the output has no top-level `version:` key.",
+        "The output compose file is named `compose.yaml`.",
+        "The compose file has a `develop.watch` entry with `action: sync` for the source path, and no `./src:/app/src` volume.",
+        "The answer names `docker compose watch` (or `docker compose up --watch`) as the run command.",
+        "No `FROM` line still uses `node:18`, and every external `FROM` carries `@sha256:` followed by 64 hex characters or a `@sha256:` placeholder with a resolve command.",
+        "A `.dockerignore` is created.",
+        "The answer explains why each modernization matters, one reason per change."
       ]
     }
   ]

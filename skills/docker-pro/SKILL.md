@@ -111,13 +111,13 @@ ARG GO_VERSION=1.24
 FROM cgr.dev/chainguard/go:latest-dev AS build
 FROM cgr.dev/chainguard/static:latest AS runtime
 
-FROM build
+FROM build AS compile
 WORKDIR /src
 COPY . .
 RUN CGO_ENABLED=0 go build -o /app ./cmd
 
 FROM runtime
-COPY --from=build /app /app
+COPY --from=compile /app /app
 ENTRYPOINT ["/app"]
 ```
 

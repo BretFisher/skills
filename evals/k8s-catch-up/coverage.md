@@ -297,6 +297,41 @@ Skill finding from the executors, fixed:
   Sonnet 5.5 no-skill runs, so the old example made the result worse than no skill on those models.
   The iteration-9 runs pass in both arms. The counts above are on the 39-assertion set from before e7#4.
 
+### Iterations 10 and 11 (2026-10-10, Sonnet 5.5 and Opus 5.5)
+
+Same skill and evals as iteration 9, plus e7#4 (the nested mutation `expression`). Executors
+`eval-executor-sonnet-5-5-high` (`claude-sonnet-5-5`, iteration 10) and `eval-executor-opus-5-5-medium`
+(`claude-opus-5-5` at medium effort, iteration 11); residual grader `eval-grader-sonnet-5-high`. Counts include
+the process assertion (e2#4, with the skill only) and e14.
+
+| Eval    | Haiku 5.5 (i9) with / without | Sonnet 5.5 (i10) with / without | Opus 5.5 (i11) with / without |
+| ------- | ----------------------------- | ------------------------------- | ----------------------------- |
+| e0      | 5/5 / 3/5                     | 5/5 / 5/5                       | 5/5 / 5/5                     |
+| e1      | 4/4 / 4/4                     | 4/4 / 4/4                       | 4/4 / 4/4                     |
+| e2      | 4/4 / 3/4                     | 3/4 / 3/4                       | 3/4 / 4/4                     |
+| e3      | 4/4 / 4/4                     | 4/4 / 4/4                       | 4/4 / 4/4                     |
+| e4      | 4/4 / 3/4                     | 4/4 / 4/4                       | 4/4 / 4/4                     |
+| e5      | 4/4 / 3/4                     | 4/4 / 3/4                       | 4/4 / 4/4                     |
+| e6      | 4/4 / 3/4                     | 4/4 / 3/4                       | 4/4 / 3/4                     |
+| e7      | 4/4 / 4/4                     | 5/5 / 5/5                       | 5/5 / 5/5                     |
+| e8      | 4/4 / 4/4                     | 4/4 / 4/4                       | 4/4 / 4/4                     |
+| e9      | 5/5 / 4/5                     | 5/5 / 3/5                       | 4/5 / 3/5                     |
+| e10     | 4/4 / 4/4                     | 4/4 / 4/4                       | 4/4 / 4/4                     |
+| e13     | 5/5 / 4/5                     | 5/5 / 5/5                       | 5/5 / 5/5                     |
+| e14     | 4/4 / 1/4                     | 3/4 / 3/4                       | 4/4 / 2/4                     |
+| **all** | **55/55 / 44/55**             | **54/56 / 50/56**               | **54/56 / 51/56**             |
+
+Mean tokens per run, with / without the skill: Sonnet 5.5 23,500 / 13,600; Opus 5.5 27,200 / 15,900.
+
+- With-skill misses: e2#4 on both (the process assertion: six feature files read, the limit is four), e14#1 on
+  Sonnet 5.5 (the `edge` Service still sets `externalIPs`), and e9#3 on Opus 5.5 (no curl command at all, so the
+  secure-port check has nothing to pass).
+- Only with the skill, on both models: e6#3 (the Pod certificates stage) and e9 stage or curl claims. Opus 5.5
+  without the skill passes every other knowledge assertion, so on Opus the skill's measured value is two stage
+  claims and the removals in e14.
+- e2: Opus 5.5 without the skill passes 4/4 and with the skill 3/4, and the one miss is the process assertion,
+  which exists only with the skill. The content assertions are equal.
+
 ## Planned: full per-feature coverage
 
 `scripts/k8s-features.py table --format json` lists every feature the skill covers. The next pass

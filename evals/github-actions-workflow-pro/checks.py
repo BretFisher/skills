@@ -247,11 +247,13 @@ def raw_provenance(run, new):
     produced (pinact output, a `cat`/`git diff` of the pinned file) appears in a tool RESULT before the model ever
     puts it in a tool INPUT (writing outputs/, sed). A SHA whose first appearance is in an input was typed from
     memory or from an unlogged source. A SHA-returning lookup (git/refs, /commits/, /releases, git ls-remote)
-    fails outright. Returns (passed, evidence) or None when there is no raw log."""
+    fails outright when its result holds a new SHA; a lookup that only checks a pin already in the input
+    (an existing `upload-artifact` SHA) is verification, not provenance. Returns (passed, evidence) or None
+    when there is no raw log."""
     path = f"{run.dir}/raw-transcript.jsonl"
     if not os.path.exists(path):
         return None
-    seen_in_result, typed, lookups = set(), set(), []
+    seen_in_result, typed, lookups, pending = set(), set(), [], {}
     for line in open(path):
         try: o = json.loads(line)
         except Exception: continue
@@ -267,9 +269,11 @@ def raw_provenance(run, new):
                 if b.get("name") == "Bash":
                     cmd = (b.get("input") or {}).get("command", "")
                     if re.search(r"gh api \S*(git/refs|/commits/|/releases)(?!/latest)|git ls-remote|curl \S*api\.github\.com/repos/\S*(commits|git/refs|releases)(?!/latest)", cmd) and "gh-aw" not in cmd:
-                        lookups.append(cmd.strip()[:100])
+                        pending[b.get("id")] = cmd.strip()[:100]
             elif t == "tool_result":
                 c = b.get("content"); text = c if isinstance(c, str) else "".join(x.get("text", "") for x in c if isinstance(x, dict))
+                cmd = pending.pop(b.get("tool_use_id"), None)
+                if cmd and any(sha in text for sha in new): lookups.append(cmd)
                 for sha in new:
                     if sha in text: seen_in_result.add(sha)
     if lookups:
@@ -289,6 +293,9 @@ def transcript_provenance(run, fixture_texts=()):
     for t in fixture_texts:
         known |= {v[0] for v in uses_lines(t).values()}
     new = {v[0] for v in uses_lines(run.all_text).values()} - known
+    # a lookup counts only when its transcript row names a new SHA (verifying an input pin is fine)
+    rows = [l for l in run.transcript.splitlines() if any(b in l for b in bad)]
+    bad = [b for b in bad if any(b in l and any(sha[:7] in l for sha in new) for l in rows)]
     if not new:
         return True, "no new SHA written (vacuous)"
     raw = raw_provenance(run, new)
@@ -301,9 +308,28 @@ def transcript_provenance(run, fixture_texts=()):
     return None, f"{len(new)} new SHA(s), `pinact run` present, no lookup; model confirms none was copied by hand"
 
 
-def dependabot_ok(run):
-    t = read(f"{run.dir}/outputs/dependabot.yml") or run.answer
-    return bool(re.search(r"package-ecosystem:\s*\"?github-actions", t) and re.search(r"interval:\s*\"?daily", t) and re.search(r"default-days:\s*7", t)), "github-actions/daily/cooldown 7 " + ("found" if "default-days" in t else "missing")
+BOT_FILES = (".github/dependabot.yml", ".github/dependabot.yaml", "renovate.json", "renovate.jsonc", "renovate.json5",
+             ".github/renovate.json", ".github/renovate.jsonc", ".github/renovate.json5", ".renovaterc", ".renovaterc.json")
+
+
+def bot_files_written(run):
+    """Update-bot configs the run created: in outputs/ (flat or nested) or in the work repo tree."""
+    found = []
+    for base in (f"{run.dir}/outputs", f"{run.dir}/work"):
+        for f in BOT_FILES:
+            for cand in (f"{base}/{f}", f"{base}/{os.path.basename(f)}"):
+                if os.path.exists(cand) and cand not in found:
+                    found.append(cand)
+    return [os.path.relpath(f, run.dir) for f in found]
+
+
+def asks_which_bot(run):
+    """No bot config in the fixture: the answer asks which bot (a `?` line naming Dependabot or Renovate,
+    with both named somewhere) and writes neither config."""
+    written = bot_files_written(run)
+    both = bool(re.search(r"dependabot", run.answer, re.I) and re.search(r"renovate", run.answer, re.I))
+    asks = [l.strip()[:120] for l in run.answer.splitlines() if "?" in l and re.search(r"dependabot|renovate", l, re.I)]
+    return (not written and both and bool(asks)), f"configs written={written} both named={both} question={asks[:1]}"
 
 
 def on_equal(run, fixture):
@@ -390,10 +416,23 @@ def checks_for(run):
         def oidc():
             y = "configure-aws-credentials" in run.all_text and "role-to-assume" in run.all_text and "id-token: write" in run.all_text
             return y or bool(re.search(r"OIDC", run.answer)), f"yaml={y}"
+        def runs_on_pr(jn, seen=()):
+            """A job runs on a PR event unless its own `if` excludes PRs, or a job it `needs` never runs on a
+            PR: GitHub skips a job whose needed job was skipped, unless its `if` uses a status function."""
+            j = jobs(wf).get(jn) or {}
+            cond = str(j.get("if", ""))
+            if excludes_pr(cond):
+                return False
+            if re.search(r"\b(always|failure|cancelled)\(\)", cond):
+                return True
+            needs = j.get("needs") or []
+            needs = [needs] if isinstance(needs, str) else needs
+            return all(runs_on_pr(n, seen + (jn,)) for n in needs if n not in seen)
+
         def pr_no_creds():
             probs = []
             for jn, j in jobs(wf).items():
-                pr_runs = not excludes_pr(str(j.get("if", "")))
+                pr_runs = runs_on_pr(jn)
                 p = j.get("permissions") or {}
                 if pr_runs and (p.get("packages") == "write" or p.get("id-token") == "write"):
                     probs.append(f"{jn} runs on PR with {p}")
@@ -417,11 +456,7 @@ def checks_for(run):
         def major_jump():
             out = uses_lines(text)
             jumped = [a for a, (s, c) in out.items() if a in ("actions/checkout", "actions/setup-node") and not re.search(r"# v4\.", c)]
-            if not jumped:
-                return True, "stayed on v4"
-            names = all(re.search(re.escape(a), run.answer) for a in jumped)
-            ok_cmd = bool(re.search(r"pinact run(?! --update)[^\n]*-i ['\"]?actions/[a-z-]+['\"]?", run.answer)) and not re.search(r"-i ['\"]?actions/[a-z-]+@v\d", run.answer)
-            return names and ok_cmd, f"jumped {jumped}; named={names}; keep-major command without --update and without @vN in -i: {ok_cmd}"
+            return not jumped, f"left v4: {jumped}" if jumped else "stayed on v4"
         def artifact_comment():
             m = re.search(r"uses: actions/upload-artifact@[0-9a-f]{40}\s*# v[\d.]+\s*$", text, re.M)
             return bool(m) and bool(re.search(r"upload-artifact", run.answer)), f"clean comment line={bool(m)} reported={('upload-artifact' in run.answer)}"
@@ -482,7 +517,7 @@ def checks_for(run):
             return got == want and wf.get("on") == fx.get("on") and wf.get("permissions") == fx.get("permissions") and wf.get("concurrency") == fx.get("concurrency"), "test/on/permissions/concurrency equal to fixture apart from the upload-artifact pin"
         def artifact_pinned():
             u = uses_lines(text).get("actions/upload-artifact")
-            return bool(u and u[1].startswith("# v")), f"upload-artifact line: {u}"
+            return bool(u and u[1].startswith("# v4.")), f"upload-artifact line: {u}"
         lint = jobs(wf).get("lint") or next((j for jn, j in jobs(wf).items() if "lint" in jn), {})
         lu = uses_lines("\n".join(json.dumps(s) for s in steps(lint)))
         def lint_uses():
@@ -588,7 +623,7 @@ def checks_for(run):
             (4, "program", lambda: ("environment" in deploy and all("secrets." not in json.dumps(j) for jn, j in jobs(wf).items() if j is not deploy), f"environment={deploy.get('environment')}")),
             (5, "program", pipefail),
             (6, "program", lambda: (any(step_uses(s, "checkout") and (s.get("with") or {}).get("persist-credentials") is False for s in steps(deploy)) and "timeout-minutes" in deploy, "persist-credentials false + timeout")),
-            (7, "program", lambda: dependabot_ok(run)),
+            (7, "program", lambda: asks_which_bot(run)),
             (8, "model", None),
             (9, "program", S),
             (10, "program", order),
@@ -761,6 +796,36 @@ def checks_for(run):
             (3, "program", confirms_correct),
             (4, "split", no_invented_findings),
         ]
+    if e == 14:  # the repo already uses Renovate: keep it, add the actions protections it lacks
+        def no_dependabot():
+            written = [f for f in bot_files_written(run) if "dependabot" in f]
+            proposes = bool(re.search(r"package-ecosystem", run.answer + "\n" + run.all_text))
+            return not written and not proposes, f"dependabot files={written} package-ecosystem in answer/outputs={proposes}"
+
+        bot_text = run.answer + "\n" + "\n".join(read(f) or "" for f in glob.glob(f"{run.dir}/outputs/*renovate*") + glob.glob(f"{run.dir}/outputs/.renovaterc*"))
+
+        def release_age():
+            m = re.search(r"minimumReleaseAge[\"']?\s*[:=]\s*[\"']?(\d+)\s*(day|week)", bot_text, re.I)
+            return bool(m and int(m.group(1)) > 0), f"minimumReleaseAge={m.group(0) if m else None}"
+
+        def digests():
+            m = re.search(r"helpers:pinGitHubActionDigests|config:best-practices|pinDigests[\"']?\s*:\s*true", bot_text)
+            return bool(m), f"digest pinning={m.group(0) if m else None}"
+
+        def pins_kept():
+            fx = uses_lines(read(f"{FIX}/good-ci.yml"))
+            if not wf:
+                return True, "no proposed workflow YAML (vacuous)"
+            out = uses_lines(text)
+            moved = [f"{a}: {v} -> {out.get(a)}" for a, v in fx.items() if a in out and out[a] != v]
+            return not moved, "; ".join(moved) or "fixture pins kept"
+
+        return [
+            (1, "program", no_dependabot),
+            (2, "program", release_age),
+            (3, "program", digests),
+            (4, "program", pins_kept),
+        ]
     if e == 13:  # kubectl, helm, yq come from the runner image; the rule is portability, not version pinning
         def names_tools():
             got = [x for x in ("yq", "helm", "kubectl") if re.search(rf"\b{x}\b", run.answer)]
@@ -795,6 +860,36 @@ def checks_for(run):
             hits = [m.group(0) for m in re.finditer(FALSE_DEFECT, run.answer, re.I)]
             return (True, "no defect claims on the clean parts") if not hits else (None, f"claims to judge: {hits[:6]}")
 
+        def deploy_job():
+            js = jobs(wf) if wf else {}
+            return next((j for j in js.values() if "environment" in j or "helm" in json.dumps(j)), None) if js else None
+
+        def kept(test, what):
+            """One already-correct part of the fixture, read from the proposed YAML; no YAML -> model."""
+            if not wf:
+                return None, f"no proposed YAML; model judges whether {what} stays"
+            ok, ev = test(wf, deploy_job() or {})
+            return ok, ev
+
+        def k_perms(w, j):
+            return w.get("permissions") == {} and (j.get("permissions") or {}).get("contents") == "read", f"top={w.get('permissions')!r} job={j.get('permissions')!r}"
+
+        def k_checkout(w, j):
+            u = uses_lines(text).get("actions/checkout")
+            pc = [s.get("with", {}).get("persist-credentials") for s in steps(j) if step_uses(s, "actions/checkout")]
+            return bool(u and re.fullmatch(r"[0-9a-f]{40}", u[0]) and u[1].startswith("# v")) and False in pc, f"checkout={u} persist-credentials={pc}"
+
+        def k_env(w, j):
+            env = j.get("environment"); env = env.get("name") if isinstance(env, dict) else env
+            return env == "production" and "secrets.KUBECONFIG_CONTENTS" in json.dumps(j), f"environment={env!r} secret={'secrets.KUBECONFIG_CONTENTS' in json.dumps(j)}"
+
+        def k_conc(w, j):
+            c = w.get("concurrency") or j.get("concurrency") or {}
+            return isinstance(c, dict) and bool(c.get("group")) and c.get("cancel-in-progress") is False, f"concurrency={c!r}"
+
+        def k_timeout(w, j):
+            return "timeout-minutes" in j, f"deploy job timeout-minutes={j.get('timeout-minutes')!r}"
+
         return [
             (1, "program", names_tools),
             (2, "model", None),
@@ -802,7 +897,12 @@ def checks_for(run):
             (4, "split", portability_reason),
             (5, "split", version_left_to_user),
             (6, "split", no_package_manager_fix),
-            (7, "split", keeps_correct_parts),
+            (7, "program", lambda: kept(k_perms, "the permissions")),
+            (8, "program", lambda: kept(k_checkout, "the pinned checkout")),
+            (9, "program", lambda: kept(k_env, "the production environment")),
+            (10, "program", lambda: kept(k_conc, "the non-cancelling concurrency")),
+            (11, "program", lambda: kept(k_timeout, "timeout-minutes")),
+            (12, "split", keeps_correct_parts),
         ]
     return []
 
@@ -850,7 +950,7 @@ EXCERPTS = {
     (12, 2): [("answer", r"self-hosted|container|act|portab")], (12, 4): [("answer", None)],
     (13, 2): [("answer", r"finding|tool|runner image|kubectl|helm|yq")],
     (13, 4): [("answer", r"why|reason|runner image|portab|self-hosted|container|act")], (13, 5): ASKS,
-    (13, 6): [("answer", r"apt|brew|install|fix")], (13, 7): [("answer", None)],
+    (13, 6): [("answer", r"apt|brew|install|fix")], (13, 12): [("answer", None)],
     (11, 6): [("answer", r"integration|speed|log|shard")], (11, 7): [("answer", r"do first|speed|order|first")],
 }
 EXCERPT_CAP = 30000

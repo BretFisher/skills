@@ -14,7 +14,7 @@ need = command -v $(1) >/dev/null 2>&1 || { echo "missing: $(1)  ->  brew instal
 # scan.sh sets the GitHub token inside its own process; never inline `gh auth token` in a recipe
 SCAN := skills/github-actions-workflow-pro/scripts/scan.sh
 
-.PHONY: help lint lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins fmt eval-check eval-batch eval-finalize eval-benchmark eval-view pin run-stats k8s-features k8s-verify k8s-check
+.PHONY: help lint lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins fmt eval-key eval-check eval-batch eval-finalize eval-benchmark eval-view pin run-stats k8s-features k8s-verify k8s-check
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
@@ -57,6 +57,12 @@ lint-actions: ## actionlint + zizmor + poutine on this repo's workflows; actionl
 	  evals/github-actions-workflow-pro/fixtures/slow-ci.yml
 	$(SCAN) zizmor --no-progress --collect=all .github/workflows .github/dependabot.yml
 	poutine analyze_local . --quiet --disable-version-check --fail-on-violation >/dev/null
+
+EVAL_KEY = evals/.eval-key/id_ed25519
+
+eval-key: ## Create the eval-only SSH signing key (gitignored) that evals/eval.gitconfig work repos sign with
+	@$(call need,ssh-keygen,openssh)
+	@test -f $(EVAL_KEY) && echo "exists: $(EVAL_KEY)" || { mkdir -p $(dir $(EVAL_KEY)) && ssh-keygen -q -t ed25519 -N '' -C 'skill-eval signing key (not a person)' -f $(EVAL_KEY) && echo "created: $(EVAL_KEY)"; }
 
 eval-check: ## Program-grade every run of the latest iteration (writes grading.json with nulls for the model); SKILL=, ITER=
 	@$(call need,yq,yq)

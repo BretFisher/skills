@@ -439,3 +439,104 @@ Harness findings:
 - Wall time is not comparable: the model API stalled for up to 15 minutes per call during this run (gaps in the raw
   logs before assistant turns, one cut-off stream), so durations are 1,600 to 3,400 seconds. Mean tokens: 138,000 with
   the skill, 105,000 without.
+
+## Iterations 21 and 22 (2026-10-10, Sonnet 5.5 and Opus 5.5, all evals)
+
+Executors `eval-executor-sonnet-5-5-high` (`claude-sonnet-5-5`, iteration 21) and `eval-executor-opus-5-5-medium`
+(`claude-opus-5-5` at medium effort, iteration 22); residual grader `eval-grader-sonnet-5-high`; one run per cell,
+both arms. The table uses the 141-assertion set and the checks as of 2026-10-11 (provenance fix, e3#9 and e5#10 keep
+the major, e13 split), so the Haiku 5.5 column differs from the iteration 20 table above.
+
+| Eval    | Haiku 5.5 (i20) with / without | Sonnet 5.5 (i21) with / without | Opus 5.5 (i22) with / without |
+| ------- | ------------------------------ | ------------------------------- | ----------------------------- |
+| e0      | 9/9 / 5/9                      | 9/9 / 6/9                       | 9/9 / 6/9                     |
+| e1      | 8/8 / 4/8                      | 8/8 / 4/8                       | 8/8 / 4/8                     |
+| e2      | 11/11 / 10/11                  | 11/11 / 8/11                    | 11/11 / 10/11                 |
+| e3      | 11/11 / 5/11                   | 10/11 / 6/11                    | 10/11 / 4/11                  |
+| e4      | 12/12 / 7/12                   | 12/12 / 11/12                   | 12/12 / 8/12                  |
+| e5      | 11/11 / 9/11                   | 10/11 / 9/11                    | 11/11 / 9/11                  |
+| e6      | 11/12 / 5/12                   | 11/12 / 4/12                    | 12/12 / 5/12                  |
+| e7      | 12/13 / 9/13                   | 10/13 / 8/13                    | 11/13 / 6/13                  |
+| e8      | 10/10 / 2/10                   | 10/10 / 2/10                    | 9/10 / 3/10                   |
+| e9      | 9/9 / 5/9                      | 9/9 / 5/9                       | 9/9 / 7/9                     |
+| e10     | 8/9 / 3/9                      | 8/9 / 4/9                       | 9/9 / 4/9                     |
+| e11     | 10/10 / 6/10                   | 10/10 / 9/10                    | 10/10 / 7/10                  |
+| e12     | 4/4 / 4/4                      | 4/4 / 4/4                       | 4/4 / 4/4                     |
+| e13     | 12/12 / 10/12                  | 12/12 / 10/12                   | 12/12 / 11/12                 |
+| **all** | **138/141 / 84/141**           | **134/141 / 90/141**            | **137/141 / 88/141**          |
+
+Mean tokens per run, with / without the skill: Sonnet 5.5 46,700 / 21,600; Opus 5.5 50,700 / 24,300.
+
+With-skill misses:
+
+- Both models: e3#9 (checkout and setup-node moved from v4 to v7; fixed in iterations 23 and 24).
+- Sonnet 5.5: e5#10 (upload-artifact moved to v7; fixed in iteration 23), e6#6 (deploy `cancel-in-progress` not
+  named in the speed section), e7#1 (the OIDC shape check failed), e7#7 (the Dependabot entry; the program evidence
+  names daily and cooldown 7 but fails the assertion, so the check needs a look), e7#12 (the top-level
+  `contents: read` is not under `## Hard findings` with its reason), and e10#4 (`sleep 30` still in the YAML).
+- Opus 5.5: e7#6 and e7#11 (checkout `persist-credentials: false` with a timeout, and the permissions split) and
+  e8#9 (the publish job pushes with no `if` that excludes `pull_request`).
+
+e12 passes in both arms on all three models, so it measures nothing the skill adds.
+
+e2#9 was a check bug, fixed 2026-10-11: it read each job's own `if` and missed that a job which `needs` a
+push-only job is skipped on a PR (GitHub skips a job whose needed job was skipped, unless its `if` uses a
+status function). The with-skill runs on all three models put `id-token: write` on a `deploy` job that
+`needs: publish`, which is correct. The check now follows `needs`; it changed those three verdicts and no
+other stored e2 verdict.
+
+### Iterations 23 and 24 (2026-10-11, keep the major version)
+
+Problem: `pinact run --update` always moves to the newest release, across majors, and pinact 5.0.0 has no
+flag that holds a major. SKILL.md said to write `@v<major>` and run `--update`, so on Sonnet 5.5 and Opus
+5.5 (iterations 21 and 22) an existing `@v4` became v7 in e3 and e5. The old e3#9 passed that when the
+report named the jump. Fix: an action already on a tag is pinned without `--update` (same major); only an
+action the agent adds uses `--update`; a newer major is a question in the report. e3#9 and e5#10 now
+require a `# v4.` comment.
+
+| Run (with skill)      | Before the fix (iter. 21/22) | After the fix (iter. 23/24) |
+| --------------------- | ---------------------------- | --------------------------- |
+| Sonnet 5.5, e3 and e5 | e3#9 ✗, e5#10 ✗              | 11/11, 11/11                |
+| Opus 5.5, e3 and e5   | e3#9 ✗                       | 11/11, 11/11                |
+
+Same pass: the provenance check (e0#9 … e7#13) failed any `gh api …/commits|/releases|git/refs` call,
+including calls that only verified a pin already in the input or returned no SHA. It now fails a lookup
+only when its result holds a SHA that is new in the output. Ten stored verdicts in iterations 20 to 24
+changed from fail to pass; each lookup was checked by hand and none produced a SHA that went into the YAML.
+
+### e13 split (2026-10-11)
+
+e13#7 tested five already-correct parts in one assertion, so an answer that questioned one value (the
+timeout length) put the whole assertion at risk. It is now six: e13#7 to e13#11 are program checks that
+each part stays in the proposed YAML (top-level `permissions: {}` and job `contents: read`; SHA-pinned
+checkout with `persist-credentials: false`; `environment: production` with the kubeconfig secret;
+concurrency with `cancel-in-progress: false`; `timeout-minutes`), and e13#12 is the split judgment that
+the answer calls none of them a defect, where a suggested value change passes. Stored iterations 20 to 22
+were updated in place: e13#7 to #11 from the program (all pass), e13#12 carries the old e13#7 verdict,
+which judged the same claim.
+
+### Iteration 25 (2026-10-11, update bot: Dependabot or Renovate)
+
+Problem: the rule named only Dependabot and applied only "if `.github/dependabot.yml` exists", so with no
+file Sonnet 5.5 gave a one-line hint (e7#7 failed in iteration 21), and in a Renovate repo the rule would
+have proposed a second bot. Fix: the skill detects either bot, checks the one present for the actions
+protections (Dependabot: `github-actions` entry, daily, `cooldown`; Renovate: manager on, digest pins via
+`helpers:pinGitHubActionDigests` or `config:best-practices`, `minimumReleaseAge`), accepts any existing
+delay, reports both bots as a Hard finding, and asks which bot the user prefers when neither file exists.
+Renovate facts were checked against the Renovate source on 2026-10-11 (config file names in
+`lib/config/app-strings.ts`, the `best-practices` preset, `github-tags` release timestamps). zizmor
+`dependabot-cooldown` flags a cooldown under 7 days by default, so a shorter existing delay goes to
+Opinions with the `.github/zizmor.yml` entry that records it.
+
+e7#7 now requires the question and no config file; every stored e7 run of iterations 20 to 22 fails it
+(the old skill did not ask). New e14 (a repo with `renovate.json` extending only `config:recommended`):
+no Dependabot proposal, `minimumReleaseAge` of any duration, digest pinning, fixture pins kept.
+
+| Run (Sonnet 5.5)  | Result | Note                                                                  |
+| ----------------- | ------ | --------------------------------------------------------------------- |
+| e7 with skill     | 12/13  | e7#7 passes (asks "Dependabot or Renovate?"); e7#12 misses the reason |
+| e14 with skill    | 4/4    | `helpers:pinGitHubActionDigests`, `minimumReleaseAge: "7 days"`       |
+| e14 without skill | 4/4    | `config:best-practices`, `minimumReleaseAge: "3 days"`                |
+
+e14 does not separate the arms on Sonnet 5.5; it stays as the regression check that the skill never adds
+Dependabot to a Renovate repo.

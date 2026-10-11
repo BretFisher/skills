@@ -1,0 +1,13 @@
+{
+  "name": "orders-api",
+  "version": "1.4.0",
+  "private": true,
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
