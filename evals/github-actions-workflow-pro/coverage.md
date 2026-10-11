@@ -206,7 +206,7 @@ with each other on 99 of 101). Changes made:
   Assertion count 101 → 105; e7, e8, e9 indices after the splits shifted by one or two.
 - **eval** transcript assertion (last on every eval): now says a run that wrote no new SHA passes (closes pass-3 item 1), names `git ls-remote`
   and a cross-file copy as hand lookups (closes the e6#12 suggestion), and is graded as split.
-- README results cells still show the 101-assertion scores; the next full run replaces them.
+- README results showed the 101-assertion scores at the time; later full runs replaced them.
 - `checks.py` attaches `context` excerpts to every null entry so the residual grader works from `grading.json` alone; `--finalize`
   strips them. Measured on evals 2 and 6: time −30% and −19%, tokens −15% and +7% against a residual grader that read the files,
   same verdicts. The floor is the subagent's base context (~45k tokens), so batching residuals across runs is the next cut.

@@ -1,7 +1,7 @@
 # How a skill eval runs in this repo
 
 A walkthrough for people new to skill evals. It follows one eval from the prompt in `evals.json` to a
-cell in the README results table, and shows which steps a program does and which steps a model does.
+score in the README results, and shows which steps a program does and which steps a model does.
 The examples come from `github-actions-workflow-pro`, the skill with the most eval history here.
 
 ## What an eval is
@@ -54,7 +54,7 @@ repo.
 the agent definitions in `.claude/agents/` (`eval-executor-<model>-<effort>`). The Agent tool can pick a
 model but has no effort parameter; a subagent otherwise inherits the session's `effortLevel` from
 `~/.claude/settings.json`, and effort changes output quality enough that a results cell is meaningless
-without it. The definition pins both, and the README effort row records the value. Claude Code reads
+without it. The definition pins both, and `coverage.md` names the definition each iteration ran. Claude Code reads
 `.claude/agents/` when a session starts, so a definition added mid-session is available from the next
 session. Each executor gets a prompt of this shape:
 
@@ -149,7 +149,7 @@ need to carry. `coverage.md` records those candidates.
 
 Older iterations used a third configuration, `old_skill`: when improving an existing skill, the
 baseline was a snapshot of the previous skill version instead of no skill. Iterations 2 to 4 used that.
-Iterations 7 and 8 used the true no-skill baseline, which is the row in the README results table.
+Iterations 7 and 8 used the true no-skill baseline, which is the "Without skill" column in the README results.
 
 ## What is a program and what is a model call
 

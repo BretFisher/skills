@@ -132,7 +132,7 @@ The Agent tool picks a model but has no effort parameter; a subagent inherits th
 `effortLevel` from `~/.claude/settings.json`. Effort changes output quality enough that two cells run at
 different efforts are not comparable. An agent definition in `.claude/agents/<name>.md` pins both in
 its frontmatter (`model:` and `effort:`). Definitions load at session start, so add them, restart, then
-run. The README results table carries an effort row for this reason.
+run. `coverage.md` names the definition each iteration ran for this reason.
 
 ### 8. Put the skill's validation loop in one script
 
