@@ -1,5 +1,20 @@
 # Eval coverage
 
+## OpenCode validation
+
+Iteration `5-opencode-sol` ran all three tasks on OpenCode v2.0.26 with
+`openai/gpt-6.1-sol#low`, one pair per task. All six runs completed, final grading
+was deterministic, and report validation passed. With skill: 16/17 assertions
+(94.1%); without skill: 1/17 (5.9%). One skill failure remains: e0's answer omitted
+the required hook question. No skill changes were made for this run.
+
+The e1 checker initially missed TFLint and ShellCheck because `make lint` invoked
+`bash scripts/lint.sh`. It now follows literal repository-local shell helpers;
+four regression tests cover called, uncalled, dependency, and external-path cases.
+Original grades are retained as `grading-before-helper-check-fix.json`.
+One repeat is preliminary, and OpenCode's lack of automatic `CLAUDE.md` loading
+limits comparison with the earlier Claude Code runs.
+
 Which assertion in `evals.json` proves each part of the skill, and what kind of check decides it.
 `eN#k` = eval N, assertion k (1-based, order in `evals.json`). `checks.py` decides every assertion: it
 reads the agent guide, `Makefile`, and `README.md` in the work repo (outputs/ first), the answer, and

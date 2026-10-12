@@ -157,8 +157,13 @@ def e1_2(r):
 
 
 def e1_4(r):
-    runs = re.findall(r"^\s*RUN\b.*?(?<!\\)$", r.dockerfile, re.M | re.S)
-    hit = re.search(r"RUN[^\n]*--mount=type=cache[^\n]*(\\\n[^\n]*)*go (build|mod download)", r.dockerfile) or re.search(r"RUN[^\n]*--mount=type=cache[\s\S]{0,400}?go (build|mod download)", r.dockerfile)
+    # Join continued lines within one instruction. A cache on a different RUN
+    # (or in a comment) cannot cache the Go command being graded.
+    lines = "\n".join(line for line in r.dockerfile.splitlines() if not line.lstrip().startswith("#"))
+    logical = re.sub(r"\\\s*\n", " ", lines)
+    runs = re.findall(r"^\s*RUN\b[^\n]*", logical, re.M | re.I)
+    hit = any(re.search(r"--mount=type=cache(?:,|\s)", run) and
+              re.search(r"\bgo\s+(?:build\b|mod\s+download\b)", run) for run in runs)
     return ok(hit, "cache mount on go build/mod download" if hit else f"{len(runs)} RUN lines, none with a cache mount")
 
 
@@ -186,7 +191,7 @@ def e2_4(r):
 
 
 def e2_5(r):
-    hit = re.search(r"docker compose (up\s+)?(--)?watch", r.answer)
+    hit = re.search(r"docker compose (?:watch(?=\s|$|`)|up\b[^\n]*?(?<!\S)--watch(?=\s|$|`))", r.answer)
     return ok(hit, f"run command: {hit.group(0) if hit else 'none'}")
 
 

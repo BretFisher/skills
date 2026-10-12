@@ -1,5 +1,28 @@
 # Eval coverage
 
+## OpenCode full-suite validation
+
+Iteration `28-opencode-sol` ran all 15 tasks on OpenCode v2.0.26 with
+`openai/gpt-6.1-sol#low`, one pair per task. All 30 executors completed, final
+grading finished, and report validation passed. With skill: 62/63 assertions
+(98.4%); without skill: 57/63 (90.5%). One repeat is preliminary.
+
+The updater adapter committed identical damaged source-skill copies as inputs,
+and copied local Kubernetes source data offline without host Git configuration.
+Source commits and hashes are in the manifest. The with-skill catalog used the
+damaged copy so it could not supply the missing KYAML file. The baseline can read
+the source skill because it is task input in this updater test.
+
+Four regression tests cover checker defects found in this run: kuberc's named
+output defaults, authenticated HTTPS curl commands using variables, and a warning
+to avoid a deprecated field that the old negation regex misread. Original grades
+are retained as `grading-before-schema-check-fixes.json`. Twenty model verdicts
+were retained after checking their original grader excerpts were unchanged.
+
+The remaining with-skill failure is e4's omitted command to confirm the served
+volume-group-snapshot API version. No skill changes were made. Fixture preparation
+and checker changes limit comparison with earlier runs.
+
 Which assertion in `evals.json` proves each part of the skill, and what kind of check decides it.
 `eN#k` = eval N, assertion k (1-based, order in `evals.json`). Grading is deterministic first
 (AGENTS.md, "Deterministic checks before model judgment"): `checks.py` decides every assertion a regex

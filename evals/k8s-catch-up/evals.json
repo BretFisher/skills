@@ -185,7 +185,8 @@
         "`SKILL.md` links the restored file (the `index` subcommand reports up to date) and its `Updated:` date is today's date.",
         "The two other kubectl feature files (command headers, kuberc credential plugin policy) are unchanged in substance: same Status lines."
       ],
-      "setup": "Copy skills/k8s-catch-up into work/skills/k8s-catch-up, delete references/kubectl-cli/kyaml-output-format.md, run scripts/k8s-features.py index --write in the copy, commit."
+      "setup": "Copy skills/k8s-catch-up into work/skills/k8s-catch-up, delete references/kubectl-cli/kyaml-output-format.md, run scripts/k8s-features.py index --write in the copy, commit.",
+      "setup_adapter": "k8s-restore-kyaml"
     },
     {
       "id": 13,

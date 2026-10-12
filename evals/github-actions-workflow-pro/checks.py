@@ -30,6 +30,8 @@ residual goes to the model), model (judgment only).
 import json, re, subprocess, sys, os, glob, shutil, tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(HERE))
+from harness.evidence import load_run, provenance
 REPO = os.path.dirname(os.path.dirname(HERE))
 SKILL = os.path.basename(HERE)
 FIX = f"{HERE}/fixtures"
@@ -63,7 +65,8 @@ class Run:
         self.grading = json.load(open(f"{d}/grading.json")) if os.path.exists(f"{d}/grading.json") else None
         self.texts = next(e["expectations"] for e in EVALS if e["id"] == self.eval)
         self.wf = {}  # name -> (text, parsed)
-        files = [f for f in glob.glob(f"{d}/outputs/**/*.y*ml", recursive=True) if not re.search(r"dependabot|before\.", f)]
+        files = [f for f in glob.glob(f"{d}/outputs/**/*.y*ml", recursive=True, include_hidden=True)
+                 if not re.search(r"dependabot|before\.", f) and "/.git/" not in f]
         if not files and os.path.isdir(f"{d}/work/.git"):
             dirty = subprocess.run(["git", "status", "--porcelain"], cwd=f"{d}/work", capture_output=True, text=True).stdout
             files = [f for f in glob.glob(f"{d}/work/.github/workflows/*.y*ml") if os.path.basename(f) in dirty or "??" in dirty]
@@ -189,6 +192,12 @@ def uses_lines(text):
     return {m.group(1): (m.group(2), (m.group(3) or "").strip()) for m in (SHA.search(l) for l in text.splitlines()) if m}
 
 
+def commit_scratch(tmp):
+    """Record scanner input without inherited signing or commit hooks."""
+    subprocess.run(["git", "-c", "user.email=skill-eval@example.invalid", "-c", "user.name=skill-eval",
+                    "-c", "core.hooksPath=/dev/null", "commit", "--no-gpg-sign", "-qm", "x"], cwd=tmp, check=True)
+
+
 def scanners(run, actionlint_allow=None):
     """Run actionlint, zizmor (regular), poutine, pinact --check on the run's YAML in a scratch repo.
 
@@ -206,7 +215,7 @@ def scanners(run, actionlint_allow=None):
         open(f"{wfdir}/{n}", "w").write(t)
     subprocess.run(["git", "init", "-q"], cwd=tmp)
     subprocess.run(["git", "add", "-A"], cwd=tmp)
-    subprocess.run(["git", "-c", "user.email=a@b", "-c", "user.name=a", "commit", "-qm", "x"], cwd=tmp)
+    commit_scratch(tmp)
     findings = []
     p = subprocess.run(["actionlint"] + glob.glob(f"{wfdir}/*"), cwd=tmp, capture_output=True, text=True)
     if p.returncode:
@@ -250,37 +259,9 @@ def raw_provenance(run, new):
     fails outright when its result holds a new SHA; a lookup that only checks a pin already in the input
     (an existing `upload-artifact` SHA) is verification, not provenance. Returns (passed, evidence) or None
     when there is no raw log."""
-    path = f"{run.dir}/raw-transcript.jsonl"
-    if not os.path.exists(path):
+    if not any(os.path.exists(f"{run.dir}/{name}") for name in ("raw-transcript.jsonl", "session-export.json")):
         return None
-    seen_in_result, typed, lookups, pending = set(), set(), [], {}
-    for line in open(path):
-        try: o = json.loads(line)
-        except Exception: continue
-        msg = o.get("message") or {}
-        content = msg.get("content")
-        if not isinstance(content, list): continue
-        for b in content:
-            t = b.get("type")
-            if t == "tool_use":
-                inp = json.dumps(b.get("input") or {})
-                for sha in new:
-                    if sha in inp and sha not in seen_in_result: typed.add(sha)
-                if b.get("name") == "Bash":
-                    cmd = (b.get("input") or {}).get("command", "")
-                    if re.search(r"gh api \S*(git/refs|/commits/|/releases)(?!/latest)|git ls-remote|curl \S*api\.github\.com/repos/\S*(commits|git/refs|releases)(?!/latest)", cmd) and "gh-aw" not in cmd:
-                        pending[b.get("id")] = cmd.strip()[:100]
-            elif t == "tool_result":
-                c = b.get("content"); text = c if isinstance(c, str) else "".join(x.get("text", "") for x in c if isinstance(x, dict))
-                cmd = pending.pop(b.get("tool_use_id"), None)
-                if cmd and any(sha in text for sha in new): lookups.append(cmd)
-                for sha in new:
-                    if sha in text: seen_in_result.add(sha)
-    if lookups:
-        return False, f"raw log: SHA-returning lookup: {lookups[:2]}"
-    if typed:
-        return False, f"raw log: SHA(s) first appear in a tool input, never produced by a tool first: {sorted(typed)[:3]}"
-    return True, f"raw log: every new SHA ({len(new)}) was produced by a tool result before any tool input used it; no lookup command"
+    return provenance(load_run(run.dir), new)
 
 
 def transcript_provenance(run, fixture_texts=()):
@@ -379,7 +360,7 @@ def checks_for(run):
     n, text, wf = run.one()
     wf = wf or {}
     T = lambda: transcript_provenance(run, [read(f) for f in glob.glob(f"{FIX}/*.yml")])
-    TK = "program" if run.dir and os.path.exists(f"{run.dir}/raw-transcript.jsonl") else "split"  # raw tool log makes provenance decidable
+    TK = "program" if run.dir and any(os.path.exists(f"{run.dir}/{name}") for name in ("raw-transcript.jsonl", "session-export.json")) else "split"
     S = lambda: scanners(run)
 
     if e == 0:
@@ -865,9 +846,9 @@ def checks_for(run):
             return next((j for j in js.values() if "environment" in j or "helm" in json.dumps(j)), None) if js else None
 
         def kept(test, what):
-            """One already-correct part of the fixture, read from the proposed YAML; no YAML -> model."""
+            """Verify required preservation in the proposed YAML, not a prose promise."""
             if not wf:
-                return None, f"no proposed YAML; model judges whether {what} stays"
+                return False, f"no proposed YAML supplied to verify {what}"
             ok, ev = test(wf, deploy_job() or {})
             return ok, ev
 

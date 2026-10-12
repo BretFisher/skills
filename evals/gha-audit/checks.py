@@ -22,27 +22,13 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(HERE))
+from harness.evidence import tool_calls
 EVALS = json.load(open(f"{HERE}/evals.json"))["evals"]
 
 
 def read(p):
     return open(p, errors="ignore").read() if os.path.isfile(p) else ""
-
-
-def tool_calls(path):
-    if not os.path.exists(path):
-        return ""
-    out = []
-    for line in open(path, errors="ignore"):
-        try:
-            msg = json.loads(line).get("message", {})
-        except ValueError:
-            continue
-        for c in msg.get("content") if isinstance(msg.get("content"), list) else []:
-            if c.get("type") == "tool_use":
-                i = c.get("input", {})
-                out.append(f"{c.get('name')}: " + " ".join(str(i[k]) for k in ("file_path", "command") if k in i))
-    return "\n".join(out)
 
 
 class Run:

@@ -1,16 +1,13 @@
 # Git config for the throwaway work repos under evals/*/runs/.
 # Each work repo includes this file from its own .git/config (`git config --local include.path`),
 # so these values override the global ~/.gitconfig there and nowhere else: eval commits use an
-# eval identity and an eval-only key (`make eval-key`), never the owner's name, email, or signing key.
+# eval identity, unsigned commits, and disabled hooks without using personal keys.
 [user]
 	name = skill-eval
 	email = skill-eval@example.invalid
-[gpg]
-	format = ssh
-[gpg "ssh"]
-	# plain OpenSSH signing, not a password manager's signer
-	program = ssh-keygen
 [commit]
-	gpgsign = true
+	gpgsign = false
 [tag]
 	gpgsign = false
+[core]
+	hooksPath = /dev/null

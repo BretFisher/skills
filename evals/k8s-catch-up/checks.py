@@ -26,6 +26,8 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(HERE))
+from harness.evidence import tool_calls
 REPO = os.path.dirname(os.path.dirname(HERE))
 EVALS = json.load(open(f"{HERE}/evals.json"))["evals"]
 YAML_BLOCK = re.compile(r"```ya?ml\n(.*?)```", re.S)
@@ -33,25 +35,6 @@ YAML_BLOCK = re.compile(r"```ya?ml\n(.*?)```", re.S)
 
 def read(p):
     return open(p, errors="ignore").read() if os.path.exists(p) else ""
-
-
-def tool_calls(path):
-    """The inputs of every tool call in a subagent log (Read paths, Bash commands, search patterns), one
-    per line. Tool results are left out: the result of reading SKILL.md holds every feature link, so a
-    match on the raw log counted all 96 files as read."""
-    if not os.path.exists(path):
-        return ""
-    out = []
-    for line in open(path, errors="ignore"):
-        try:
-            msg = json.loads(line).get("message", {})
-        except ValueError:
-            continue
-        for c in msg.get("content") if isinstance(msg.get("content"), list) else []:
-            if c.get("type") == "tool_use":
-                i = c.get("input", {})
-                out.append(f"{c.get('name')}: " + " ".join(str(i[k]) for k in ("file_path", "command", "pattern", "path") if k in i))
-    return "\n".join(out)
 
 
 class Run:
@@ -186,12 +169,35 @@ def e8_1(r):
     return ok(r.has(r"kubectl\.config\.k8s\.io/v1beta1") and r.has(r"kind:\s*Preference"), "kuberc Preference v1beta1")
 
 
+def kuberc_preference(r):
+    result = subprocess.run(["yq", "-o=json", "-I=0", 'select(.kind == "Preference")'],
+                            input=r.yaml, capture_output=True, text=True)
+    if result.returncode:
+        return {}
+    for line in result.stdout.splitlines():
+        value = json.loads(line)
+        if isinstance(value, dict):
+            return value
+    return {}
+
+
+def kyaml_default(preference):
+    return any(item.get("command") == "get" and any(
+        option.get("name") == "output" and option.get("default") == "kyaml"
+        for option in item.get("options", [])) for item in preference.get("defaults", []))
+
+
 def e8_2(r):
-    return ok(r.has(r"\bgpw\b") and r.has(r"get.{0,40}pods.{0,40}wide", flags=re.S) and r.has(r"output:\s*kyaml|(-o|--output)[=\s]+kyaml"), "alias gpw and a kyaml output default")
+    preference = kuberc_preference(r)
+    alias = any(item.get("name") == "gpw" and item.get("command") == "get" and
+                "pods" in item.get("prependArgs", []) and any(
+                    option.get("name") == "output" and option.get("default") == "wide"
+                    for option in item.get("options", [])) for item in preference.get("aliases", []))
+    return ok(alias and kyaml_default(preference), "alias gpw and a kyaml output default")
 
 
 def e8_3(r):
-    return ok(r.has(r"(-o|--output)[=\s]+kyaml|output:\s*kyaml"), "kyaml used as an output-flag value")
+    return ok(r.has(r"(-o|--output)[=\s]+kyaml|output:\s*kyaml") or kyaml_default(kuberc_preference(r)), "kyaml used as an output-flag value")
 
 
 def e9_1(r):
@@ -206,11 +212,24 @@ def e9_3(r):
     """Every curl line uses https and carries credentials."""
     # Join shell line continuations first: a multi-line curl puts its URL on a later line.
     text = re.sub(r"\\\n[ \t]*", " ", r.all)
-    curls = [l for l in text.splitlines() if re.search(r"\bcurl\b", l) and "http" in l]
+    variables = {m[0]: [m[2]] for m in re.findall(r"(?m)^\s*([A-Za-z_]\w*)=(['\"])(https?://[^'\"]+)\2\s*$", text)}
+    for name, values in re.findall(r"for\s+(\w+)\s+in\s+([^;\n]+)", text):
+        refs = re.findall(r"\$\{?(\w+)\}?", values)
+        if refs and all(ref in variables for ref in refs):
+            variables[name] = [url for ref in refs for url in variables[ref]]
+    curls = [l for l in text.splitlines() if re.match(r"\s*curl\s", l)]
     if not curls:
         return (False, "no curl command")
-    bad = [l for l in curls if not re.search(r"--cert|--key|Authorization: ?Bearer|\$TOKEN|--cacert.*--cert|-H ['\"]Authorization", l)]
-    return ok(not bad and all("https://" in l for l in curls), f"{len(curls)} curl lines, {len(bad)} without credentials")
+    bad = []
+    for line in curls:
+        urls = re.findall(r"https?://[^\s'\"]+", line)
+        for ref in re.findall(r"\$\{?(\w+)\}?/", line):
+            urls.extend(variables.get(ref, []))
+        credentials = (("--cert" in line and "--key" in line) or
+                       re.search(r"(?:-H|--header)\s+['\"]?Authorization:\s*Bearer", line, re.I))
+        if not urls or not all(url.startswith("https://") for url in urls) or not credentials:
+            bad.append(line)
+    return ok(not bad, f"{len(curls)} curl commands, {len(bad)} with unverified HTTPS or credentials")
 
 
 def e9_4(r):
@@ -252,7 +271,7 @@ def e13_1(r):
     return ok(r.has(r"gitRepo") and r.has(r"GitRepoVolumeDriver|disabled|removed") and r.has(r"initContainers:", r.yaml) and r.has(r"git\s+clone|alpine/git|bitnami/git|[\"']?clone[\"']?\s*$", r.yaml) and r.has(r"emptyDir", r.yaml), "gitRepo removal named; init-container clone into emptyDir")
 
 
-NEGATED = re.compile(r"(not|no record of|never|isn'?t|wasn'?t)\b[^.\n|]{0,60}deprecat", re.I)
+NEGATED = re.compile(r"(?:not|never|isn'?t|wasn'?t)\s+(?:(?:currently|yet)\s+)?deprecat|no record of\b[^.\n|]{0,60}deprecat", re.I)
 
 
 def deprecation_claim(r, subject, version):

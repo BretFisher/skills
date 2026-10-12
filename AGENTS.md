@@ -57,10 +57,27 @@ Sonnet is the first-run model while a rule or an eval is being built: `eval-exec
 
 Executors and graders are spawned through the agent definitions in `.claude/agents/` (`eval-executor-<model>-<effort>`, `eval-grader-<model>-<effort>`), never through the bare Agent tool with a `model` argument: the Agent tool has no effort parameter, a subagent otherwise inherits the session's `effortLevel`, and a results cell without a known effort cannot be compared with the next one. Add a definition for a new model or effort before running it; `coverage.md` names the definition each iteration ran.
 
-Eval-harness notes, learned the hard way: graders never embed a `timing` object in `grading.json` (it breaks `aggregate_benchmark`; timing belongs in the sibling `timing.json`) and never use `set -x` near a token-bearing command; executors commit the pristine input files as the work repo's first commit before editing, so `git show HEAD:` still holds the original for the grader. Each work repo includes `evals/eval.gitconfig` in its own `.git/config`, so that commit carries the eval identity and the eval-only key from `make eval-key`, never the owner's name or signing key. When a rate limit kills graders mid-run, validate every surviving `grading.json` (expectation count, field names, no `timing`) and relaunch only the missing runs; do not regrade the survivors.
+For CLI evals, use `make eval-plan`, `make eval-run`, and `make eval-grade` with
+explicit model IDs because the repo-owned runner checks model selection and
+captures native evidence. Read [OpenCode eval support](docs/eval-opencode.md)
+before an OpenCode run or a cross-harness comparison; it lists isolation and
+reporting limits. Treat `.agents/skills/skill-creator/` as read-only because it is
+installed from an upstream resource. Put compatibility code in `evals/harness/`
+and use the repo-owned reporting adapters because upstream updates must not replace
+our validation. Ask before editing an installed skill or maintaining a separate fork.
+
+Eval-harness notes, learned the hard way: graders never embed a `timing` object in `grading.json` (it breaks `aggregate_benchmark`; timing belongs in the sibling `timing.json`) and never use `set -x` near a token-bearing command; executors commit the pristine input files as the work repo's first commit before editing, so `git show HEAD:` still holds the original for the grader. Use the eval identity, explicitly unsigned commits, and disabled hooks in every fixture and scanner repo so no eval commit needs personal keys or signing tools. `evals/eval.gitconfig` supplies the fixture defaults; scanner commits need the same command-level safeguards. When a rate limit kills graders mid-run, validate every surviving `grading.json` (expectation count, field names, no `timing`) and relaunch only the missing runs; do not regrade the survivors.
 
 If you want to publish a quality scorecard, copy a single curated `benchmark.md` into
 `evals/<skill-name>/` and commit just that — do not commit anything under `runs/`.
+
+After each completed full-suite model run, update that skill's eval table in
+`README.md` so readers can see the measured benefit. Publish only after every task,
+configuration, and repeat has final grades and report validation passes; use the
+share of all assertions passed. Identify model, effort or variant, harness, repeat
+count, and iteration in the row or adjacent note. Record details in the skill's
+`coverage.md` and state comparison limits when the skill or checks changed. Keep
+smoke runs and partial suites in coverage notes until full-suite validation is complete.
 
 ## Before committing
 

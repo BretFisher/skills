@@ -1,5 +1,15 @@
 # Eval coverage
 
+## OpenCode validation
+
+Iteration `5-opencode-sol` ran both tasks on OpenCode v2.0.26 with
+`openai/gpt-6.1-sol#low`, one pair per task. All four runs completed, deterministic
+grading finished, and report validation passed. With skill: 7/7 assertions (100%);
+without skill: 5/7 (71.4%). The runner installs the wrapper and its required
+`github-actions-workflow-pro` dependency only in the with-skill configuration,
+records the dependency hash, and uses the shared GitHub Actions fixtures in both
+configurations. No skill changes were made. One repeat is a preliminary result.
+
 `gha-audit` is a user-invoked wrapper: it runs the audit path of `github-actions-workflow-pro`. These
 evals test only what the wrapper adds; the audit rules are covered in
 `evals/github-actions-workflow-pro/coverage.md`. `eN#k` = eval N, assertion k (1-based). `checks.py`

@@ -13,6 +13,31 @@ key, a regex, byte equality with the fixture, or a scanner exit code decides it.
 (and can fail the assertion outright); when that half passes, the residual goes to the model. **model**: judgment only. The table
 below is the output of `checks.py --kinds`; regenerate it when `evals.json` or `checks.py` changes.
 
+## OpenCode validation notes
+
+Iteration `27-opencode-sol-retry` uses OpenCode v2.0.26 and
+`openai/gpt-6.1-sol#low`, with one pair per task across all 15 tasks. It retains
+29 completed executors from iteration `26-opencode-sol`; the remaining baseline
+was rerun after a provider WebSocket error. `retry-provenance.json` records the
+retry. No skill changes were made during execution.
+
+Explicit fixture mappings put the deploy and docs workflows at the paths named
+in e7, e12, and e13, and the Renovate config at its discovery path in e14.
+During grading, scanner scratch commits were corrected to disable signing and
+hooks. Workflow discovery now includes `outputs/.github/`; e13 preservation
+checks fail when required proposed YAML is absent instead of relying on prose.
+Regression tests cover these paths. Earlier grades were backed up, and completed
+model verdicts with identical assertions and excerpts were retained.
+
+All 30 runs have final grades and passed report validation. With skill:
+125/145 assertions (86.2%); without skill: 77/145 (53.1%). This is one repeat
+per task, not a stable quality estimate. Residual grading retained completed
+verdicts after rejected batches; smaller batches avoided one invalid JSON response.
+The grader rubric now distinguishes missing required deliverables (fail) from
+evidence omitted by the harness (error), and applies universal conditions literally.
+Skill content was unchanged. Fixture and checker corrections limit comparison
+with earlier model runs.
+
 ## Assertion kinds
 
 | Eval    | Assertions | program | split  | model  | split indices    | model indices |

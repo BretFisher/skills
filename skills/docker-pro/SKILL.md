@@ -14,7 +14,7 @@ These rules assume **BuildKit** is the builder (the default in modern Docker Eng
 1. Inspect the repo before writing. Detect the language/runtime, package manager, lockfiles, build output dir, and any existing Docker files so your output matches reality instead of a generic template.
 2. Prefer the smallest correct change, but don't preserve legacy patterns (no `version:` in compose, secrets baked into layers, `apt-get` without cache mounts) when you're already editing that file.
 3. Never invent base image tags, package names, ports, or build commands as facts. If the repo doesn't reveal a value, use a clearly-marked placeholder and say so. Image tags in particular drift — when you're unsure a tag exists, tell the user to confirm against the registry's catalog rather than asserting it.
-4. Explain the _why_ when you hand work back. These files are read far more than they're written; the reasoning is what lets the user maintain them later.
+4. Complete the hand-back checklist below so the user can maintain each change.
 
 ## Dockerfile Layout
 
@@ -114,7 +114,9 @@ FROM cgr.dev/chainguard/static:latest AS runtime
 FROM build AS compile
 WORKDIR /src
 COPY . .
-RUN CGO_ENABLED=0 go build -o /app ./cmd
+RUN --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=cache,target=/go/pkg/mod \
+    CGO_ENABLED=0 go build -o /app ./cmd
 
 FROM runtime
 COPY --from=compile /app /app
@@ -212,7 +214,7 @@ Build with `docker buildx bake` (the `default` group) or `docker buildx bake app
 
 ## Compose for Local Dev
 
-If you're setting up Docker in a repo for the **first time** (no compose file exists yet), ask the user whether they'd also like a `compose.yaml` for an easier local environment — don't assume it. If they already have one, modernize it in place.
+For first-time setup without a Compose file, finish the requested build files and offer to add `compose.yaml` in the final answer. Leave Compose creation pending approval so the user controls local-development scope. When the user is unavailable, include the offer for their next response. If a Compose file already exists, modernize it in place.
 
 Conventions:
 
@@ -247,4 +249,8 @@ Start it with `docker compose watch`. Pick the action by what the change require
 
 ## When You Finish
 
-Summarize what you created or changed and the one-line reason for each opinionated default (frontend pin, hardened base, `.dockerignore`, bake file, compose watch), plus the exact commands to build and run (`docker buildx bake`, `docker compose watch`). Flag any placeholders you left — image tags, ports, build commands — that the user must confirm.
+Complete these checks in the final user-facing answer so the user can maintain the files without opening another document:
+
+- Give each applied default or modernization its own `change — reason` line. Cover the frontend, base image, digest pin, cache mounts, runtime user, `.dockerignore`, Bake, and each Compose change when used. Reasons explain the benefit; a list of settings alone is incomplete.
+- Include exact build and run commands, plus validation results and unresolved placeholders, so the user can reproduce the work.
+- For first-time setup, include the Compose offer described above so the user can approve the next step.

@@ -24,29 +24,14 @@ import subprocess
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(HERE))
+from harness.evidence import tool_calls
 EVALS = json.load(open(f"{HERE}/evals.json"))["evals"]
 INSTALL = {"ruff": "ruff", "shellcheck": "shellcheck", "hadolint": "hadolint", "yamllint": "yamllint", "tflint": "tflint"}
 
 
 def read(p):
     return open(p, errors="ignore").read() if os.path.isfile(p) else ""
-
-
-def tool_calls(path):
-    """The inputs of every tool call in a subagent log, one per line; tool results are left out."""
-    if not os.path.exists(path):
-        return ""
-    out = []
-    for line in open(path, errors="ignore"):
-        try:
-            msg = json.loads(line).get("message", {})
-        except ValueError:
-            continue
-        for c in msg.get("content") if isinstance(msg.get("content"), list) else []:
-            if c.get("type") == "tool_use":
-                i = c.get("input", {})
-                out.append(f"{c.get('name')}: " + " ".join(str(i[k]) for k in ("file_path", "command", "url") if k in i))
-    return "\n".join(out)
 
 
 class Run:
@@ -90,6 +75,11 @@ class Run:
                 continue
             seen.add(t)
             out.append(targets[t][1])
+            # Follow literal repository-local shell helpers invoked by a recipe;
+            # an unrelated script elsewhere is not part of make lint.
+            for helper in re.findall(r"(?m)^\s*@?(?:bash|sh)\s+([\w./-]+\.sh)\b", targets[t][1]):
+                if not helper.startswith("/") and ".." not in helper.split("/"):
+                    out.append(self.file(helper.removeprefix("./")))
             todo += targets[t][0]
         return "\n".join(out)
 
@@ -146,7 +136,7 @@ def executed(calls):
     """Bash command text with heredoc bodies and quoted strings removed, so an install line the executor
     wrote into a README or an answer does not count as a command it ran."""
     out = []
-    for line in calls.split("\nBash: ") if calls else []:
+    for line in re.split(r"(?:^|\n)(?:Bash|shell): ", calls) if calls else []:
         out.append(QUOTED.sub("''", HEREDOC.sub("", line)))
     return "\n".join(out)
 

@@ -97,3 +97,44 @@ CGO off, and dropping `version:`. The models already know them. Keep the asserti
 anchors, and consider removing the matching SKILL.md lines to save tokens on every call. The skill's
 measured value is the hardened base (e0#3), the bake file (e0#6, e1#8), asking about compose (e0#7), the
 named-stage layout (e1#3), and the reasons in the hand-back (e0#9).
+
+## OpenCode failure review
+
+Iteration `4-opencode-sol` used OpenCode v2.0.26 and `openai/gpt-6.1-sol#low`,
+with one run per configuration. Four with-skill assertions failed:
+
+| Assertion | Classification | Evidence and correction                                                                                                                                                      |
+| --------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| e0#7      | Skill failure  | The answer declined Compose without offering it. The Compose branch now requires an offer in the final answer, including when the user is unavailable.                       |
+| e0#9      | Skill failure  | The answer named defaults without reasons for the frontend, hardened base, and digest. The hand-back now requires a separate change-and-reason line for each applied choice. |
+| e1#4      | Checker defect | The Go build had two cache mounts in the same continued `RUN`. The regex missed them. The checker now joins continued lines and checks each `RUN` separately.                |
+| e2#8      | Skill failure  | The answer listed frontend and Compose changes without their benefits. The same hand-back checklist covers each modernization.                                               |
+
+Seven checker regression tests run through `make eval-test`. They cover single-line
+and multi-line Go cache mounts, an uncached build, commented mounts, and a mount
+on a different instruction. The last two cases also exposed false passes in the
+old checker. The corrected checker passes the retained Go output; historical
+grading and benchmark artifacts remain unchanged.
+
+The new run exposed a second checker defect in e2#5: `docker compose up --build
+--watch` is valid, but the check required `--watch` immediately after `up`. The
+corrected check accepts intervening options and rejects `--watchdog` and
+`--watch=false`. Two regression tests cover these cases. The original grade for
+the affected run is retained as `grading-before-compose-check-fix.json`.
+
+The Go example now includes build and module cache mounts so it follows the rule
+it demonstrates. These changes keep the existing eval prompts and assertions.
+The residual grader intentionally reads the final answer for the two explanation
+assertions; a separate document does not replace the required hand-back.
+
+Iteration `5-opencode-fixes` retains the pre-edit skill in `skill-snapshot/` and
+tests the revised skill against no skill. It is a regression run, not a concurrent
+old-versus-new skill comparison. One repeat can find failures but cannot establish
+a stable improvement estimate.
+
+All six executors completed on OpenCode v2.0.26 with `openai/gpt-6.1-sol#low`.
+After program and residual grading, the revised skill passed 25/25 assertions;
+the no-skill baseline passed 9/25. The four original failures all passed. Reports
+include the previous outputs, whose historical grades remain unchanged. Because
+the checker changed and each task has one repeat, these results confirm this
+regression run, not a measured old-versus-new improvement rate.

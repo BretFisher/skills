@@ -146,6 +146,9 @@
       "files": [
         "evals/github-actions-workflow-pro/fixtures/deploy-static-keys.yml"
       ],
+      "fixture_map": {
+        "evals/github-actions-workflow-pro/fixtures/deploy-static-keys.yml": ".github/workflows/deploy.yml"
+      },
       "expectations": [
         "The corrected workflow replaces AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY with aws-actions/configure-aws-credentials using role-to-assume and id-token: write.",
         "The deploy job's concurrency block has `cancel-in-progress: false` (or a queue group with no cancel).",
@@ -258,6 +261,9 @@
       "prompt": "Review .github/workflows/docs.yml (attached) and tell me what to fix. It is about to become a required check, so I want it solid.",
       "expected_output": "The review finds nothing to change about how the shell steps get their tools: every command in them (mkdir, test, cp, find, sort, sed, printf, tar, ls) is the shell, coreutils, or a tool the runner needs for checkout anyway, so no step is rewritten to install a tool through an action and no step is warned about as unportable. The answer still shows it reviewed the file, confirming the parts that are already right (permissions: {} with a least-privilege job grant, the SHA-pinned actions with persist-credentials: false, concurrency with cancel-in-progress, timeout-minutes, set -euo pipefail), and does not invent defects.",
       "files": ["evals/github-actions-workflow-pro/fixtures/base-shell-ci.yml"],
+      "fixture_map": {
+        "evals/github-actions-workflow-pro/fixtures/base-shell-ci.yml": ".github/workflows/docs.yml"
+      },
       "expectations": [
         "The answer does not propose installing any of the shell commands used in the workflow (mkdir, find, xargs, cp, grep, rm, sed, git, date, curl, wc, tar, ls) through a setup or install action, and adds no `uses:` step for that purpose.",
         "The answer does not warn that these shell steps will fail on a self-hosted runner, a `container:` job, or `act` because of a missing tool.",
@@ -272,6 +278,9 @@
       "files": [
         "evals/github-actions-workflow-pro/fixtures/k8s-deploy-tools.yml"
       ],
+      "fixture_map": {
+        "evals/github-actions-workflow-pro/fixtures/k8s-deploy-tools.yml": ".github/workflows/deploy.yml"
+      },
       "expectations": [
         "The answer names all three tools that come from the runner image rather than from the workflow: `yq`, `helm`, and `kubectl`.",
         "The answer reports these as one grouped finding covering all three tools, not as a separate finding per tool or per step.",
@@ -296,6 +305,9 @@
         "evals/github-actions-workflow-pro/fixtures/good-ci.yml",
         "evals/github-actions-workflow-pro/fixtures/renovate-basic.json"
       ],
+      "fixture_map": {
+        "evals/github-actions-workflow-pro/fixtures/renovate-basic.json": "renovate.json"
+      },
       "expectations": [
         "No `.github/dependabot.yml` is created, and the answer does not propose a Dependabot config (no `package-ecosystem` in the answer or outputs/).",
         "The answer or a proposed Renovate config sets `minimumReleaseAge` (any duration) for the GitHub Actions updates.",

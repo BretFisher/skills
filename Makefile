@@ -4,7 +4,7 @@
 # something is missing, so you decide what lands on your machine.
 
 SKILL         ?= github-actions-workflow-pro
-SKILL_CREATOR ?= $(firstword $(wildcard $(HOME)/.claude/plugins/marketplaces/claude-plugins-official/plugins/skill-creator/skills/skill-creator))
+SKILL_CREATOR ?= $(CURDIR)/.agents/skills/skill-creator
 ITER          ?= $(shell ls -d evals/$(SKILL)/runs/iteration-* 2>/dev/null | sed 's/.*iteration-//' | sort -n | tail -1)
 EVAL_DIR       = evals/$(SKILL)/runs/iteration-$(ITER)
 
@@ -21,7 +21,28 @@ help: ## Show this help
 	@echo
 	@echo "Variables: SKILL=$(SKILL)  ITER=$(ITER)  SKILL_CREATOR=$(SKILL_CREATOR)"
 
-lint: lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins ## Run every linter (pre-commit gate)
+.PHONY: eval-test eval-run eval-plan eval-grade eval-recover
+eval-test: ## Test the shared eval harness and checker regressions without model calls
+	python3 -m unittest discover -s evals -p 'test_*.py' -v
+
+EVAL_RUN_ARGS = --skill "$(SKILL)" --iteration "$(ITER)" --harness "$(or $(HARNESS),opencode)" --model "$(MODEL)" $(if $(EVALS),--evals "$(EVALS)",) $(if $(REPEAT),--repeat "$(REPEAT)",) $(if $(JOBS),--jobs "$(JOBS)",) $(if $(TIMEOUT),--timeout "$(TIMEOUT)",) $(if $(EFFORT),--effort "$(EFFORT)",) $(if $(RESUME),--resume,) $(if $(SOURCE_CACHE),--source-cache "$(SOURCE_CACHE)",)
+
+eval-plan: ## Validate fixture mappings and print the run plan without model calls; MODEL=, ITER=, EVALS=
+	python3 -m evals.harness.runner $(EVAL_RUN_ARGS) --prepare-only
+
+eval-run: ## Run paired evals through OpenCode or Claude Code; HARNESS=, MODEL=, ITER=, EVALS=, REPEAT=, JOBS=
+	@test -n "$(MODEL)" -a -n "$(ITER)" || { echo "set MODEL= and ITER= explicitly"; exit 1; }
+	python3 -m evals.harness.runner $(EVAL_RUN_ARGS)
+
+eval-grade: ## Grade residual excerpts; requires GRADER_MODEL=; GRADER_HARNESS=opencode|claude
+	@test -n "$(GRADER_MODEL)" || { echo "set GRADER_MODEL= explicitly"; exit 1; }
+	python3 -m evals.harness.grading --skill "$(SKILL)" --iteration "$(ITER)" --model "$(GRADER_MODEL)" --harness "$(or $(GRADER_HARNESS),opencode)" $(if $(BUDGET),--budget "$(BUDGET)",) $(if $(EFFORT),--effort "$(EFFORT)",)
+
+eval-recover: ## Recover a retained OpenCode evidence-collection failure without model calls; RUN=path
+	@test -n "$(RUN)" || { echo "set RUN=path/to/failed/run"; exit 1; }
+	python3 -m evals.harness.recovery "$(RUN)"
+
+lint: lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins eval-test ## Run every linter and eval harness tests (pre-commit gate)
 
 lint-md: ## markdownlint on all Markdown (config: .github/linters/.markdown-lint.yml, shared with CI)
 	@$(call need,markdownlint,markdownlint-cli)
@@ -47,6 +68,7 @@ lint-sh: ## shellcheck on every skill shell script (skips cleanly when there are
 
 lint-py: ## byte-compile every skill Python script (no Python linter in CI either, by choice; skips cleanly when there are none)
 	@files=$$(ls skills/*/scripts/*.py 2>/dev/null); if [ -n "$$files" ]; then python3 -m py_compile $$files; else echo "lint-py: no Python scripts under skills/*/scripts"; fi
+	python3 -m compileall -q evals/harness
 
 lint-actions: ## actionlint + zizmor + poutine on this repo's workflows; actionlint on the well-formed eval fixtures
 	@$(call need,actionlint,actionlint)
@@ -58,11 +80,8 @@ lint-actions: ## actionlint + zizmor + poutine on this repo's workflows; actionl
 	$(SCAN) zizmor --no-progress --collect=all .github/workflows .github/dependabot.yml
 	poutine analyze_local . --quiet --disable-version-check --fail-on-violation >/dev/null
 
-EVAL_KEY = evals/.eval-key/id_ed25519
-
-eval-key: ## Create the eval-only SSH signing key (gitignored) that evals/eval.gitconfig work repos sign with
-	@$(call need,ssh-keygen,openssh)
-	@test -f $(EVAL_KEY) && echo "exists: $(EVAL_KEY)" || { mkdir -p $(dir $(EVAL_KEY)) && ssh-keygen -q -t ed25519 -N '' -C 'skill-eval signing key (not a person)' -f $(EVAL_KEY) && echo "created: $(EVAL_KEY)"; }
+eval-key: ## Compatibility target: eval commits are unsigned and need no key
+	@echo "Eval commits are unsigned; no key is needed or created."
 
 eval-check: ## Program-grade every run of the latest iteration (writes grading.json with nulls for the model); SKILL=, ITER=
 	@$(call need,yq,yq)
@@ -76,13 +95,11 @@ eval-finalize: ## After the model grader filled the nulls, recompute every gradi
 	evals/$(SKILL)/checks.py --finalize $(EVAL_DIR)/eval-*/*/run-*
 
 eval-benchmark: ## Aggregate the latest eval iteration into benchmark.json/.md (SKILL=, ITER=)
-	@test -n "$(SKILL_CREATOR)" || { echo "skill-creator plugin not found; set SKILL_CREATOR=/path/to/skill-creator"; exit 1; }
 	@test -d "$(EVAL_DIR)" || { echo "no eval iteration found at $(EVAL_DIR)"; exit 1; }
-	cd "$(SKILL_CREATOR)" && python3 -m scripts.aggregate_benchmark "$(CURDIR)/$(EVAL_DIR)" --skill-name "$(SKILL)"
+	python3 -m evals.harness.reporting benchmark "$(EVAL_DIR)" --skill-name "$(SKILL)" --primary "$(or $(PRIMARY),with_skill)" --baseline "$(or $(BASELINE),without_skill)"
 
-eval-view: ## Open the skill-creator review viewer on the latest iteration (SKILL=, ITER=)
-	@test -n "$(SKILL_CREATOR)" || { echo "skill-creator plugin not found; set SKILL_CREATOR=/path/to/skill-creator"; exit 1; }
-	python3 "$(SKILL_CREATOR)/eval-viewer/generate_review.py" "$(EVAL_DIR)" --skill-name "$(SKILL)" --benchmark "$(EVAL_DIR)/benchmark.json"
+eval-view: ## Write static review.html with the unchanged upstream renderer; OPEN=1 opens it; PREVIOUS=path
+	python3 -m evals.harness.reporting view "$(EVAL_DIR)" --skill-name "$(SKILL)" --skill-creator "$(SKILL_CREATOR)" --primary "$(or $(PRIMARY),with_skill)" --baseline "$(or $(BASELINE),without_skill)" $(if $(PREVIOUS),--previous "$(PREVIOUS)",) $(if $(OPEN),--open,)
 
 run-stats: ## Rank this repo's workflows and jobs by duration over the last RUNS runs (REPO= for another repo)
 	@skills/github-actions-workflow-pro/scripts/run-stats.py --markdown --runs $(or $(RUNS),3) $(if $(REPO),--repo $(REPO),)

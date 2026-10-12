@@ -28,6 +28,11 @@ arguments, so nothing needs them inside the skill either.
 
 ## The pieces
 
+The steps below describe the original Claude Code subagent workflow. For the
+repo-owned CLI runner, OpenCode evidence, and residual grading, use
+[OpenCode eval support](eval-opencode.md). Both workflows use the same eval
+definitions and grading files; installed skill-creator files stay read-only.
+
 There is no runner program. The harness is a Claude Code session following the skill-creator's
 `SKILL.md`, spawning subagents and writing files. The only programs in the loop are the ones in the
 last row group of the table.
@@ -126,10 +131,11 @@ residuals of several runs into one grader call so that base cost is paid once. A
 gets no grader call. Then `make eval-finalize` recomputes every summary, strips the excerpts, and
 refuses to finish if a null remains.
 
-**6. Aggregate and view.** `make eval-benchmark` runs `aggregate_benchmark.py` over the iteration and
-writes `benchmark.json` and `benchmark.md` with pass rate, tokens, and time per configuration.
-`make eval-view` opens the skill-creator viewer. `python3 evals/_dashboard/build-dashboard.py`
-rebuilds the repo dashboard from every iteration on disk.
+**6. Aggregate and view.** `make eval-benchmark` runs the repo-owned reporting adapter over
+the iteration and writes validated `benchmark.json` and `benchmark.md` with pass rate,
+tokens, and time per configuration. `make eval-view OPEN=1` prepares compatible data
+and opens a static page from the unchanged skill-creator renderer. The old scripts
+under `evals/_dashboard/` are local legacy reports, not the cross-harness source of truth.
 
 ## With skill versus without skill
 
@@ -232,7 +238,7 @@ Harness notes learned the hard way: graders never embed a `timing` object in `gr
 `aggregate_benchmark`; timing belongs in the sibling `timing.json`); never use `set -x` near a
 token-bearing command; executors commit the pristine input files as the work repo's first commit before
 editing. That commit uses `evals/eval.gitconfig` (included from each work repo's `.git/config`):
-an eval identity and the eval-only key from `make eval-key`, never the owner's name or signing key. When a rate limit kills graders mid-run, validate every surviving `grading.json` (expectation
+an eval identity, unsigned commits, and disabled hooks. Scanner scratch commits also explicitly disable signing and hooks, so no eval commit needs a key. When a rate limit kills graders mid-run, validate every surviving `grading.json` (expectation
 count, field names, no `timing`) and relaunch only the missing runs.
 
 ## Glossary
