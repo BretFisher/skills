@@ -230,7 +230,7 @@ def claude_execute(prompt, work, home, run, args, config):
         "--model", args.model, "--effort", args.effort, "--permission-mode", "dontAsk",
         "--tools", tools,
         *(["--allowedTools", tools] if tools else []),
-        "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}', prompt,
+        "--strict-mcp-config", "--mcp-config", '{"mcpServers":{}}', "--", prompt,
     ], work, env, run, args.timeout)
     shutil.copyfile(run / "cli-output.jsonl", run / "raw-transcript.jsonl")
     records = [json.loads(line) for line in (run / "raw-transcript.jsonl").read_text().splitlines() if line.strip()]
