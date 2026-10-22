@@ -28,6 +28,7 @@ Kinds per assertion: program (decided here), split (program decides the mechanic
 residual goes to the model), model (judgment only).
 """
 import json, re, subprocess, sys, os, glob, shutil, tempfile
+from types import SimpleNamespace
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
@@ -335,6 +336,108 @@ def tools_line(run, names):
     return not missing and states, f"missing={missing} states={states}"
 
 
+# ---- hand-back sections (SKILL.md "Hand-back") ---------------------------------------
+# Each default: (does the produced YAML apply it?, pattern its row's first cell must match).
+HANDBACK_DEFAULTS = {
+    "permissions": (lambda t: "permissions:" in t, r"permission|least.privilege"),
+    "pinning": (lambda t: bool(re.search(r"uses:\s*\S+@[0-9a-f]{40}", t)), r"\bpin|\bsha\b"),
+    "concurrency": (lambda t: "concurrency:" in t, r"concurren"),
+    "caching": (lambda t: bool(re.search(r"\bcache(-from)?:", t)), r"cach"),
+    "timeout": (lambda t: "timeout-minutes" in t, r"timeout"),
+    "trusted refs": (lambda t: "docker/build-push-action" in t, r"trusted|PR builds?|pull.request|push: false|publish"),
+    "provenance/sbom": (lambda t: bool(re.search(r"(provenance|sbom): true", t)), r"provenance|sbom"),
+    "persist-credentials": (lambda t: "persist-credentials: false" in t, r"persist"),
+    "pipefail": (lambda t: "set -euo pipefail" in t, r"pipefail"),
+}
+# Facts the prompt or the fixture states: a question about one asks the user for something the agent could read.
+E0_FACTS = r"install command|test command|\bnpm (ci|install|test)\b|package manager|yarn|pnpm|(which|what)[^?]{0,20}branch"
+E8_FACTS = r"node(\.js)? version|version of node|\.nvmrc|(lint|test|build) (command|script)|package manager|yarn|pnpm|dockerfile|\bport\b|image name|entry ?point"
+
+
+def prose(text):
+    """The answer without fenced code blocks, so YAML `?` and `#` lines are not read as prose."""
+    return re.sub(r"```.*?```", "", text, flags=re.S)
+
+
+def question_lines(run):
+    return [l.strip() for l in prose(run.answer).splitlines() if re.search(r"\?(\s|$|\*|\))", l)]
+
+
+def handback_section(run, name):
+    """Body of the `## <name>` hand-back section, or None when the heading is missing."""
+    if not has_heading(run, name):
+        return None
+    return Run.section(SimpleNamespace(answer=prose(run.answer)), rf"^{re.escape(name)}[:.]?$")
+
+
+def defaults_table(run, names):
+    """`## Defaults applied` has a row, with a reason of three words or more, for every named default the YAML applies."""
+    sec = handback_section(run, "Defaults applied")
+    if sec is None:
+        return False, "no `## Defaults applied` section"
+    rows = []
+    for l in sec.splitlines():
+        cells = [c.strip() for c in l.strip().strip("|").split("|")] if l.strip().startswith("|") else []
+        if len(cells) >= 2 and not re.fullmatch(r":?-+:?", cells[0]):
+            rows.append((cells[0], cells[-1]))
+    applied = [n for n in names if HANDBACK_DEFAULTS[n][0](run.all_text)]
+    missing = [n for n in applied
+               if not any(re.search(HANDBACK_DEFAULTS[n][1], d, re.I) and len(r.split()) >= 3 for d, r in rows)]
+    return not missing, f"applied={applied} rows={[d for d, _ in rows]} missing={missing}"
+
+
+def asks_only_decisions(run, facts):
+    """`## Questions` exists, and no question line in the answer asks for a fact the prompt or fixture states."""
+    if handback_section(run, "Questions") is None:
+        return False, "no `## Questions` section"
+    bad = [l[:100] for l in question_lines(run) if re.search(facts, l, re.I)]
+    return not bad, f"{len(question_lines(run))} question line(s); asks for facts: {bad}"
+
+
+def asks_reusable_docker(run):
+    """`## Questions` has an item on a reusable docker build workflow: a question, or the bespoke default taken."""
+    sec = handback_section(run, "Questions")
+    if sec is None:
+        return False, "no `## Questions` section"
+    items = [l.strip() for l in sec.splitlines() if re.search(r"reusable|docker-build-workflow", l, re.I)
+             and (re.search(r"\?", l) or re.search(r"default|could not ask|couldn't ask|unavailable|bespoke", l, re.I))]
+    return bool(items), f"item={items[:1]}"
+
+
+def asks_delivery(run):
+    """The delivery question in `## Questions` (naming HTML and Markdown), or the chat default stated near the top."""
+    sec = handback_section(run, "Questions") or ""
+    asked = [l.strip() for l in sec.splitlines() if re.search(r"html|dashboard", l, re.I) and re.search(r"markdown", l, re.I)]
+    top = "\n".join(l for l in prose(run.answer).splitlines() if l.strip())[:1500]
+    default = re.search(r"delivered in (the )?chat by default|default(ed)? to (the )?chat", top, re.I)
+    return bool(asked or default), f"question={asked[:1]} chat default stated={bool(default)}"
+
+
+def placeholders_listed(run, fixture_text, deploy):
+    """Every placeholder the produced YAML introduces is named in `## Placeholders`: new `vars.`/`secrets.` names,
+    `<...>` tokens, and a literal role ARN, region, or environment that the fixture does not have."""
+    sec = handback_section(run, "Placeholders")
+    if sec is None:
+        return False, "no `## Placeholders` section"
+    text = run.all_text
+    need = []  # (what, pattern the section must match)
+    for kind, name in sorted(set(re.findall(r"\b(vars|secrets)\.([A-Za-z_][A-Za-z0-9_]*)", text))):
+        if f"{kind}.{name}" not in fixture_text:
+            need.append((f"{kind}.{name}", re.escape(name)))
+    for tok in sorted(set(re.findall(r"<([A-Za-z][\w .:/-]{1,60})>", text))):
+        need.append((f"<{tok}>", re.escape(tok)))
+    for key, label in (("role-to-assume", r"role|arn"), ("aws-region", r"region")):
+        for v in re.findall(rf"{key}:\s*(\S+)", text):
+            if "${{" not in v and v not in fixture_text:
+                need.append((f"{key}: {v}", label + "|" + re.escape(v.strip("'\""))))
+    env = (deploy or {}).get("environment")
+    env = env.get("name") if isinstance(env, dict) else env
+    if env and "${{" not in str(env) and f"environment: {env}" not in fixture_text:
+        need.append((f"environment: {env}", r"environment|" + re.escape(str(env))))
+    missing = [w for w, pat in need if not re.search(pat, sec, re.I)]
+    return not missing, f"placeholders={[w for w, _ in need]} missing from section={missing}"
+
+
 # ---- per-eval check tables ------------------------------------------------------
 # Each entry: (1-based index, kind, function(run) -> (passed|None, evidence))
 # Patterns for evals 12 and 13 (runner-image tools). Both fixtures are clean under every scanner,
@@ -371,8 +474,8 @@ def checks_for(run):
             (4, "program", lambda: (setup_node_cache(wf), "setup-node cache: npm")),
             (5, "program", lambda: (all_timeouts(wf) and bool(wf.get("name")) and all(j.get("name") for j in jobs(wf).values()) and all(s.get("name") for j in jobs(wf).values() for s in steps(j) if s.get("uses")), f"wf name={wf.get('name')!r} jobs named={[bool(j.get('name')) for j in jobs(wf).values()]} unnamed uses steps={sum(1 for j in jobs(wf).values() for s in steps(j) if s.get('uses') and not s.get('name'))} timeouts={all_timeouts(wf)}")),
             (6, "program", S),
-            (7, "model", None),
-            (8, "model", None),
+            (7, "program", lambda: defaults_table(run, list(HANDBACK_DEFAULTS))),
+            (8, "program", lambda: asks_only_decisions(run, E0_FACTS)),
             (9, TK, T),
         ]
     if e == 1:
@@ -566,7 +669,7 @@ def checks_for(run):
             (2, "split", cites),
             (3, "program", sections),
             (4, "program", tools),
-            (5, "model", None),
+            (5, "program", lambda: asks_delivery(run)),
             (6, "program", speed),
             (7, "program", unmodified),
             (8, "program", S),
@@ -605,7 +708,7 @@ def checks_for(run):
             (5, "program", pipefail),
             (6, "program", lambda: (any(step_uses(s, "checkout") and (s.get("with") or {}).get("persist-credentials") is False for s in steps(deploy)) and "timeout-minutes" in deploy, "persist-credentials false + timeout")),
             (7, "program", lambda: asks_which_bot(run)),
-            (8, "model", None),
+            (8, "program", lambda: placeholders_listed(run, read(f"{FIX}/deploy-static-keys.yml"), deploy)),
             (9, "program", S),
             (10, "program", order),
             (11, "program", lambda: (wf.get("permissions") == {} and (deploy.get("permissions") or {}).get("contents") == "read" and (deploy.get("permissions") or {}).get("id-token") == "write", f"top={wf.get('permissions')} deploy={deploy.get('permissions')}")),
@@ -630,10 +733,10 @@ def checks_for(run):
             (1, "program", lambda: ("node-version-file: .nvmrc" in ci[0], "node-version-file")),
             (2, "program", parallel),
             (3, "program", lambda: ("docker-build-workflow" in run.answer, "names docker-build-workflow")),
-            (4, "model", None),
-            (5, "model", None),
+            (4, "program", lambda: asks_reusable_docker(run)),
+            (5, "program", lambda: asks_only_decisions(run, E8_FACTS)),
             (6, "program", no_triggers),
-            (7, "model", None),
+            (7, "program", lambda: defaults_table(run, ["permissions", "pinning", "concurrency", "caching", "timeout", "trusted refs"])),
             (8, "program", S),
             (9, "program", lambda: trusted_refs(dk[1]) if dk[1] else (None, "no docker workflow written; model")),
             (10, TK, T),
