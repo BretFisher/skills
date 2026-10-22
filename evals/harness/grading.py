@@ -3,6 +3,8 @@
 import argparse
 import json
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 from types import SimpleNamespace
 
@@ -49,6 +51,27 @@ def parse_verdicts(text, keys):
     return results
 
 
+def program_pending(value):
+    return [i + 1 for i, e in enumerate(value["expectations"]) if e["passed"] is None and e.get("kind") == "program"]
+
+
+def regrade_program(path, skill):
+    """Rerun the skill's checker on a run whose program assertion is still null (a skipped scanner).
+
+    A program verdict never goes to the model: rerun the program, and stop if it still cannot decide."""
+    value = json.loads(path.read_text())
+    if not program_pending(value):
+        return value
+    checker = ROOT / "evals" / skill / "checks.py"
+    subprocess.run([sys.executable, str(checker), "--write", "--force", str(path.parent)], check=True, cwd=ROOT)
+    value = json.loads(path.read_text())
+    left = program_pending(value)
+    if left:
+        reasons = "; ".join(value["expectations"][i - 1]["evidence"] for i in left)
+        raise ValueError(f"Program assertion(s) {left} still null in {path}: {reasons}")
+    return value
+
+
 def grade(iteration, skill, args):
     definitions = json.loads((ROOT / "evals" / skill / "evals.json").read_text())["evals"]
     specs = {s["id"]: s.get("expectations", s.get("assertions", [])) for s in definitions}
@@ -57,7 +80,7 @@ def grade(iteration, skill, args):
     if not paths:
         raise ValueError("No program grades found; run make eval-check first")
     for path in paths:
-        value = json.loads(path.read_text())
+        value = regrade_program(path, skill)
         metadata = json.loads((path.parent / "eval_metadata.json").read_text())
         validate_grading(value, specs[metadata["eval_id"]], allow_pending=True)
         pending = [{"key": f"{path.parent.relative_to(iteration)}:{i}", "text": entry["text"],

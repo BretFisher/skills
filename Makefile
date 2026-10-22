@@ -86,7 +86,7 @@ eval-key: ## Compatibility target: eval commits are unsigned and need no key
 eval-check: ## Program-grade every run of the latest iteration (writes grading.json with nulls for the model); SKILL=, ITER=
 	@$(call need,yq,yq)
 	@test -d "$(EVAL_DIR)" || { echo "no eval iteration found at $(EVAL_DIR)"; exit 1; }
-	evals/$(SKILL)/checks.py --write --scanners $(FLAGS) $(EVAL_DIR)/eval-*/*/run-*
+	evals/$(SKILL)/checks.py --write $(FLAGS) $(EVAL_DIR)/eval-*/*/run-*
 
 eval-batch: ## Group runs that still need a model grader into prompt files under $(EVAL_DIR)/grader-batches/ (BUDGET= excerpt chars per call, default 60000)
 	evals/$(SKILL)/checks.py --batch $(if $(BUDGET),--budget=$(BUDGET),) $(EVAL_DIR)/eval-*/*/run-*

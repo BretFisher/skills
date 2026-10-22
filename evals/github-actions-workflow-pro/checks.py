@@ -6,9 +6,9 @@ fixture, scanner exit codes) and leaves the rest to the model grader. See AGENTS
 "Deterministic checks before model judgment".
 
 Usage:
-  checks.py --write   [--scanners] <run-dir>...  write grading.json: program verdicts filled in,
+  checks.py --write   [--no-scanners] [--force] <run-dir>...  write grading.json: program verdicts filled in,
                                                  `passed: null` on the assertions left for the model
-  checks.py --compare [--scanners] <run-dir>...  grade, then compare with the verdicts already in
+  checks.py --compare [--no-scanners] <run-dir>...  grade, then compare with the verdicts already in
                                                  grading.json (agreement report; nothing written)
   checks.py --finalize <run-dir>...              recompute summary after the model filled the nulls;
                                                  exit 1 if any null remains
@@ -22,8 +22,11 @@ YAML, the new SHAs) the model needs to judge it, so the grader can work from gra
 --finalize removes them.
   <run-dir> = evals/<skill>/runs/<iteration>/eval-N-<name>/<config>/run-M
 
-Without --scanners the scanner assertion is left null. Needs yq (brew install yq) and, for
---scanners, actionlint, zizmor, poutine, pinact, and gh auth (scan.sh sets the token).
+The scanners run by default; --no-scanners skips them and leaves the scanner assertion null
+(--scanners is accepted and does nothing, for old commands). Needs yq (brew install yq) and, for the
+scanners, actionlint, zizmor, poutine, pinact, and gh auth (scan.sh sets the token); a scanner that
+is not installed leaves the assertion null with the missing tool named.
+A null entry carries `kind`, so a residual grader can tell a skipped program check from a judgment.
 Kinds per assertion: program (decided here), split (program decides the mechanical half; the
 residual goes to the model), model (judgment only).
 """
@@ -39,7 +42,8 @@ SCAN = f"{REPO}/skills/{SKILL}/scripts/scan.sh"
 EVALS = json.load(open(f"{HERE}/evals.json"))["evals"]
 SHA = re.compile(r"uses:\s*(\S+)@([0-9a-f]{40})\s*(#.*)?$")
 YAML_BLOCK = re.compile(r"```ya?ml\n(.*?)```", re.S)
-RUN_SCANNERS = "--scanners" in sys.argv
+RUN_SCANNERS = "--no-scanners" not in sys.argv
+SCANNER_TOOLS = ("actionlint", "zizmor", "poutine", "pinact")
 
 
 def yload(text):
@@ -207,7 +211,10 @@ def scanners(run, actionlint_allow=None):
     if not run.wf:
         return True, "no YAML produced (vacuous)"
     if not RUN_SCANNERS:
-        return None, "skipped (--scanners not given)"
+        return None, "skipped (--no-scanners given)"
+    absent = [t for t in SCANNER_TOOLS if not shutil.which(t)]
+    if absent:
+        return None, f"skipped (not installed: {', '.join(absent)})"
     tmp = tempfile.mkdtemp(prefix="gha-check-")
     wfdir = f"{tmp}/.github/workflows"
     os.makedirs(wfdir)
@@ -1001,6 +1008,7 @@ def write_mode(dirs):
                  "evidence": (f"program ({kind}): {ev}" if res is not None else f"model: {ev}"),
                  "graded_by": "program" if res is not None else "model"}
             if res is None:
+                e["kind"] = kind
                 e["context"] = excerpts_for(run, idx)
             exps.append(e)
         n = len(exps); decided = sum(1 for e in exps if e["passed"] is not None)

@@ -90,7 +90,7 @@ model's reasoning: thinking blocks arrive with an empty body and a signature. `e
 turns these logs into a per-run table of turns, tool calls, and where the characters came from (skill
 files, work files, command output), which is the evidence to use when trimming a skill.
 
-**4. Grade, program first.** `make eval-check` runs `checks.py --write --scanners` on every run
+**4. Grade, program first.** `make eval-check` runs `checks.py --write` on every run
 directory. It parses the YAML with `yq`, runs actionlint, zizmor, poutine, and pinact in a scratch
 repo, compares pinned lines with the fixture byte for byte, greps the report for the headings the
 audit template names, and greps the transcript for SHA-returning lookups. It writes `grading.json`
@@ -230,9 +230,11 @@ make eval-view      SKILL=github-actions-workflow-pro ITER=13   # skill-creator 
 ```
 
 `ITER` defaults to the highest iteration present. Tools are never installed by the Makefile; a missing
-one prints its `brew install` formula. `checks.py` needs `yq`, and for `--scanners` it needs actionlint,
-zizmor, poutine, pinact, and an authenticated `gh` (`scan.sh` sets the token inside its own process so
-it never appears on a command line).
+one prints its `brew install` formula. `checks.py` needs `yq`, and for the scanners, which run unless you pass `--no-scanners`, it needs
+actionlint, zizmor, poutine, pinact, and an authenticated `gh` (`scan.sh` sets the token inside its own
+process so it never appears on a command line). A scanner that is not installed leaves its assertion
+null with `kind: program`; `make eval-grade` reruns `checks.py` on that run and stops if it is still
+null, so a model never grades a scanner verdict.
 
 Harness notes learned the hard way: graders never embed a `timing` object in `grading.json` (it breaks
 `aggregate_benchmark`; timing belongs in the sibling `timing.json`); never use `set -x` near a
