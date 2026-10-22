@@ -12,7 +12,7 @@ Usage:
   checks.py --kinds                          markdown table of program/split/model per eval (coverage.md)
   <run-dir> = evals/gha-audit/runs/<iteration>/eval-N-<name>/<config>/run-M
 
-`--scanners` is accepted and ignored so `make eval-check` works for every skill.
+`--scanners` and `--no-scanners` are accepted and ignored, so one command works for every skill.
 """
 import glob
 import json
