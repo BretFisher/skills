@@ -12,7 +12,7 @@ Apply these defaults proactively to every workflow you touch, unless the reposit
 1. Inspect existing workflow files before editing so new changes match the repository's naming, trigger, and secret conventions.
 2. Prefer the smallest correct change, and fix insecure or wasteful patterns in the code you are already touching.
 3. Facts are yours to find (an action's SHA, its required permissions, whether a tool supports OIDC). Decisions are the user's (adding a manual trigger, choosing a registry, creating an environment): put each one to them and wait.
-4. Use placeholders for secret names, environment names, package names, and cloud roles the repo does not reveal, and list every placeholder when you hand back.
+4. Use placeholders for secret names, environment names, package names, and cloud roles the repo does not reveal, and list every one under **Placeholders** in the hand-back.
 
 ## Building a workflow
 
@@ -58,6 +58,14 @@ Publish images on **trusted refs** only (default branch, tags, releases), from t
 - `cache-from: type=gha` and `cache-to: type=gha,mode=max`. `provenance: true` and `sbom: true` when publishing.
 - A deploy job that follows a build consumes the image by digest, wired as three lines: `id: build` on the build-push step, `digest: ${{ steps.build.outputs.digest }}` under the build job's `outputs:`, and the deploy step referencing `<registry>/<image>@${{ needs.build.outputs.digest }}`. Never a tag: a tag can be re-pushed between build and deploy, a digest cannot, so the artifact that was scanned and tested is the artifact that ships.
 
+## Hand-back
+
+End every create or edit task with these three `##` sections, in this order, with these exact headings. A fixed shape lets the user scan what was decided for them and what is still theirs, and nothing drops out at the end of a long task.
+
+- `## Defaults applied`: a `| Default | Why here |` table, one row per default the workflow uses: least-privilege permissions, SHA pinning, concurrency, caching, `timeout-minutes`, trusted-refs publishing (PR builds do not push), `provenance`/`sbom`, `persist-credentials: false`, `set -euo pipefail`. The reason says why it applies to this repo, not what the setting does.
+- `## Questions`: a numbered list of the decisions only the user can make (registry, publishing on tags, which update bot, a reusable workflow they may already have, a newer major). Facts the repo or the prompt states (runtime version, scripts, Dockerfile, branch) are yours to read, never a question. Write `none` when there are none; when the user cannot answer now, state the default you took on the same line.
+- `## Placeholders`: every value you made up and the user must confirm (secret and variable names, environment, role ARN, region, bucket, registry, image name), each with where it appears. Write `none` when there are none.
+
 ## Validate
 
 Run `scripts/validate.sh <file>...` on every file you edited. One call runs `actionlint`, `zizmor` (through `scan.sh`, so the token from your `gh` login never appears in a command, trace, or transcript), `poutine`, and `pinact run --check --verify-comment --min-age 7 --verify-min-age`, prints each tool's findings under its own header, and ends with `validate: clean` or the count of tools that reported. Fix what it reports and run it again until it is clean. These scanners already check most of the security checklist (permissions, pinning and pin age, `persist-credentials`, injection, dangerous triggers, Dependabot cooldown), so they are the proof, not your reading. `gasa` audits a pushed repository through the API, so it belongs to the audit path, not to a local edit. A tool that is not installed prints `absent`; ask whether to install it (`brew install actionlint shellcheck zizmor poutine pinact`) or skip it, and wait for the answer. Hand back only when the validators are clean or reported absent by name.
@@ -67,5 +75,4 @@ Run `scripts/validate.sh <file>...` on every file you edited. One call runs `act
 - [ ] `actionlint`, `zizmor`, `poutine`, and `pinact --check` clean on every edited file, or reported absent by name; the two reports allowed to remain are a branch ref pinact cannot pin (listed as open with the upstream fix: tag a release) and zizmor `dangerous-triggers` on a `pull_request_target` kept for a stated reason, plus actionlint's `unexpected key "background"` / `step must run script with "run"` on parallel-step syntax, which is its old schema and not a workflow error ([parallel-steps.md](references/parallel-steps.md))
 - [ ] Every job has a `permissions:` block and the workflow starts with `permissions: {}`
 - [ ] Every third-party `uses:` is a full SHA with a version comment, including any action that was on a tag in a file you edited; the hand-back names each one you pinned, and lines that were already pinned kept their SHA and comment
-- [ ] Every placeholder is listed for the user to confirm — environment name, region, role ARN, bucket, registry, secret names
-- [ ] The hand-back gives a one-line why for each of these defaults it applied — least-privilege permissions, SHA pinning, concurrency, caching, `timeout-minutes`, trusted-refs publishing, `provenance`/`sbom`, `persist-credentials: false`, `set -euo pipefail`. A named list, because "each default" is recalled from memory at the end of a long task and one always drops; the why states why it applies here, not what it does
+- [ ] The hand-back ends with `## Defaults applied` (a row with a reason for every default the workflow uses), `## Questions`, and `## Placeholders` (every made-up value: environment, region, role ARN, bucket, registry, secret names), each `none` when empty
