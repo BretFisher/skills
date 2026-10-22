@@ -53,8 +53,9 @@ def run(answer, yaml=YAML):
 class DefaultsTableTests(unittest.TestCase):
     names = ["permissions", "pinning", "concurrency", "caching", "timeout"]
 
-    def test_row_for_every_applied_default(self):
-        self.assertTrue(checks.defaults_table(run(HANDBACK), self.names)[0])
+    def test_complete_table_goes_to_model(self):
+        """Rows are a program check; whether each reason is a why is the model's residual."""
+        self.assertIsNone(checks.defaults_table(run(HANDBACK), self.names)[0])
 
     def test_missing_row_fails(self):
         answer = HANDBACK.replace("| Caching | npm ci is the slowest step here. |\n", "")
@@ -66,7 +67,7 @@ class DefaultsTableTests(unittest.TestCase):
         self.assertFalse(checks.defaults_table(run(HANDBACK.replace("A moved tag cannot change what runs.", "")), self.names)[0])
 
     def test_default_not_applied_needs_no_row(self):
-        self.assertTrue(checks.defaults_table(run(HANDBACK), ["pipefail", "persist-credentials", "trusted refs"])[0])
+        self.assertIs(checks.defaults_table(run(HANDBACK), ["pipefail", "persist-credentials", "trusted refs"])[0], True)
 
     def test_no_section_fails(self):
         self.assertFalse(checks.defaults_table(run("All defaults applied."), self.names)[0])
@@ -81,6 +82,10 @@ class QuestionTests(unittest.TestCase):
 
     def test_fact_question_fails(self):
         answer = HANDBACK + "\nWhich Node version do you use?\n"
+        self.assertFalse(checks.asks_only_decisions(run(answer), checks.E8_FACTS)[0])
+
+    def test_branch_question_fails(self):
+        answer = HANDBACK + "\n3. Is the default branch `main`? The local branch is `master`.\n"
         self.assertFalse(checks.asks_only_decisions(run(answer), checks.E8_FACTS)[0])
 
     def test_question_mark_in_yaml_is_not_a_question(self):

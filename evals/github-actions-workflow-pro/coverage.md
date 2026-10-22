@@ -42,7 +42,7 @@ with earlier model runs.
 
 | Eval    | Assertions | program | split  | model  | split indices    | model indices |
 | ------- | ---------- | ------- | ------ | ------ | ---------------- | ------------- |
-| e0      | 9          | 8       | 1      | 0      | #9               | —             |
+| e0      | 9          | 7       | 2      | 0      | #7 #9            | —             |
 | e1      | 8          | 6       | 1      | 1      | #8               | #6            |
 | e2      | 11         | 7       | 2      | 2      | #1 #11           | #7 #8         |
 | e3      | 11         | 9       | 2      | 0      | #8 #11           | —             |
@@ -50,14 +50,14 @@ with earlier model runs.
 | e5      | 11         | 9       | 2      | 0      | #5 #11           | —             |
 | e6      | 12         | 8       | 2      | 2      | #2 #12           | #10 #11       |
 | e7      | 13         | 10      | 2      | 1      | #12 #13          | #3            |
-| e8      | 10         | 9       | 1      | 0      | #10              | —             |
+| e8      | 10         | 8       | 2      | 0      | #7 #10           | —             |
 | e9      | 9          | 6       | 1      | 2      | #9               | #5 #6         |
 | e10     | 9          | 7       | 2      | 0      | #4 #7            | —             |
 | e11     | 10         | 5       | 3      | 2      | #2 #3 #10        | #6 #7         |
 | e12     | 4          | 2       | 2      | 0      | #2 #4            | —             |
 | e13     | 12         | 7       | 4      | 1      | #4 #5 #6 #12     | #2            |
 | e14     | 4          | 4       | 0      | 0      | —                | —             |
-| **all** | **145**    | **103** | **30** | **12** |                  |               |
+| **all** | **145**    | **101** | **32** | **12** |                  |               |
 
 The two cases a program cannot see, found in the 2026-09-09 grader comparison (`runs/grader-compare/`, dashboard
 `evals/_dashboard/grader-compare.html`): a SHA copied from another file and only described in transcript prose (why the transcript
@@ -123,7 +123,7 @@ assertion is vacuous there; the model reads the diff).
 | Every job has `permissions:`; `permissions: {}` at top | scanner + agent                              | mech; e0#2 e5#1                                                      |
 | Every third-party `uses:` SHA-pinned                   | scanner                                      | mech                                                                 |
 | Placeholders listed                                    | program (`## Placeholders`) e7#8; agent e2#7 | e2#7 e7#8                                                            |
-| Hand-back explains each default                        | program (`## Defaults applied`) e0#7 e8#7    | e0#7 e1#6 e2#7 e4#9 e8#7                                             |
+| Hand-back explains each default                        | split (`## Defaults applied` rows) e0#7 e8#7 | e0#7 e1#6 e2#7 e4#9 e8#7                                             |
 
 ## audit.md
 
@@ -574,21 +574,52 @@ every run were about the hand-back text, which had no fixed shape. The four Opus
 tokens for 54 judgments (about 7k each), about one third of the iteration cost. Fix: SKILL.md ends every
 create or edit task with `## Defaults applied` (a `| Default | Why here |` table), `## Questions`, and
 `## Placeholders`, and the audit template gains `## Questions` and `## Placeholders`. Seven assertions
-move from model to program and are reworded to the literal the program tests:
+leave the model, reworded to what the program tests:
 
-| Assertion  | Program check                                                                                       |
-| ---------- | --------------------------------------------------------------------------------------------------- |
-| e0#7, e8#7 | A `Defaults applied` row, reason three words or more, for each default the produced YAML applies    |
-| e0#8, e8#5 | `## Questions` exists, and no `?` line outside code blocks matches the prompt's or fixture's facts  |
-| e8#4       | A `## Questions` item on a reusable docker build workflow: a question, or the bespoke default taken |
-| e6#5       | A `## Questions` item naming HTML and Markdown, or the chat-default line near the top               |
-| e7#8       | `## Placeholders` names each new `vars.`/`secrets.` name, `<...>` token, literal role, region, env  |
+| Assertion  | Kind    | Check                                                                                               |
+| ---------- | ------- | --------------------------------------------------------------------------------------------------- |
+| e0#7, e8#7 | split   | Program fails a missing `Defaults applied` section or row; a complete table goes to the model (why) |
+| e0#8, e8#5 | program | `## Questions` exists, and no `?` line outside code blocks asks a fact the prompt or fixture states |
+| e8#4       | program | A `## Questions` item on a reusable docker build workflow: a question, or the bespoke default taken |
+| e6#5       | program | A `## Questions` item naming HTML and Markdown, or the chat-default line near the top               |
+| e7#8       | program | `## Placeholders` names each new `vars.`/`secrets.` name, `<...>` token, literal role, region, env  |
 
-The program checks the reason exists, not that it says why the default applies here; that half of the old
-judgment is dropped. Assertions 145, model 12 (was 19 of the 141-assertion set). Stored iterations 20 to
-25 predate the sections, so their verdicts on these seven are not comparable: without the skill these now
-fail by construction, which widens the measured gap. e1#6, e2#7, e2#8, and e4#9 are the same kind of
-hand-back judgment and stay model for now.
+e0#7 and e8#7 were program checks (a reason of three words or more) until iteration 27 showed the word count
+passing rows that say what, not why ("Pinned with pinact.", "10 for lint and test, 20 for the image jobs").
+They are split now: the model sees only a complete table, so a with-skill run costs one judgment each and a
+run without the sections costs none. e8#5 also gained the branch as a fact: the with-skill run asked "Is the
+default branch `main`?" after reading `master`, which SKILL.md's own Hand-back rule lists as a fact.
 
-Pending: one Sonnet 5.5 iteration to confirm the with-skill pass rate holds and to record grader tokens
-before and after.
+Without the skill these assertions now fail when the sections are absent, which widens the measured gap by
+construction; stored iterations 20 to 25 are not comparable on them. e1#6, e2#7, e2#8, and e4#9 are the
+same kind of hand-back judgment and stay model for now.
+
+#### Iteration 27 (2026-10-22, Sonnet 5.5, Claude Code CLI runner, all evals)
+
+`make eval-run HARNESS=claude MODEL=claude-sonnet-5-5 EFFORT=high`, one run per cell, both arms; residual
+grader `claude-sonnet-5-5` at high effort through `make eval-grade GRADER_HARNESS=claude`. This was the first
+live run of the runner's Claude adapter; it needed one fix (the prompt after `--`, because `--mcp-config`
+is variadic). Iteration 26 is the e0 smoke run. To measure the grader cost, the same 30 outputs were graded
+twice: once with `main`'s checks and assertion texts (before) and once with this change (after).
+
+| Grading of the same 30 runs | Model-graded verdicts | Grader batches | Grader tokens | Grader time | With skill | Without skill |
+| --------------------------- | --------------------- | -------------- | ------------- | ----------- | ---------- | ------------- |
+| Before (`main` checks)      | 53                    | 7              | 157,610       | 147 s       | 138/145    | 91/145        |
+| After (this change)         | 41                    | 5              | 122,178       | 114 s       | 137/145    | 91/145        |
+
+Grader tokens fall 22% (about 3k per removed judgment on Sonnet, against about 7k on Opus). On the seven
+assertions the with-skill verdicts match the model's on all four runs, including the two e8 failures. The one
+with-skill difference (e10#7) is grader noise: the two model gradings of identical excerpts disagreed on 6 of
+the 39 residuals they shared (e3#8, e6#10, e9#5, e10#7, e11#6, e13#2), about one in six, which is the case
+for program verdicts. Without the skill, e0#8, e7#8, and e8#5 move from model pass to program fail because
+the sections are absent; other noise flips balance the without-skill total.
+
+With-skill misses: e2#10, e7#12, e8#5 (branch question), e8#7 (rows say what, not why), e8#9, e9#6, e10#4,
+and e10#7. The with-skill rate, 137/145 (94.5%), is in line with iteration 21 (134/141, 95.0%, Sonnet 5.5
+through Claude Code subagents); the harness, token accounting, and assertion set differ, so that is a
+sanity check, not a comparison. Executor tokens (this runner counts cache reads): with skill 3.79M (mean
+253k per run), without 1.18M (mean 78k).
+
+Not in README: e0#7, e8#5, and e8#7 were reworded after the run, so `make eval-benchmark` rejects the
+iteration (each run records the assertion texts it started with). A fresh iteration with the final
+definitions is needed for a published row.

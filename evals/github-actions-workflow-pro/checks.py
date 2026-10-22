@@ -350,8 +350,9 @@ HANDBACK_DEFAULTS = {
     "pipefail": (lambda t: "set -euo pipefail" in t, r"pipefail"),
 }
 # Facts the prompt or the fixture states: a question about one asks the user for something the agent could read.
-E0_FACTS = r"install command|test command|\bnpm (ci|install|test)\b|package manager|yarn|pnpm|(which|what)[^?]{0,20}branch"
-E8_FACTS = r"node(\.js)? version|version of node|\.nvmrc|(lint|test|build) (command|script)|package manager|yarn|pnpm|dockerfile|\bport\b|image name|entry ?point"
+BRANCH_FACT = r"(which|what|is (the|it|your))[^?]{0,30}\bbranch"
+E0_FACTS = r"install command|test command|\bnpm (ci|install|test)\b|package manager|yarn|pnpm|" + BRANCH_FACT
+E8_FACTS = r"node(\.js)? version|version of node|\.nvmrc|(lint|test|build) (command|script)|package manager|yarn|pnpm|dockerfile|\bport\b|image name|entry ?point|" + BRANCH_FACT
 
 
 def prose(text):
@@ -371,7 +372,10 @@ def handback_section(run, name):
 
 
 def defaults_table(run, names):
-    """`## Defaults applied` has a row, with a reason of three words or more, for every named default the YAML applies."""
+    """Split. `## Defaults applied` has a row, with a reason of three words or more, for every named default the YAML
+    applies; a missing section or row fails here. Whether each reason says why the default applies here, rather than
+    what the setting does, is a judgment: a complete table goes to the model (iteration 27: "Pinned with pinact." and
+    "10 for lint and test, 20 for the image jobs" pass a word count and say no why)."""
     sec = handback_section(run, "Defaults applied")
     if sec is None:
         return False, "no `## Defaults applied` section"
@@ -383,7 +387,11 @@ def defaults_table(run, names):
     applied = [n for n in names if HANDBACK_DEFAULTS[n][0](run.all_text)]
     missing = [n for n in applied
                if not any(re.search(HANDBACK_DEFAULTS[n][1], d, re.I) and len(r.split()) >= 3 for d, r in rows)]
-    return not missing, f"applied={applied} rows={[d for d, _ in rows]} missing={missing}"
+    if missing:
+        return False, f"applied={applied} rows={[d for d, _ in rows]} missing={missing}"
+    if not applied:
+        return True, "no listed default applied (vacuous)"
+    return None, f"rows for {applied} present; model judges each reason is a why, not a what"
 
 
 def asks_only_decisions(run, facts):
@@ -474,7 +482,7 @@ def checks_for(run):
             (4, "program", lambda: (setup_node_cache(wf), "setup-node cache: npm")),
             (5, "program", lambda: (all_timeouts(wf) and bool(wf.get("name")) and all(j.get("name") for j in jobs(wf).values()) and all(s.get("name") for j in jobs(wf).values() for s in steps(j) if s.get("uses")), f"wf name={wf.get('name')!r} jobs named={[bool(j.get('name')) for j in jobs(wf).values()]} unnamed uses steps={sum(1 for j in jobs(wf).values() for s in steps(j) if s.get('uses') and not s.get('name'))} timeouts={all_timeouts(wf)}")),
             (6, "program", S),
-            (7, "program", lambda: defaults_table(run, list(HANDBACK_DEFAULTS))),
+            (7, "split", lambda: defaults_table(run, list(HANDBACK_DEFAULTS))),
             (8, "program", lambda: asks_only_decisions(run, E0_FACTS)),
             (9, TK, T),
         ]
@@ -736,7 +744,7 @@ def checks_for(run):
             (4, "program", lambda: asks_reusable_docker(run)),
             (5, "program", lambda: asks_only_decisions(run, E8_FACTS)),
             (6, "program", no_triggers),
-            (7, "program", lambda: defaults_table(run, ["permissions", "pinning", "concurrency", "caching", "timeout", "trusted refs"])),
+            (7, "split", lambda: defaults_table(run, ["permissions", "pinning", "concurrency", "caching", "timeout", "trusted refs"])),
             (8, "program", S),
             (9, "program", lambda: trusted_refs(dk[1]) if dk[1] else (None, "no docker workflow written; model")),
             (10, TK, T),
@@ -1016,7 +1024,7 @@ ASKS = [("answer", r"question|assum|default|ask|deferred"), ("transcript", r"que
 PLACEHOLDERS = [("answer", r"placeholder|confirm|assum")]
 PROVENANCE = [("shas", None), ("transcript", r"command|shell|pin|sha|question|deferred")]
 EXCERPTS = {
-    (0, 7): REASONS, (0, 8): ASKS,
+    (0, 7): REASONS,
     (1, 6): REASONS, (1, 8): PROVENANCE,
     (2, 1): [("yaml", None), ("answer", r"pull_request_target|trigger|security|hard")], (2, 7): REASONS, (2, 8): PLACEHOLDERS, (2, 11): PROVENANCE,
     (3, 8): [("yaml", None), ("answer", r"correctness|comment|remov|hard")], (3, 11): PROVENANCE,
@@ -1024,10 +1032,10 @@ EXCERPTS = {
     (4, 5): [("answer", r"needs|parallel|lint|speed|question")], (4, 9): [("answer", r"speed|why|reason|change")],
     (4, 11): [("answer", r"trigger|on:|coverage|question|assum")], (4, 12): PROVENANCE,
     (5, 5): [("answer", r"needs|parallel|chain|why")], (5, 11): PROVENANCE,
-    (6, 2): [("answer", r"correctness|hard|speed|opinion")], (6, 5): [("head", 25), ("answer", r"deliver|format|question|default")],
+    (6, 2): [("answer", r"correctness|hard|speed|opinion")],
     (6, 10): [("answer", None)], (6, 11): [("answer", r"correctness|hard|proposed"), ("yaml", None)], (6, 12): PROVENANCE,
-    (7, 3): [("answer", r"concurrency|cancel|speed|why|reason")], (7, 8): PLACEHOLDERS, (7, 12): [("answer", r"hard|finding")], (7, 13): PROVENANCE,
-    (8, 4): [("answer", r"docker-build-workflow|reusable|question|default|ask|assum")], (8, 5): ASKS, (8, 7): REASONS, (8, 10): PROVENANCE,
+    (7, 3): [("answer", r"concurrency|cancel|speed|why|reason")], (7, 12): [("answer", r"hard|finding")], (7, 13): PROVENANCE,
+    (8, 7): REASONS, (8, 10): PROVENANCE,
     (9, 5): [("answer", r"agentic|dependabot|hard|lock")], (9, 6): [("answer", r"agentic|hard")], (9, 9): PROVENANCE,
     (10, 4): [("yaml", None), ("answer", r"sleep|ready|readiness|health|why")], (10, 7): [("answer", r"parallel|background|new|2026|why")],
     (11, 2): ASKS, (11, 3): [("answer", r"set up job|runner|speed")],
