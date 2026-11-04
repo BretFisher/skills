@@ -5,6 +5,8 @@ from pathlib import Path
 import shutil
 import subprocess
 
+from .paths import skill_dir
+
 
 ROOT = Path(__file__).resolve().parents[2]
 ADAPTER = "k8s-restore-kyaml"
@@ -44,7 +46,7 @@ def source_plan(cache):
 
 def prepare_updater(work, home, plan):
     skill = work / "skills/k8s-catch-up"
-    shutil.copytree(ROOT / "skills/k8s-catch-up", skill, ignore=shutil.ignore_patterns("__pycache__"))
+    shutil.copytree(skill_dir("k8s-catch-up"), skill, ignore=shutil.ignore_patterns("__pycache__"))
     (skill / "references/kubectl-cli/kyaml-output-format.md").unlink()
     subprocess.run(["python3", str(skill / "scripts/k8s-features.py"), "index", "--write"],
                    cwd=work, check=True, capture_output=True, text=True)

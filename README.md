@@ -1,12 +1,12 @@
 # Bret's DevOps and \*Ops Skills
 
-A bunch of skills for daily work in DevOps, found in `./skills/`
+A bunch of skills for daily work in DevOps, grouped into plugins under `./plugins/<group>/skills/`.
 
 ## Install
 
-Pick one.
+Pick one. Skills come in two plugins, so you install only the group you want: `bretfisher-devops` and `bretfisher-utils` (macOS only).
 
-**As Claude Code plugins.** Skills come in two plugins, so you install only the group you want. `/plugin` updates them.
+**Claude Code:**
 
 ```text
 /plugin marketplace add bretfisher/skills
@@ -15,16 +15,35 @@ Pick one.
 ```
 
 To get every new commit automatically, open `/plugin`, go to **Marketplaces**, select `bretfisher`, and choose **Enable auto-update**.
-If you installed the old `bretfisher-skills` plugin, run the `bretfisher-devops` install line once; Claude Code migrates the old name.
+If you installed the old `bretfisher-skills` plugin, run the `bretfisher-devops` install line once: updating the marketplace removes the old plugin.
 
-**As individual skills** for Claude Code, Codex, OpenCode, GitHub Copilot, Pi, and other agents. Pick only the ones you want:
+**Codex:**
+
+```bash
+codex plugin marketplace add bretfisher/skills
+codex plugin add bretfisher-devops@bretfisher
+```
+
+**GitHub Copilot CLI:**
+
+```bash
+copilot plugin marketplace add bretfisher/skills
+copilot plugin install bretfisher-devops@bretfisher
+```
+
+**Cursor:** add `bretfisher/skills` as a plugin marketplace; it reads `.cursor-plugin/marketplace.json`.
+
+**Pi:** `pi install git:github.com/BretFisher/skills` loads every skill.
+
+**As individual skills** for OpenCode, Amp, and any other agent. Pick only the ones you want:
 
 ```bash
 npx skills add bretfisher/skills
 ```
 
 Mark the ones you want to install. Add `-g` to the command to install them globally.
-`gh skill install bretfisher/skills` and `pi install git:github.com/BretFisher/skills` also work.
+`gh skill install bretfisher/skills` also works.
+If you installed `screencapture` this way before it was renamed, `npx skills update` keeps the old copy; run `npx skills remove screencapture` and add `screencapture-mac`.
 
 ## Skills
 
@@ -180,13 +199,14 @@ This is a preliminary result. See [Audit eval coverage](evals/gha-audit/coverage
 
 ## Repo layout
 
-| Path                             | What                                                                         | Committed?    |
-| -------------------------------- | ---------------------------------------------------------------------------- | ------------- |
-| `skills/<name>/`                 | The skill: `SKILL.md`, plus `references/` and `scripts/` where it needs them | ✅ yes        |
-| `evals/<name>/`                  | Eval prompts and assertions, fixtures, the program grader, coverage notes    | ✅ yes        |
-| `evals/<name>/runs/iteration-N/` | Eval run output (transcripts, gradings, timings)                             | ❌ gitignored |
+| Path                             | What                                                                                                       | Committed?    |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------- |
+| `plugins/<group>/`               | One plugin: a manifest per harness (`plugin.json`, `.claude-plugin/`, `.cursor-plugin/`) and its `skills/` | ✅ yes        |
+| `plugins/<group>/skills/<name>/` | The skill: `SKILL.md`, plus `references/` and `scripts/` where it needs them                               | ✅ yes        |
+| `evals/<name>/`                  | Eval prompts and assertions, fixtures, the program grader, coverage notes                                  | ✅ yes        |
+| `evals/<name>/runs/iteration-N/` | Eval run output (transcripts, gradings, timings)                                                           | ❌ gitignored |
 
-Evals sit outside `skills/` so an installer copies only the skill. How a run works:
+Evals sit outside `plugins/` so an installer copies only the skills. How a run works:
 [docs/eval-walkthrough.md](docs/eval-walkthrough.md). What made the skills and evals better:
 [docs/lessons-learned.md](docs/lessons-learned.md). Per-assertion results: `evals/<name>/coverage.md`.
 

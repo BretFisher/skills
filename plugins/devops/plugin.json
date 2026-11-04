@@ -1,0 +1,43 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "bretfisher-devops",
+  "description": "Opinionated DevOps and platform engineering skills from a Docker Captain: Dockerfiles and Compose, GitHub Actions workflows and audits, recent Kubernetes features, and local linting setup. Tested with evals.",
+  "author": {
+    "name": "Bret Fisher",
+    "url": "https://www.bretfisher.com"
+  },
+  "homepage": "https://github.com/BretFisher/skills#readme",
+  "repository": "https://github.com/BretFisher/skills",
+  "license": "MIT",
+  "keywords": [
+    "docker",
+    "dockerfile",
+    "docker-compose",
+    "buildkit",
+    "github-actions",
+    "ci-cd",
+    "kubernetes",
+    "helm",
+    "linting",
+    "super-linter",
+    "devops",
+    "platform-engineering",
+    "sre"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Bret Fisher DevOps Skills",
+        "shortDescription": "Docker, GitHub Actions, Kubernetes, and linting skills",
+        "longDescription": "Opinionated DevOps and platform engineering skills from a Docker Captain: Dockerfiles and Compose, GitHub Actions workflows and audits, recent Kubernetes features, and local linting setup. Tested with evals.",
+        "developerName": "Bret Fisher",
+        "category": "Coding",
+        "websiteURL": "https://github.com/BretFisher/skills#readme",
+        "defaultPrompt": [
+          "Modernize this repo's Dockerfile and Compose file.",
+          "Audit this repo's GitHub Actions workflows."
+        ]
+      }
+    }
+  }
+}

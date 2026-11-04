@@ -2,7 +2,7 @@
 
 Sections the writers could not confirm at the stated stage on 2026-09-19: the KEP file claims a
 milestone that no release post, feature-gate page, or docs page supports. They were removed from
-`skills/k8s-catch-up/references/` so the reading agent never sees an unsupported claim. Review each
+`plugins/devops/skills/k8s-catch-up/references/` so the reading agent never sees an unsupported claim. Review each
 one when the next release ships; a section whose stage is then confirmed by a release post moves back
 into its category file through the normal update procedure.
 

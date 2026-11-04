@@ -18,7 +18,7 @@ It then installs the skills with the same commands the README gives users and as
 | `codex-install`      | Codex                  | Each plugin's `skills/` holds only its own skills.                                                         |
 | `copilot-install`    | GitHub Copilot CLI     | Each marketplace plugin loads exactly its own skills (`copilot skill list`).                               |
 | `npx-skills-install` | `npx skills`, OpenCode | Installing every skill records all of them, and `opencode debug skill` loads each one.                     |
-| `npx-skills-upgrade` | `npx skills`           | Skills installed from `origin/main` update to exactly the working tree's set.                              |
+| `npx-skills-upgrade` | `npx skills`           | Skills installed from `origin/main` update to exactly the working tree's set, from paths that still exist. |
 | `pi-install`         | Pi                     | `pi install git:github.com/BretFisher/skills` loads every skill (`pi --mode rpc`, `get_commands`).         |
 
 The expected skills come from the working tree's `.claude-plugin/marketplace.json`.
@@ -31,6 +31,26 @@ Git's `url.<base>.insteadOf` then points every `github.com/BretFisher/skills` UR
 That way `claude plugin marketplace add bretfisher/skills` and the other real commands run unchanged, and nothing is pushed.
 Upgrade checks point the bare repo's `main` at `origin/main` first, install, then move `main` to the working tree and update.
 After you push, `origin/main` equals the working tree and the upgrade checks only confirm an update with no changes.
+
+A renamed skill fails `npx-skills-upgrade` until it is pushed, because `npx skills update` keeps the old name and never adds the new one.
+That failure is expected; the fix is a README line telling users to remove the old name and add the new one.
+
+## Results for the plugins/ move
+
+Run before pushing the move from `skills/<name>/` to `plugins/<group>/skills/<name>/`, upgrading from `f47dffd`:
+
+| Check                | Before the move                     | After the move                    |
+| -------------------- | ----------------------------------- | --------------------------------- |
+| `claude-install`     | pass                                | pass                              |
+| `claude-upgrade`     | pass                                | pass                              |
+| `codex-install`      | fail: both plugins get all 6 skills | pass                              |
+| `copilot-install`    | fail: both plugins get all 6 skills | pass                              |
+| `npx-skills-install` | pass                                | pass                              |
+| `npx-skills-upgrade` | fail: `screencapture` rename        | fail: `screencapture` rename only |
+| `pi-install`         | pass                                | pass                              |
+
+`claude-upgrade` passes, but `claude plugin update bretfisher-skills` removes the old plugin and installs nothing in its place.
+Users get their skills back by running the `bretfisher-devops` install line, as the README says.
 
 ## Harnesses left out
 

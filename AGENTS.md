@@ -6,12 +6,16 @@ Read this before creating, editing, or evaluating a skill.
 ## Layout
 
 ```text
-skills/<skill-name>/          # SOURCE — committed; this directory is all an installer copies
-  SKILL.md                    #   the skill itself: description, working style, checklist, validate, done-when
-  references/*.md             #   detail read only when a branch needs it (rules + why, procedures)
-  scripts/*                   #   deterministic helpers the skill runs (linted, --help, structured output)
-  agents/openai.yaml          #   Codex display name and short description (and invocation policy when SKILL.md sets one)
-.claude-plugin/marketplace.json  # the Claude Code marketplace: plugin bretfisher-devops (DevOps skills) and bretfisher-utils (everything else)
+plugins/<group>/              # one plugin per group: devops (bretfisher-devops) and utils (bretfisher-utils, everything else)
+  plugin.json                 #   Agent Plugins 1.0.0 manifest (Codex reads it); .claude-plugin/ and .cursor-plugin/ hold the same metadata
+  skills/<skill-name>/        #   SOURCE — committed; a plugin install copies the whole plugin folder
+    SKILL.md                  #     the skill itself: description, working style, checklist, validate, done-when
+    references/*.md           #     detail read only when a branch needs it (rules + why, procedures)
+    scripts/*                 #     deterministic helpers the skill runs (linted, --help, structured output)
+    agents/openai.yaml        #     Codex display name and short description (and invocation policy when SKILL.md sets one)
+.claude-plugin/marketplace.json  # marketplaces listing both plugins: Claude Code (also read by Copilot and npx skills),
+.agents/plugins/marketplace.json #   Codex,
+.cursor-plugin/marketplace.json  #   and Cursor; package.json points Pi at plugins/*/skills
 evals/<skill-name>/           # EVAL DEFINITIONS — committed; outside the skill so installers never ship them
   evals.json                  #   prompts + assertions — the test contract
   fixtures/                   #   input files some evals hand to the agent
@@ -26,7 +30,7 @@ docs/                         # human-facing guides: eval-walkthrough.md (how a 
 ## Where skill evals go — important
 
 Eval files live outside the skill directory. Installers (`git clone`, `npx skills add`, a plugin
-marketplace) copy the whole `skills/<skill-name>/` directory, so a user who installs a skill pulls in
+marketplace) copy the whole `plugins/<group>/` or `plugins/<group>/skills/<skill-name>/` directory, so a user who installs a skill pulls in
 every file under it. The Agent Skills spec names no location for evals, and the skill-creator scripts
 take the skill path and the workspace path as explicit arguments, so nothing needs them inside the skill.
 
@@ -84,12 +88,14 @@ smoke runs and partial suites in coverage notes until full-suite validation is c
 
 ## Publishing a skill
 
-Every skill ships through plugin entries in `.claude-plugin/marketplace.json`, and each entry lists its skills explicitly.
-When you add, rename, or remove a skill, update the `skills` list of the matching plugin (`bretfisher-devops` for DevOps and platform work, `bretfisher-utils` for anything else), the README skills table, and the skill's `agents/openai.yaml`; an unlisted skill is never installed as a Claude Code plugin.
+A skill ships in the plugin whose `skills/` folder holds it: `plugins/devops/skills/` for DevOps and platform work, `plugins/utils/skills/` for anything else.
+Every harness loads a plugin's whole `skills/` folder, so the folder is the only list of a plugin's skills.
+When you add, rename, or remove a skill, also update the README skills table and give the skill an `agents/openai.yaml`.
 Give every SKILL.md `license: MIT`, and add `compatibility` when the skill needs a specific OS or tool.
-Leave `version` out of the plugin entries so each commit counts as an update.
-Never rename a plugin entry without adding the old name to `renames`, because installed users reference the plugin by name.
-`make lint` runs `claude plugin validate .` when the `claude` CLI is installed.
+Leave `version` out of every manifest so each commit counts as an update.
+Keep a plugin's name, description, and keywords the same in its three manifests and three marketplace entries, because each harness reads only its own file.
+Never rename a plugin without adding the old name to `renames` in `.claude-plugin/marketplace.json`, because installed users reference the plugin by name.
+`make lint` runs `scripts/check-plugins.py`, which fails when those files disagree, and `claude plugin validate .` when the `claude` CLI is installed.
 Before pushing a change to the repo layout, plugin entries, or skill names, run `make test-install`; it installs the skills into each harness in containers and upgrades from `origin/main` ([docs/install-tests.md](docs/install-tests.md)).
 
 ## Before committing
@@ -118,7 +124,7 @@ Anthropic's skill-creator and docs, then other sources. The rules below are the 
   progressive disclosure.
 - **A skill names only its own files and other skills.** Never point at a path in this repo
   (`PLAN.md`, `docs/`, `evals/`), and never mention this repo's plans or backlog. An installer copies
-  `skills/<skill-name>/` and nothing else, so any such path is missing on the user's machine, and our
+  `plugins/<group>/skills/<skill-name>/` (or the whole plugin) and nothing else, so any such path is missing on the user's machine, and our
   roadmap is not their context. A path in the _user's_ repo is fine: that is what the skill acts on.
 - **Prefer tools over prompts.** When a deterministic tool already checks a rule, the skill runs the
   tool and cites its rule id instead of restating the rule. A tool call is cheaper and more predictable

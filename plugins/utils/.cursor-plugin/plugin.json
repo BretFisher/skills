@@ -1,0 +1,19 @@
+{
+  "name": "bretfisher-utils",
+  "description": "Small developer utilities for agents. macOS only: screencapture-mac lets the agent screenshot native desktop apps to see what you see.",
+  "author": {
+    "name": "Bret Fisher",
+    "url": "https://www.bretfisher.com"
+  },
+  "homepage": "https://github.com/BretFisher/skills#readme",
+  "repository": "https://github.com/BretFisher/skills",
+  "license": "MIT",
+  "keywords": [
+    "macos",
+    "screenshot",
+    "screencapture",
+    "gui",
+    "desktop-apps",
+    "swiftui"
+  ]
+}

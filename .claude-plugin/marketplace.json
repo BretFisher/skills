@@ -9,8 +9,7 @@
     {
       "name": "bretfisher-devops",
       "displayName": "Bret Fisher DevOps Skills",
-      "source": "./",
-      "strict": false,
+      "source": "./plugins/devops",
       "description": "Opinionated DevOps and platform engineering skills from a Docker Captain: Dockerfiles and Compose, GitHub Actions workflows and audits, recent Kubernetes features, and local linting setup. Tested with evals.",
       "category": "devops",
       "tags": [
@@ -44,13 +43,6 @@
       "homepage": "https://github.com/BretFisher/skills#readme",
       "repository": "https://github.com/BretFisher/skills",
       "license": "MIT",
-      "skills": [
-        "./skills/docker-pro",
-        "./skills/github-actions-workflow-pro",
-        "./skills/gha-audit",
-        "./skills/k8s-catch-up",
-        "./skills/super-linting"
-      ],
       "relevance": {
         "topic": "DevOps",
         "signals": {
@@ -70,8 +62,7 @@
     {
       "name": "bretfisher-utils",
       "displayName": "Bret Fisher Utilities",
-      "source": "./",
-      "strict": false,
+      "source": "./plugins/utils",
       "description": "Small developer utilities for agents. macOS only: screencapture-mac lets the agent screenshot native desktop apps to see what you see.",
       "category": "utilities",
       "tags": ["macos", "screenshot", "gui", "desktop"],
@@ -89,8 +80,7 @@
       },
       "homepage": "https://github.com/BretFisher/skills#readme",
       "repository": "https://github.com/BretFisher/skills",
-      "license": "MIT",
-      "skills": ["./skills/screencapture-mac"]
+      "license": "MIT"
     }
   ],
   "renames": {

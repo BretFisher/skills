@@ -1,0 +1,24 @@
+{
+  "name": "bretfisher",
+  "owner": {
+    "name": "Bret Fisher",
+    "url": "https://www.bretfisher.com"
+  },
+  "metadata": {
+    "description": "Bret Fisher's agent skills: opinionated DevOps and platform engineering skills tested with evals, plus small developer utilities"
+  },
+  "plugins": [
+    {
+      "name": "bretfisher-devops",
+      "source": "plugins/devops",
+      "description": "Opinionated DevOps and platform engineering skills from a Docker Captain: Dockerfiles and Compose, GitHub Actions workflows and audits, recent Kubernetes features, and local linting setup. Tested with evals.",
+      "category": "devops"
+    },
+    {
+      "name": "bretfisher-utils",
+      "source": "plugins/utils",
+      "description": "Small developer utilities for agents. macOS only: screencapture-mac lets the agent screenshot native desktop apps to see what you see.",
+      "category": "utilities"
+    }
+  ]
+}

@@ -28,6 +28,7 @@ import sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 from harness.evidence import tool_calls
+from harness.paths import skill_dir
 REPO = os.path.dirname(os.path.dirname(HERE))
 EVALS = json.load(open(f"{HERE}/evals.json"))["evals"]
 YAML_BLOCK = re.compile(r"```ya?ml\n(.*?)```", re.S)
@@ -341,7 +342,7 @@ def e12_3(r):
 
 
 def e12_4(r):
-    src = f"{REPO}/skills/k8s-catch-up/references/kubectl-cli"
+    src = f"{skill_dir('k8s-catch-up')}/references/kubectl-cli"
     miss = []
     for f in glob.glob(f"{src}/*.md"):
         if "kyaml" in os.path.basename(f):

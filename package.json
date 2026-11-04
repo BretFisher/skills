@@ -1,0 +1,22 @@
+{
+  "name": "bretfisher-skills",
+  "private": true,
+  "description": "Bret Fisher's agent skills: opinionated DevOps and platform engineering skills tested with evals, plus small developer utilities",
+  "license": "MIT",
+  "author": "Bret Fisher (https://www.bretfisher.com)",
+  "homepage": "https://github.com/BretFisher/skills#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/BretFisher/skills.git"
+  },
+  "keywords": [
+    "pi-package",
+    "agent-skills",
+    "devops"
+  ],
+  "pi": {
+    "skills": [
+      "./plugins/*/skills"
+    ]
+  }
+}

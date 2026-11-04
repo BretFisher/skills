@@ -13,5 +13,5 @@ evals/.eval-key/
 __pycache__/
 
 # A global `*secret*` ignore rule would hide feature files named after Kubernetes Secrets.
-# These are docs, not credentials, so un-ignore Markdown under skills/.
-!skills/**/*secret*.md
+# These are docs, not credentials, so un-ignore Markdown under each plugin's skills/.
+!plugins/*/skills/**/*secret*.md

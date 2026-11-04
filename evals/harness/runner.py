@@ -17,6 +17,7 @@ import tempfile
 import time
 
 from .evidence import EvidenceError, load_run
+from .paths import skill_dir
 from .setup import prepare_updater, source_plan, validate_adapter
 
 
@@ -139,7 +140,7 @@ def opencode_config(home, work, skill, mode, skill_source=None):
     if mode == "with_skill":
         for name in (skill, *DEPENDENCIES.get(skill, ())):
             destination = config_dir / "skills" / name
-            shutil.copytree(skill_source if name == skill and skill_source else ROOT / "skills" / name, destination)
+            shutil.copytree(skill_source if name == skill and skill_source else skill_dir(name), destination)
             permissions.append({"action": "skill", "resource": name, "effect": "allow"})
     config = {"$schema": "https://opencode.ai/config.json", "permissions": permissions,
               "formatter": False, "snapshots": False, "warming": False}
@@ -347,7 +348,7 @@ def execute_one(spec, mode, number, iteration, args, fingerprint):
                 skill_line = f"Load the {args.skill} skill first and follow it."
             else:
                 snapshot = home / "skill" / args.skill
-                shutil.copytree(skill_source or ROOT / "skills" / args.skill, snapshot)
+                shutil.copytree(skill_source or skill_dir(args.skill), snapshot)
                 skill_line = f"Read {snapshot}/SKILL.md first and follow it."
         prompt = (
             "Execute this user task in the current repository. The user is unavailable; "
@@ -410,11 +411,11 @@ def main():
     mappings = {str(s["id"]): fixture_map(s, args.skill) for s in specs}
     args.source_plan = source_plan(args.source_cache) if any(s.get("setup_adapter") for s in specs) else None
     version = command([args.harness, "--version"], ROOT).strip() if not args.prepare_only else "not queried"
-    skill_hash = tree_hash(ROOT / "skills" / args.skill)
+    skill_hash = tree_hash(skill_dir(args.skill))
     plan = {"schema_version": 1, "harness": args.harness, "harness_version": version,
             "model": args.model, "effort": args.effort if args.harness == "claude" else None,
              "skill": args.skill, "skill_sha256": skill_hash, "eval_ids": sorted(requested),
-             "dependency_hashes": {name: tree_hash(ROOT / "skills" / name) for name in DEPENDENCIES.get(args.skill, ())},
+             "dependency_hashes": {name: tree_hash(skill_dir(name)) for name in DEPENDENCIES.get(args.skill, ())},
              "source_plan": args.source_plan,
             "repeats": args.repeat, "fixtures": mappings,
             "definitions_sha256": hashlib.sha256(definitions.read_bytes()).hexdigest(),

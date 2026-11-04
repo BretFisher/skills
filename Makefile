@@ -12,7 +12,7 @@ EVAL_DIR       = evals/$(SKILL)/runs/iteration-$(ITER)
 need = command -v $(1) >/dev/null 2>&1 || { echo "missing: $(1)  ->  brew install $(2)"; exit 1; }
 
 # scan.sh sets the GitHub token inside its own process; never inline `gh auth token` in a recipe
-SCAN := skills/github-actions-workflow-pro/scripts/scan.sh
+SCAN := plugins/devops/skills/github-actions-workflow-pro/scripts/scan.sh
 
 .PHONY: help lint lint-plugin lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins fmt eval-key eval-check eval-batch eval-finalize eval-benchmark eval-view pin run-stats k8s-features k8s-verify k8s-check
 
@@ -44,8 +44,10 @@ eval-recover: ## Recover a retained OpenCode evidence-collection failure without
 
 lint: lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins lint-plugin eval-test ## Run every linter and eval harness tests (pre-commit gate)
 
-lint-plugin: ## claude plugin validate on the marketplace (skipped when the claude CLI is absent)
-	@if command -v claude >/dev/null 2>&1; then claude plugin validate .; else echo "skip: claude CLI not installed"; fi
+lint-plugin: ## Check that plugin manifests, marketplaces, and README agree; claude plugin validate and the Agent Plugins schema when those tools exist
+	python3 scripts/check-plugins.py
+	@if command -v claude >/dev/null 2>&1; then for d in . plugins/*; do claude plugin validate $$d || exit 1; done; else echo "skip: claude CLI not installed"; fi
+	@if command -v check-jsonschema >/dev/null 2>&1; then check-jsonschema --schemafile https://agent-plugins.org/schemas/1.0.0/plugin.schema.json plugins/*/plugin.json; else echo "skip: check-jsonschema not installed (brew install check-jsonschema)"; fi
 
 test-install: ## Install the skills into each agent harness in Ubuntu containers, upgrading from origin/main (Dagger, local only; run before pushing a layout change)
 	@$(call need,dagger,dagger/tap/dagger)
@@ -67,15 +69,15 @@ fmt: ## prettier --write on Markdown and JSON
 
 lint-yaml: ## yamllint on all YAML (config: .github/linters/.yaml-lint.yml, shared with CI)
 	@$(call need,yamllint,yamllint)
-	yamllint -c .github/linters/.yaml-lint.yml .github/ skills/ evals/*/fixtures/
+	yamllint -c .github/linters/.yaml-lint.yml .github/ plugins/ evals/*/fixtures/
 
 lint-sh: ## shellcheck on every skill shell script (skips cleanly when there are none)
 	@$(call need,shellcheck,shellcheck)
-	@files=$$(ls skills/*/scripts/*.sh 2>/dev/null); if [ -n "$$files" ]; then shellcheck $$files; else echo "lint-sh: no shell scripts under skills/*/scripts"; fi
+	@files=$$(ls plugins/*/skills/*/scripts/*.sh 2>/dev/null); if [ -n "$$files" ]; then shellcheck $$files; else echo "lint-sh: no shell scripts under plugins/*/skills/*/scripts"; fi
 
 lint-py: ## byte-compile every skill Python script (no Python linter in CI either, by choice; skips cleanly when there are none)
-	@files=$$(ls skills/*/scripts/*.py 2>/dev/null); if [ -n "$$files" ]; then python3 -m py_compile $$files; else echo "lint-py: no Python scripts under skills/*/scripts"; fi
-	python3 -m compileall -q evals/harness
+	@files=$$(ls plugins/*/skills/*/scripts/*.py 2>/dev/null); if [ -n "$$files" ]; then python3 -m py_compile $$files; else echo "lint-py: no Python scripts under plugins/*/skills/*/scripts"; fi
+	python3 -m compileall -q evals/harness scripts
 
 lint-actions: ## actionlint + zizmor + poutine on this repo's workflows; actionlint on the well-formed eval fixtures
 	@$(call need,actionlint,actionlint)
@@ -109,17 +111,17 @@ eval-view: ## Write static review.html with the unchanged upstream renderer; OPE
 	python3 -m evals.harness.reporting view "$(EVAL_DIR)" --skill-name "$(SKILL)" --skill-creator "$(SKILL_CREATOR)" --primary "$(or $(PRIMARY),with_skill)" --baseline "$(or $(BASELINE),without_skill)" $(if $(PREVIOUS),--previous "$(PREVIOUS)",) $(if $(OPEN),--open,)
 
 run-stats: ## Rank this repo's workflows and jobs by duration over the last RUNS runs (REPO= for another repo)
-	@skills/github-actions-workflow-pro/scripts/run-stats.py --markdown --runs $(or $(RUNS),3) $(if $(REPO),--repo $(REPO),)
+	@plugins/devops/skills/github-actions-workflow-pro/scripts/run-stats.py --markdown --runs $(or $(RUNS),3) $(if $(REPO),--repo $(REPO),)
 
 k8s-features: ## Table of Kubernetes features that reached beta/GA in the last 12 months (SINCE=YYYY-MM or RELEASES=v1.36,v1.37 to change the window); clones two sparse repos into ~/.cache/k8s-catch-up on first run
-	@skills/k8s-catch-up/scripts/k8s-features.py table $(if $(SINCE),--since $(SINCE),) $(if $(RELEASES),--releases $(RELEASES),)
+	@plugins/devops/skills/k8s-catch-up/scripts/k8s-features.py table $(if $(SINCE),--since $(SINCE),) $(if $(RELEASES),--releases $(RELEASES),)
 
 k8s-verify: ## Check every k8s-catch-up feature file's Status line against the release posts, gate pages, and kep.yaml, and SKILL.md's links and index (STRICT=1 to fail on any note)
-	@skills/k8s-catch-up/scripts/k8s-features.py verify $(if $(STRICT),--strict,)
-	@skills/k8s-catch-up/scripts/k8s-features.py index
+	@plugins/devops/skills/k8s-catch-up/scripts/k8s-features.py verify $(if $(STRICT),--strict,)
+	@plugins/devops/skills/k8s-catch-up/scripts/k8s-features.py index
 
 k8s-check: ## Exit 1 when a Kubernetes minor release newer than k8s-catch-up's Covers line exists (run it after each Kubernetes release, about three times a year)
-	@skills/k8s-catch-up/scripts/k8s-features.py check
+	@plugins/devops/skills/k8s-catch-up/scripts/k8s-features.py check
 
 pin: ## Pin this repo's workflows with pinact (newest release at least 7 days old); FILES= to limit
 	@$(call need,pinact,pinact)

@@ -32,10 +32,11 @@ import json, re, subprocess, sys, os, glob, shutil, tempfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
 from harness.evidence import load_run, provenance
+from harness.paths import skill_dir
 REPO = os.path.dirname(os.path.dirname(HERE))
 SKILL = os.path.basename(HERE)
 FIX = f"{HERE}/fixtures"
-SCAN = f"{REPO}/skills/{SKILL}/scripts/scan.sh"
+SCAN = f"{skill_dir(SKILL)}/scripts/scan.sh"
 EVALS = json.load(open(f"{HERE}/evals.json"))["evals"]
 SHA = re.compile(r"uses:\s*(\S+)@([0-9a-f]{40})\s*(#.*)?$")
 YAML_BLOCK = re.compile(r"```ya?ml\n(.*?)```", re.S)

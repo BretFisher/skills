@@ -240,15 +240,25 @@ echo "### after-update"; claude plugin list --json | python3 -c 'import json,sys
         """Copilot CLI: each marketplace plugin loads exactly its own skills."""
         expected = await self._expected()
         script = f"copilot plugin marketplace add {REPO} >/dev/null\n" + "".join(
-            f"copilot plugin install {p}@{MARKETPLACE} >/dev/null\n" for p in expected
-        ) + "copilot skill list\n"
+            f"copilot plugin install {p}@{MARKETPLACE} >/dev/null\n"
+            f"echo '### {p}'; copilot skill list\n"
+            for p in expected
+        )
         out = await self._run(self.harness("copilot"), script)
-        listing = out.split("Plugin skills:", 1)[-1].split("\n\n", 1)[0]
-        # With more than one plugin installed, each line reads "  plugin:skill - description".
-        only = next(iter(expected)) if len(expected) == 1 else ""
-        got: dict[str, set[str]] = {}
-        for plugin, skill in re.findall(r"^  (?:([a-z0-9-]+):)?([a-z0-9-]+) - ", listing, re.M):
-            got.setdefault(plugin or only, set()).add(skill)
+        sections = dict(re.findall(r"### (\S+)\n(.*?)(?=### |\Z)", out, re.S))
+        # Copilot prefixes a skill with "plugin:" only when two installed plugins share its name.
+        # Unprefixed skills are credited to the plugin whose install added them.
+        got: dict[str, set[str]] = {p: set() for p in expected}
+        seen: set[str] = set()
+        for p in expected:
+            listing = sections.get(p, "").split("Plugin skills:", 1)[-1].split("\n\n", 1)[0]
+            entries = re.findall(r"^  (?:([a-z0-9-]+):)?([a-z0-9-]+) - ", listing, re.M)
+            for plugin, skill in entries:
+                if plugin:
+                    got.setdefault(plugin, set()).add(skill)
+                elif skill not in seen:
+                    got[p].add(skill)
+            seen |= {skill for _, skill in entries}
         _require([_diff(p, want, got.get(p, set())) for p, want in expected.items()], [])
 
     # npx skills and OpenCode ---------------------------------------------
@@ -276,14 +286,21 @@ echo "### after-update"; claude plugin list --json | python3 -c 'import json,sys
         expected = set().union(*(await self._expected()).values())
         script = "git init -q\nset-main old\n" + NPX_ADD + "echo '### old'; " + LOCK_NAMES + \
             "set-main new\nskills update -y >/dev/null 2>&1\n" + \
-            "echo '### lock'; " + LOCK_NAMES + "echo '### dirs'; ls .agents/skills | tr '\\n' ' '; echo\n"
+            "echo '### lock'; " + LOCK_NAMES + "echo '### dirs'; ls .agents/skills | tr '\\n' ' '; echo\n" + \
+            "echo '### stale'; python3 -c 'import json,os; print(\" \".join(n for n,s in " \
+            "json.load(open(\"skills-lock.json\"))[\"skills\"].items() " \
+            "if not os.path.isfile(\"/srv/src/\"+s[\"skillPath\"])))'\n"
         out = await self._run(self.harness("npx-skills"), script)
         old = set(re.search(r"### old\n(.*)", out).group(1).split())
         lock = set(re.search(r"### lock\n(.*)", out).group(1).split())
         dirs = set(re.search(r"### dirs\n(.*)", out).group(1).split())
+        stale = set(re.search(r"### stale\n(.*)", out).group(1).split())
         notes = [f"- installed from old_ref: {', '.join(sorted(old))}"]
-        _require([_diff("skills-lock.json after update", expected, lock),
-                         _diff(".agents/skills after update", expected, dirs)], notes)
+        problems = [_diff("skills-lock.json after update", expected, lock),
+                    _diff(".agents/skills after update", expected, dirs)]
+        if stale:
+            problems.append("skills-lock.json paths missing from the working tree: " + ", ".join(sorted(stale)))
+        _require(problems, notes)
 
     # Pi ------------------------------------------------------------------
 

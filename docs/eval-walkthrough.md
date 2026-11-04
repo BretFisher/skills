@@ -13,14 +13,14 @@ them later to see whether a change to the skill broke something.
 
 Two things have different homes, and the split matters:
 
-| Thing                | Where                             | Committed | Why                                                                                                                              |
-| -------------------- | --------------------------------- | --------- | -------------------------------------------------------------------------------------------------------------------------------- |
-| Eval **definitions** | `evals/<skill>/evals.json`        | yes       | The contract. Outside `skills/<skill>/` because installers copy the whole skill directory and users need none of this at runtime |
-| Fixture inputs       | `evals/<skill>/fixtures/`         | yes       | Input files an eval hands to the agent (an insecure workflow, a slow one, a small Node repo)                                     |
-| Program checks       | `evals/<skill>/checks.py`         | yes       | Grades every assertion a program can decide                                                                                      |
-| Coverage map         | `evals/<skill>/coverage.md`       | yes       | Maps each rule in the skill to the assertion that proves it, and records each assertion's kind                                   |
-| Run **artifacts**    | `evals/<skill>/runs/iteration-N/` | no        | Transcripts, outputs, gradings, timings. Regenerated on every run and machine-specific, so not source of truth                   |
-| Dashboards           | `evals/_dashboard/`               | no        | Built from every run on disk                                                                                                     |
+| Thing                | Where                             | Committed | Why                                                                                                                                              |
+| -------------------- | --------------------------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Eval **definitions** | `evals/<skill>/evals.json`        | yes       | The contract. Outside `plugins/<group>/skills/<skill>/` because installers copy the whole skill directory and users need none of this at runtime |
+| Fixture inputs       | `evals/<skill>/fixtures/`         | yes       | Input files an eval hands to the agent (an insecure workflow, a slow one, a small Node repo)                                                     |
+| Program checks       | `evals/<skill>/checks.py`         | yes       | Grades every assertion a program can decide                                                                                                      |
+| Coverage map         | `evals/<skill>/coverage.md`       | yes       | Maps each rule in the skill to the assertion that proves it, and records each assertion's kind                                                   |
+| Run **artifacts**    | `evals/<skill>/runs/iteration-N/` | no        | Transcripts, outputs, gradings, timings. Regenerated on every run and machine-specific, so not source of truth                                   |
+| Dashboards           | `evals/_dashboard/`               | no        | Built from every run on disk                                                                                                                     |
 
 The Agent Skills spec names no location for evals, so keeping them outside the skill costs nothing in
 compatibility. The skill-creator scripts take the skill path and the workspace path as explicit
@@ -65,7 +65,7 @@ session. Each executor gets a prompt of this shape:
 
 ```text
 Execute this task:
-- Skill path: skills/github-actions-workflow-pro      <- absent in the without-skill run
+- Skill path: plugins/devops/skills/github-actions-workflow-pro      <- absent in the without-skill run
 - Task: <the eval prompt, verbatim>
 - Input files: work/.github/workflows/ci.yml
 - Save outputs to: <run-dir>/outputs/
