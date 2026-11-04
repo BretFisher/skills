@@ -80,14 +80,15 @@ class RerunProgramTests(unittest.TestCase):
         self.assertEqual(doc["summary"]["pending_model"], 0)
 
     def test_legacy_entries_get_kinds_and_scanner_rerun(self):
-        self.write({4: {"passed": None, "evidence": "model: judgment only"},
+        # e8#7 (the defaults table) is split: a legacy null keeps its null for the model and gains its kind.
+        self.write({7: {"passed": None, "evidence": "model: judgment only"},
                       8: {"passed": None, "evidence": "model: skipped (--scanners not given)"}})
         with self.scanners((True, "clean")):
             self.assertEqual(checks.rerun_program(str(self.run)), [])
         doc = self.read()
-        self.assertEqual(doc["expectations"][3]["kind"], "model")
+        self.assertEqual(doc["expectations"][6]["kind"], "split")
         self.assertIs(doc["expectations"][7]["passed"], True)
-        self.assertEqual(doc["residual"]["indices"], [4])
+        self.assertEqual(doc["residual"]["indices"], [7])
 
     def test_still_null_is_reported_and_kept(self):
         self.write({8: {"passed": None, "evidence": "model: skipped", "kind": "program"}})
