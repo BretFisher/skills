@@ -1,0 +1,5 @@
+name = "install-tests"
+
+[entrypoint]
+  kind = "dang"
+  source = "./sdk/entrypoint"

@@ -19,6 +19,7 @@ evals/<skill-name>/           # EVAL DEFINITIONS — committed; outside the skil
   coverage.md                 #   maps every rule line to the assertion that proves it, or names the gap; records each assertion's kind
   runs/iteration-N/           #   RUN ARTIFACTS — gitignored: transcripts, grading.json, timing.json, benchmark.*
 evals/_dashboard/             # gitignored: build-dashboard.py and the dashboard.html it builds from every run
+.dagger/modules/install-tests/ # Dagger checks that install the skills into each harness (`make test-install`); sdk/ and clients/ are generated
 docs/                         # human-facing guides: eval-walkthrough.md (how a run works), lessons-learned.md (what improved the skill and evals)
 ```
 
@@ -89,6 +90,7 @@ Give every SKILL.md `license: MIT`, and add `compatibility` when the skill needs
 Leave `version` out of the plugin entries so each commit counts as an update.
 Never rename a plugin entry without adding the old name to `renames`, because installed users reference the plugin by name.
 `make lint` runs `claude plugin validate .` when the `claude` CLI is installed.
+Before pushing a change to the repo layout, plugin entries, or skill names, run `make test-install`; it installs the skills into each harness in containers and upgrades from `origin/main` ([docs/install-tests.md](docs/install-tests.md)).
 
 ## Before committing
 

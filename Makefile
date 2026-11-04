@@ -21,7 +21,7 @@ help: ## Show this help
 	@echo
 	@echo "Variables: SKILL=$(SKILL)  ITER=$(ITER)  SKILL_CREATOR=$(SKILL_CREATOR)"
 
-.PHONY: eval-test eval-run eval-plan eval-grade eval-recover
+.PHONY: eval-test eval-run eval-plan eval-grade eval-recover test-install
 eval-test: ## Test the shared eval harness and checker regressions without model calls
 	python3 -m unittest discover -s evals -p 'test_*.py' -v
 
@@ -47,11 +47,15 @@ lint: lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins lint-plu
 lint-plugin: ## claude plugin validate on the marketplace (skipped when the claude CLI is absent)
 	@if command -v claude >/dev/null 2>&1; then claude plugin validate .; else echo "skip: claude CLI not installed"; fi
 
+test-install: ## Install the skills into each agent harness in Ubuntu containers, upgrading from origin/main (Dagger, local only; run before pushing a layout change)
+	@$(call need,dagger,dagger/tap/dagger)
+	dagger check --module install-tests
+
 lint-md: ## markdownlint on all Markdown (config: .github/linters/.markdown-lint.yml, shared with CI)
 	@$(call need,markdownlint,markdownlint-cli)
-	markdownlint -c .github/linters/.markdown-lint.yml '**/*.md' --ignore node_modules --ignore 'evals/*/runs/**' --ignore 'evals/_dashboard/**' --ignore CLAUDE.md
+	markdownlint -c .github/linters/.markdown-lint.yml '**/*.md' --ignore node_modules --ignore 'evals/*/runs/**' --ignore 'evals/_dashboard/**' --ignore '.dagger/modules/*/sdk/**' --ignore CLAUDE.md
 
-PRETTIER_FILES = "**/*.md" "**/*.json" "!evals/*/runs/**" "!evals/_dashboard/**" "!.agents/**" "!.claude/worktrees/**" "!node_modules/**" "!CLAUDE.md" '.github/**/*.y*ml'
+PRETTIER_FILES = "**/*.md" "**/*.json" "!evals/*/runs/**" "!evals/_dashboard/**" "!.agents/**" "!.claude/worktrees/**" "!.dagger/modules/*/sdk/**" "!node_modules/**" "!CLAUDE.md" '.github/**/*.y*ml'
 
 lint-fmt: ## prettier --check on Markdown and JSON (super-linter runs the same check in CI)
 	@$(call need,prettier,prettier)

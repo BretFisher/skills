@@ -34,8 +34,8 @@ jobs:
     uses: bretfisher/super-linter-workflow/.github/workflows/reusable-super-linter.yaml@main # zizmor: ignore[unpinned-uses]
 
     with:
-      # skip vendored 3rd-party skill-creator tooling; lint our own skills/ and root docs
-      filter-regex-exclude: (^|/)\.agents/|(^|/)evals/[^/]+/fixtures/
+      # skip vendored 3rd-party skill-creator tooling and Dagger's generated SDK code; lint our own skills/ and root docs
+      filter-regex-exclude: (^|/)\.agents/|(^|/)evals/[^/]+/fixtures/|(^|/)\.dagger/modules/[^/]+/(sdk|clients)/
 
     ### Other optional settings (which linters run is controlled by .github/super-linter.env)
     ###
