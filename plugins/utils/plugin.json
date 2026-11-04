@@ -28,7 +28,9 @@
         "websiteURL": "https://github.com/BretFisher/skills#readme",
         "defaultPrompt": [
           "Take a screenshot of the app window and tell me what you see."
-        ]
+        ],
+        "logo": "./assets/logo.png",
+        "composerIcon": "./assets/logo.png"
       }
     }
   }

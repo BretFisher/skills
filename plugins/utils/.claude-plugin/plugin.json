@@ -15,5 +15,6 @@
     "gui",
     "desktop-apps",
     "swiftui"
-  ]
+  ],
+  "icon": "./assets/logo.png"
 }

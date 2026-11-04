@@ -22,5 +22,6 @@
     "devops",
     "platform-engineering",
     "sre"
-  ]
+  ],
+  "icon": "./assets/logo.png"
 }

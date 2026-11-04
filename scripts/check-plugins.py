@@ -46,6 +46,21 @@ def main():
                     problems.append(f"{rel}/{m}: {key} differs from {next(iter(manifests))}")
         if manifests.get("plugin.json", {}).get("$schema") != SCHEMA:
             problems.append(f"{rel}/plugin.json: $schema must be {SCHEMA} (Codex rejects other versions)")
+        # Installers copy only the plugin folder, so each plugin carries its own copy of assets/logo.png.
+        icons = [
+            (".claude-plugin/plugin.json", manifests.get(".claude-plugin/plugin.json", {}).get("icon")),
+            (".cursor-plugin/plugin.json", manifests.get(".cursor-plugin/plugin.json", {}).get("logo")),
+        ]
+        interface = manifests.get("plugin.json", {}).get("extensions", {}).get("com.openai", {}).get("interface", {})
+        icons += [(f"plugin.json {key}", interface.get(key)) for key in ("logo", "composerIcon")]
+        for where, icon in icons:
+            if not icon:
+                problems.append(f"{rel}/{where}: set the logo to ./assets/logo.png")
+            elif not (folder / icon).is_file():
+                problems.append(f"{rel}/{where}: {icon} does not exist inside the plugin")
+        copy = folder / "assets/logo.png"
+        if not copy.is_file() or copy.read_bytes() != (ROOT / "assets/logo.png").read_bytes():
+            problems.append(f"{rel}/assets/logo.png: copy assets/logo.png over it")
         name = first["name"]
         plugins[name] = rel
         for skill_md in sorted(folder.glob("skills/*/SKILL.md")):

@@ -36,7 +36,9 @@
         "defaultPrompt": [
           "Modernize this repo's Dockerfile and Compose file.",
           "Audit this repo's GitHub Actions workflows."
-        ]
+        ],
+        "logo": "./assets/logo.png",
+        "composerIcon": "./assets/logo.png"
       }
     }
   }

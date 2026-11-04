@@ -94,6 +94,7 @@ When you add, rename, or remove a skill, also update the README skills table and
 Give every SKILL.md `license: MIT`, and add `compatibility` when the skill needs a specific OS or tool.
 Leave `version` out of every manifest so each commit counts as an update.
 Keep a plugin's name, description, and keywords the same in its three manifests and three marketplace entries, because each harness reads only its own file.
+The logo lives at `assets/logo.png`; copy it to `plugins/<group>/assets/logo.png` whenever it changes, because an installer copies only the plugin folder.
 Never rename a plugin without adding the old name to `renames` in `.claude-plugin/marketplace.json`, because installed users reference the plugin by name.
 `make lint` runs `scripts/check-plugins.py`, which fails when those files disagree, and `claude plugin validate .` when the `claude` CLI is installed.
 Before pushing a change to the repo layout, plugin entries, or skill names, run `make test-install`; it installs the skills into each harness in containers and upgrades from `origin/main` ([docs/install-tests.md](docs/install-tests.md)).
