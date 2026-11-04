@@ -1,0 +1,3 @@
+interface:
+  display_name: "Docker Pro"
+  short_description: "Modern Dockerfiles, Compose, and Bake with BuildKit"

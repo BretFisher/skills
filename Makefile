@@ -14,7 +14,7 @@ need = command -v $(1) >/dev/null 2>&1 || { echo "missing: $(1)  ->  brew instal
 # scan.sh sets the GitHub token inside its own process; never inline `gh auth token` in a recipe
 SCAN := skills/github-actions-workflow-pro/scripts/scan.sh
 
-.PHONY: help lint lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins fmt eval-key eval-check eval-batch eval-finalize eval-benchmark eval-view pin run-stats k8s-features k8s-verify k8s-check
+.PHONY: help lint lint-plugin lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins fmt eval-key eval-check eval-batch eval-finalize eval-benchmark eval-view pin run-stats k8s-features k8s-verify k8s-check
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
@@ -42,7 +42,10 @@ eval-recover: ## Recover a retained OpenCode evidence-collection failure without
 	@test -n "$(RUN)" || { echo "set RUN=path/to/failed/run"; exit 1; }
 	python3 -m evals.harness.recovery "$(RUN)"
 
-lint: lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins eval-test ## Run every linter and eval harness tests (pre-commit gate)
+lint: lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins lint-plugin eval-test ## Run every linter and eval harness tests (pre-commit gate)
+
+lint-plugin: ## claude plugin validate on the marketplace (skipped when the claude CLI is absent)
+	@if command -v claude >/dev/null 2>&1; then claude plugin validate .; else echo "skip: claude CLI not installed"; fi
 
 lint-md: ## markdownlint on all Markdown (config: .github/linters/.markdown-lint.yml, shared with CI)
 	@$(call need,markdownlint,markdownlint-cli)

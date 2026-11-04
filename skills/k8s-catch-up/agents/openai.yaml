@@ -1,0 +1,3 @@
+interface:
+  display_name: "Kubernetes Catch-Up"
+  short_description: "Kubernetes v1.35 to v1.37 features newer than training data"

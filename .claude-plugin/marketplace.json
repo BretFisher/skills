@@ -4,21 +4,96 @@
     "name": "Bret Fisher",
     "url": "https://www.bretfisher.com"
   },
-  "description": "Bret Fisher's ops and engineering skills",
+  "description": "Bret Fisher's agent skills: opinionated DevOps and platform engineering skills tested with evals, plus small developer utilities",
   "plugins": [
     {
-      "name": "bretfisher-skills",
+      "name": "bretfisher-devops",
+      "displayName": "Bret Fisher DevOps Skills",
       "source": "./",
-      "description": "Agent skills for DevOps and platform engineering",
+      "strict": false,
+      "description": "Opinionated DevOps and platform engineering skills from a Docker Captain: Dockerfiles and Compose, GitHub Actions workflows and audits, recent Kubernetes features, and local linting setup. Tested with evals.",
       "category": "devops",
+      "tags": [
+        "docker",
+        "compose",
+        "github-actions",
+        "ci-cd",
+        "kubernetes",
+        "linting",
+        "security"
+      ],
       "keywords": [
         "docker",
+        "dockerfile",
+        "docker-compose",
+        "buildkit",
+        "github-actions",
+        "ci-cd",
         "kubernetes",
+        "helm",
+        "linting",
+        "super-linter",
         "devops",
         "platform-engineering",
-        "agentic-devops",
         "sre"
-      ]
+      ],
+      "author": {
+        "name": "Bret Fisher",
+        "url": "https://www.bretfisher.com"
+      },
+      "homepage": "https://github.com/BretFisher/skills#readme",
+      "repository": "https://github.com/BretFisher/skills",
+      "license": "MIT",
+      "skills": [
+        "./skills/docker-pro",
+        "./skills/github-actions-workflow-pro",
+        "./skills/gha-audit",
+        "./skills/k8s-catch-up",
+        "./skills/super-linting"
+      ],
+      "relevance": {
+        "topic": "DevOps",
+        "signals": {
+          "cli": ["docker", "kubectl", "helm", "actionlint", "zizmor"],
+          "filesRead": [
+            "**/Dockerfile",
+            "**/*.Dockerfile",
+            "**/compose.y*ml",
+            "**/docker-compose*.y*ml",
+            "**/docker-bake.hcl",
+            "**/.github/workflows/*.y*ml",
+            "**/Chart.yaml"
+          ]
+        }
+      }
+    },
+    {
+      "name": "bretfisher-utils",
+      "displayName": "Bret Fisher Utilities",
+      "source": "./",
+      "strict": false,
+      "description": "Small developer utilities for agents. macOS only: screencapture-mac lets the agent screenshot native desktop apps to see what you see.",
+      "category": "utilities",
+      "tags": ["macos", "screenshot", "gui", "desktop"],
+      "keywords": [
+        "macos",
+        "screenshot",
+        "screencapture",
+        "gui",
+        "desktop-apps",
+        "swiftui"
+      ],
+      "author": {
+        "name": "Bret Fisher",
+        "url": "https://www.bretfisher.com"
+      },
+      "homepage": "https://github.com/BretFisher/skills#readme",
+      "repository": "https://github.com/BretFisher/skills",
+      "license": "MIT",
+      "skills": ["./skills/screencapture-mac"]
     }
-  ]
+  ],
+  "renames": {
+    "bretfisher-skills": "bretfisher-devops"
+  }
 }

@@ -1,6 +1,7 @@
 ---
 name: k8s-catch-up
 description: Kubernetes features that reached beta or GA in v1.35 to v1.37 (Dec 2025 to Aug 2026), newer than most models' training data. Use it whenever the user writes Kubernetes manifests or Helm templates, runs kubectl, configures the kubelet, scheduler, or API server, works with DRA, autoscaling, storage, or admission, or asks what a recent Kubernetes version can do, even without naming a version. Also use it to update or extend this skill.
+license: MIT
 ---
 
 # Kubernetes catch-up

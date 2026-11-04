@@ -1,0 +1,3 @@
+interface:
+  display_name: "Screen Capture (macOS)"
+  short_description: "Screenshot native macOS apps so the agent can see them"

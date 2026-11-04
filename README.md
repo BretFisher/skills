@@ -4,33 +4,38 @@ A bunch of skills for daily work in DevOps, found in `./skills/`
 
 ## Install
 
-Two ways, pick one.
+Pick one.
 
-**As a Claude Code plugin** (all skills at once, updated with `/plugin`):
+**As Claude Code plugins.** Skills come in two plugins, so you install only the group you want. `/plugin` updates them.
 
 ```text
 /plugin marketplace add bretfisher/skills
-/plugin install bretfisher-skills@bretfisher
+/plugin install bretfisher-devops@bretfisher
+/plugin install bretfisher-utils@bretfisher
 ```
 
-**As individual skills** (pick only the ones you want):
+To get every new commit automatically, open `/plugin`, go to **Marketplaces**, select `bretfisher`, and choose **Enable auto-update**.
+If you installed the old `bretfisher-skills` plugin, run the `bretfisher-devops` install line once; Claude Code migrates the old name.
+
+**As individual skills** for Claude Code, Codex, OpenCode, GitHub Copilot, Pi, and other agents. Pick only the ones you want:
 
 ```bash
 npx skills add bretfisher/skills
 ```
 
 Mark the ones you want to install. Add `-g` to the command to install them globally.
+`gh skill install bretfisher/skills` and `pi install git:github.com/BretFisher/skills` also work.
 
 ## Skills
 
-| Name                          | Purpose                                                                                                                                       |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `docker-pro`                  | Light up all the best Docker features and security best practices for dockerizing a repo. From a Docker Captain.                              |
-| `github-actions-workflow-pro` | Create, edit, audit, and speed up GitHub Actions workflows with opinionated security and speed defaults.                                      |
-| `gha-audit`                   | Type `/gha-audit [file]` to run the audit path of `github-actions-workflow-pro` on demand: scanners first, then a report and a proposed diff. |
-| `k8s-catch-up`                | Teaches the agent the Kubernetes features that reached beta or GA after its training data ended (currently v1.35 to v1.37).                   |
-| `screencapture`               | Captures the macOS screen, a window, or a region so the agent can see native GUI apps. Web pages go to a browser automation tool.             |
-| `super-linting`               | Picks the right linter for every file type in a project and wires them into a `make lint` target, so code is linted before every commit.      |
+| Plugin              | Skill                         | Purpose                                                                                                                                       |
+| ------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bretfisher-devops` | `docker-pro`                  | Light up all the best Docker features and security best practices for dockerizing a repo. From a Docker Captain.                              |
+| `bretfisher-devops` | `github-actions-workflow-pro` | Create, edit, audit, and speed up GitHub Actions workflows with opinionated security and speed defaults.                                      |
+| `bretfisher-devops` | `gha-audit`                   | Type `/gha-audit [file]` to run the audit path of `github-actions-workflow-pro` on demand: scanners first, then a report and a proposed diff. |
+| `bretfisher-devops` | `k8s-catch-up`                | Teaches the agent the Kubernetes features that reached beta or GA after its training data ended (currently v1.35 to v1.37).                   |
+| `bretfisher-devops` | `super-linting`               | Picks the right linter for every file type in a project and wires them into a `make lint` target, so code is linted before every commit.      |
+| `bretfisher-utils`  | `screencapture-mac`           | macOS only. Captures the screen, a window, or a region so the agent can see native GUI apps. Web pages go to a browser automation tool.       |
 
 ## Does the skill help?
 
@@ -171,7 +176,7 @@ in iteration `5-opencode-sol`. With-skill runs include the wrapper's required
 `github-actions-workflow-pro` dependency; the baseline receives neither skill.
 This is a preliminary result. See [Audit eval coverage](evals/gha-audit/coverage.md).
 
-`screencapture` has no evals yet.
+`screencapture-mac` has no evals yet.
 
 ## Repo layout
 

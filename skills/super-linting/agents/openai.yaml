@@ -1,0 +1,3 @@
+interface:
+  display_name: "Super Linting"
+  short_description: "Pick linters per file type and wire up make lint"

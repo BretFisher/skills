@@ -1,9 +1,11 @@
 ---
-name: screencapture
+name: screencapture-mac
 description: Captures the user's macOS screen, a window, or a region with the built-in `screencapture` CLI, then reads the image so the agent can see what the user sees. Use it when the user asks to check how a native macOS app looks (SwiftUI, AppKit, Electron, Qt, Tk, Java Swing), verify a window rendered correctly after a build or code change, diagnose a visual bug they describe in a desktop app, confirm a menu, dialog, or layout state, or asks "can you see this?" about anything outside a browser, even if they don't say "screenshot". Web pages and web apps belong to a browser automation tool.
+license: MIT
+compatibility: macOS only. Uses the built-in screencapture CLI and needs Screen Recording permission for the terminal app.
 ---
 
-# screencapture
+# screencapture-mac
 
 macOS ships `screencapture`, a fast CLI for grabbing the screen. Use it to _see_ what the user sees when working on native GUI software. Web apps belong in a browser-automation tool; this skill is for everything else (SwiftUI/AppKit, Electron, Java/Swing, Qt, Tk, games, system UI, Finder, Xcode, etc.).
 

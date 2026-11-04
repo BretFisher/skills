@@ -1,0 +1,5 @@
+interface:
+  display_name: "GitHub Actions Audit"
+  short_description: "Audit this repo's workflows and propose a fix diff"
+policy:
+  allow_implicit_invocation: false

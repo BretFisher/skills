@@ -1,6 +1,7 @@
 ---
 name: super-linting
 description: Set up local development linting by picking the right linters for each file type a project uses, then recording them as required pre-commit checks in AGENTS.md / CLAUDE.md and a `make lint` target. Uses the super-linter project as the live source of truth for which linters are current and popular per language. Use this skill whenever the user wants to add, choose, configure, or standardize linters for local development; asks "what linter should I use for X"; wants the agent to lint files before committing; sets up AGENTS.md/CLAUDE.md linting rules; or mentions super-linter, linting setup, pre-commit linting, or keeping linters up to date. This is for LOCAL developer/agent linting, not for authoring CI workflows.
+license: MIT
 ---
 
 # Super-Linting: local linters for every file type

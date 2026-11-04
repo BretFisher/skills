@@ -10,6 +10,8 @@ skills/<skill-name>/          # SOURCE — committed; this directory is all an i
   SKILL.md                    #   the skill itself: description, working style, checklist, validate, done-when
   references/*.md             #   detail read only when a branch needs it (rules + why, procedures)
   scripts/*                   #   deterministic helpers the skill runs (linted, --help, structured output)
+  agents/openai.yaml          #   Codex display name and short description (and invocation policy when SKILL.md sets one)
+.claude-plugin/marketplace.json  # the Claude Code marketplace: plugin bretfisher-devops (DevOps skills) and bretfisher-utils (everything else)
 evals/<skill-name>/           # EVAL DEFINITIONS — committed; outside the skill so installers never ship them
   evals.json                  #   prompts + assertions — the test contract
   fixtures/                   #   input files some evals hand to the agent
@@ -78,6 +80,15 @@ share of all assertions passed. Identify model, effort or variant, harness, repe
 count, and iteration in the row or adjacent note. Record details in the skill's
 `coverage.md` and state comparison limits when the skill or checks changed. Keep
 smoke runs and partial suites in coverage notes until full-suite validation is complete.
+
+## Publishing a skill
+
+Every skill ships through plugin entries in `.claude-plugin/marketplace.json`, and each entry lists its skills explicitly.
+When you add, rename, or remove a skill, update the `skills` list of the matching plugin (`bretfisher-devops` for DevOps and platform work, `bretfisher-utils` for anything else), the README skills table, and the skill's `agents/openai.yaml`; an unlisted skill is never installed as a Claude Code plugin.
+Give every SKILL.md `license: MIT`, and add `compatibility` when the skill needs a specific OS or tool.
+Leave `version` out of the plugin entries so each commit counts as an update.
+Never rename a plugin entry without adding the old name to `renames`, because installed users reference the plugin by name.
+`make lint` runs `claude plugin validate .` when the `claude` CLI is installed.
 
 ## Before committing
 

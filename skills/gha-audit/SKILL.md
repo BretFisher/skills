@@ -1,6 +1,7 @@
 ---
 name: gha-audit
 description: Audit the GitHub Actions workflows in this repo for security, speed, and correctness, and report findings with a proposed diff.
+license: MIT
 disable-model-invocation: true
 ---
 
