@@ -233,8 +233,10 @@ make eval-view      SKILL=github-actions-workflow-pro ITER=13   # skill-creator 
 one prints its `brew install` formula. `checks.py` needs `yq`, and for the scanners, which run unless you pass `--no-scanners`, it needs
 actionlint, zizmor, poutine, pinact, and an authenticated `gh` (`scan.sh` sets the token inside its own
 process so it never appears on a command line). A scanner that is not installed leaves its assertion
-null with `kind: program`; `make eval-grade` reruns `checks.py` on that run and stops if it is still
-null, so a model never grades a scanner verdict.
+null with `kind: program`. Before any model sees a run, `make eval-grade` and `make eval-batch` run
+`checks.py --rerun-program` on it: that fills the null program entries in place, keeps every verdict a model
+already wrote, adds `kind` to entries from a `grading.json` written before kinds existed, and stops grading
+if a program check is still null, so a model never grades a scanner verdict.
 
 Harness notes learned the hard way: graders never embed a `timing` object in `grading.json` (it breaks
 `aggregate_benchmark`; timing belongs in the sibling `timing.json`); never use `set -x` near a
