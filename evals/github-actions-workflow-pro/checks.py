@@ -355,17 +355,24 @@ HANDBACK_DEFAULTS = {
     "permissions": (lambda t: "permissions:" in t, r"permission|least.privilege"),
     "pinning": (lambda t: bool(re.search(r"uses:\s*\S+@[0-9a-f]{40}", t)), r"\bpin|\bsha\b"),
     "concurrency": (lambda t: "concurrency:" in t, r"concurren"),
-    "caching": (lambda t: bool(re.search(r"\bcache(-from)?:", t)), r"cach"),
+    # setup-* `cache:` and buildx `cache-from:` keys, or actions/cache (and its restore/save actions), which use path/key
+    "caching": (lambda t: bool(re.search(r"\bcache(-from)?:|uses:\s*actions/cache(/restore|/save)?@", t)), r"cach"),
     "timeout": (lambda t: "timeout-minutes" in t, r"timeout"),
     "trusted refs": (lambda t: "docker/build-push-action" in t, r"trusted|PR builds?|pull.request|push: false|publish"),
     "provenance/sbom": (lambda t: bool(re.search(r"(provenance|sbom): true", t)), r"provenance|sbom"),
     "persist-credentials": (lambda t: "persist-credentials: false" in t, r"persist"),
     "pipefail": (lambda t: "set -euo pipefail" in t, r"pipefail"),
 }
-# Facts the prompt or the fixture states: a question about one asks the user for something the agent could read.
-BRANCH_FACT = r"(which|what|is (the|it|your))[^?]{0,30}\bbranch"
-E0_FACTS = r"install command|test command|\bnpm (ci|install|test)\b|package manager|yarn|pnpm|" + BRANCH_FACT
-E8_FACTS = r"node(\.js)? version|version of node|\.nvmrc|(lint|test|build) (command|script)|package manager|yarn|pnpm|dockerfile|\bport\b|image name|entry ?point|" + BRANCH_FACT
+# Facts the prompt or the fixture states. Asking for one asks the user for something the agent could read, but
+# naming one inside a decision ("or should I use the existing Dockerfile?") does not, so a mention alone is a judgment.
+BRANCH_FACT = r"(which|what|is (the|it|your))[^?]{0,30}\bbranch"  # request-shaped by itself
+E0_FACTS = r"install command|test command|\bnpm (ci|install|test)\b|package manager|yarn|pnpm"
+E8_FACTS = r"node(\.js)? version|version of node|\.nvmrc|(lint|test|build) (command|script)|package manager|yarn|pnpm|dockerfile|\bport\b|image name|entry ?point"
+
+
+def fact_request(facts):
+    """A question that asks for the fact's value: `which`/`what` within two words of it, or the branch question."""
+    return rf"\b(?:which|what(?:'s| is| are)?)\s+(?:\S+\s+){{0,2}}?(?:{facts})|{BRANCH_FACT}"
 
 
 def prose(text):
@@ -408,11 +415,19 @@ def defaults_table(run, names):
 
 
 def asks_only_decisions(run, facts):
-    """`## Questions` exists, and no question line in the answer asks for a fact the prompt or fixture states."""
+    """Split. `## Questions` exists, and no question line asks for a fact the prompt or fixture states. A question that
+    requests the fact (`fact_request`) fails here; one that only names a fact goes to the model, which judges whether
+    it asks for the fact or for a decision about it."""
     if handback_section(run, "Questions") is None:
         return False, "no `## Questions` section"
-    bad = [l[:100] for l in question_lines(run) if re.search(facts, l, re.I)]
-    return not bad, f"{len(question_lines(run))} question line(s); asks for facts: {bad}"
+    lines = question_lines(run)
+    bad = [l[:100] for l in lines if re.search(fact_request(facts), l, re.I)]
+    if bad:
+        return False, f"{len(lines)} question line(s); asks for facts: {bad}"
+    mentions = [l[:160] for l in lines if re.search(facts, l, re.I)]
+    if mentions:
+        return None, f"{len(lines)} question line(s); model judges whether these ask for a known fact: {mentions}"
+    return True, f"{len(lines)} question line(s); none names a known fact"
 
 
 def asks_reusable_docker(run):
@@ -420,7 +435,8 @@ def asks_reusable_docker(run):
     sec = handback_section(run, "Questions")
     if sec is None:
         return False, "no `## Questions` section"
-    items = [l.strip() for l in sec.splitlines() if re.search(r"reusable|docker-build-workflow", l, re.I)
+    docker = r"docker-build-workflow|reusable[^\n]{0,60}\b(docker|container|image)|\b(docker|container|image)\b[^\n]{0,60}reusable"
+    items = [l.strip() for l in sec.splitlines() if re.search(docker, l, re.I)
              and (re.search(r"\?", l) or re.search(r"default|could not ask|couldn't ask|unavailable|bespoke", l, re.I))]
     return bool(items), f"item={items[:1]}"
 
@@ -436,7 +452,8 @@ def asks_delivery(run):
 
 def placeholders_listed(run, fixture_text, deploy):
     """Every placeholder the produced YAML introduces is named in `## Placeholders`: new `vars.`/`secrets.` names,
-    `<...>` tokens, and a literal role ARN, region, or environment that the fixture does not have."""
+    `<...>` tokens, and a literal role ARN, region, or environment that the fixture does not have. Each is matched by
+    its value, so "confirm the role, region, and environment" does not name `us-east-1`."""
     sec = handback_section(run, "Placeholders")
     if sec is None:
         return False, "no `## Placeholders` section"
@@ -447,14 +464,14 @@ def placeholders_listed(run, fixture_text, deploy):
             need.append((f"{kind}.{name}", re.escape(name)))
     for tok in sorted(set(re.findall(r"<([A-Za-z][\w .:/-]{1,60})>", text))):
         need.append((f"<{tok}>", re.escape(tok)))
-    for key, label in (("role-to-assume", r"role|arn"), ("aws-region", r"region")):
+    for key in ("role-to-assume", "aws-region"):
         for v in re.findall(rf"{key}:\s*(\S+)", text):
             if "${{" not in v and v not in fixture_text:
-                need.append((f"{key}: {v}", label + "|" + re.escape(v.strip("'\""))))
+                need.append((f"{key}: {v}", re.escape(v.strip("'\""))))
     env = (deploy or {}).get("environment")
     env = env.get("name") if isinstance(env, dict) else env
     if env and "${{" not in str(env) and f"environment: {env}" not in fixture_text:
-        need.append((f"environment: {env}", r"environment|" + re.escape(str(env))))
+        need.append((f"environment: {env}", re.escape(str(env))))
     missing = [w for w, pat in need if not re.search(pat, sec, re.I)]
     return not missing, f"placeholders={[w for w, _ in need]} missing from section={missing}"
 
@@ -496,7 +513,7 @@ def checks_for(run):
             (5, "program", lambda: (all_timeouts(wf) and bool(wf.get("name")) and all(j.get("name") for j in jobs(wf).values()) and all(s.get("name") for j in jobs(wf).values() for s in steps(j) if s.get("uses")), f"wf name={wf.get('name')!r} jobs named={[bool(j.get('name')) for j in jobs(wf).values()]} unnamed uses steps={sum(1 for j in jobs(wf).values() for s in steps(j) if s.get('uses') and not s.get('name'))} timeouts={all_timeouts(wf)}")),
             (6, "program", S),
             (7, "split", lambda: defaults_table(run, list(HANDBACK_DEFAULTS))),
-            (8, "program", lambda: asks_only_decisions(run, E0_FACTS)),
+            (8, "split", lambda: asks_only_decisions(run, E0_FACTS)),
             (9, TK, T),
         ]
     if e == 1:
@@ -755,7 +772,7 @@ def checks_for(run):
             (2, "program", parallel),
             (3, "program", lambda: ("docker-build-workflow" in run.answer, "names docker-build-workflow")),
             (4, "program", lambda: asks_reusable_docker(run)),
-            (5, "program", lambda: asks_only_decisions(run, E8_FACTS)),
+            (5, "split", lambda: asks_only_decisions(run, E8_FACTS)),
             (6, "program", no_triggers),
             (7, "split", lambda: defaults_table(run, ["permissions", "pinning", "concurrency", "caching", "timeout", "trusted refs"])),
             (8, "program", S),

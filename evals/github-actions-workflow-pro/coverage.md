@@ -42,7 +42,7 @@ with earlier model runs.
 
 | Eval    | Assertions | program | split  | model  | split indices    | model indices |
 | ------- | ---------- | ------- | ------ | ------ | ---------------- | ------------- |
-| e0      | 9          | 7       | 2      | 0      | #7 #9            | —             |
+| e0      | 9          | 6       | 3      | 0      | #7 #8 #9         | —             |
 | e1      | 8          | 6       | 1      | 1      | #8               | #6            |
 | e2      | 11         | 7       | 2      | 2      | #1 #11           | #7 #8         |
 | e3      | 11         | 9       | 2      | 0      | #8 #11           | —             |
@@ -50,14 +50,14 @@ with earlier model runs.
 | e5      | 11         | 9       | 2      | 0      | #5 #11           | —             |
 | e6      | 12         | 8       | 2      | 2      | #2 #12           | #10 #11       |
 | e7      | 13         | 10      | 2      | 1      | #12 #13          | #3            |
-| e8      | 10         | 8       | 2      | 0      | #7 #10           | —             |
+| e8      | 10         | 7       | 3      | 0      | #5 #7 #10        | —             |
 | e9      | 9          | 6       | 1      | 2      | #9               | #5 #6         |
 | e10     | 9          | 7       | 2      | 0      | #4 #7            | —             |
 | e11     | 10         | 5       | 3      | 2      | #2 #3 #10        | #6 #7         |
 | e12     | 4          | 2       | 2      | 0      | #2 #4            | —             |
 | e13     | 12         | 7       | 4      | 1      | #4 #5 #6 #12     | #2            |
 | e14     | 4          | 4       | 0      | 0      | —                | —             |
-| **all** | **145**    | **101** | **32** | **12** |                  |               |
+| **all** | **145**    | **99**  | **34** | **12** |                  |               |
 
 The two cases a program cannot see, found in the 2026-09-09 grader comparison (`runs/grader-compare/`, dashboard
 `evals/_dashboard/grader-compare.html`): a SHA copied from another file and only described in transcript prose (why the transcript
@@ -99,7 +99,7 @@ Before that change it was labeled program and returned null, which stopped `make
 
 | Line                                               | Proof                                         | Assertions                                                                    |
 | -------------------------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------------- |
-| Ask only about decisions; infer facts              | program (`## Questions`, fact regex)          | e0#8 e8#5                                                                     |
+| Ask only about decisions; infer facts              | split (`## Questions`, fact request regex)    | e0#8 e8#5                                                                     |
 | Runtime version from `.nvmrc` / `engines`          | agent                                         | e8#1                                                                          |
 | Conventional filenames                             | agent                                         | e1#7 (docker.yml, from the prompt)                                            |
 | pinact for every third-party `uses:`               | scanner                                       | mech (pinact `--check` clean means every pin is a SHA with a correct comment) |
@@ -583,7 +583,7 @@ leave the model, reworded to what the program tests:
 | Assertion  | Kind    | Check                                                                                               |
 | ---------- | ------- | --------------------------------------------------------------------------------------------------- |
 | e0#7, e8#7 | split   | Program fails a missing `Defaults applied` section or row; a complete table goes to the model (why) |
-| e0#8, e8#5 | program | `## Questions` exists, and no `?` line outside code blocks asks a fact the prompt or fixture states |
+| e0#8, e8#5 | split   | `## Questions` exists, and no `?` line outside code blocks asks a fact the prompt or fixture states |
 | e8#4       | program | A `## Questions` item on a reusable docker build workflow: a question, or the bespoke default taken |
 | e6#5       | program | A `## Questions` item naming HTML and Markdown, or the chat-default line near the top               |
 | e7#8       | program | `## Placeholders` names each new `vars.`/`secrets.` name, `<...>` token, literal role, region, env  |
@@ -623,6 +623,22 @@ and e10#7. The with-skill rate, 137/145 (94.5%), is in line with iteration 21 (1
 through Claude Code subagents); the harness, token accounting, and assertion set differ, so that is a
 sanity check, not a comparison. Executor tokens (this runner counts cache reads): with skill 3.79M (mean
 253k per run), without 1.18M (mean 78k).
+
+Copilot's review of PR 42 found four grader bugs, fixed after the run with a regression test each in
+`evals/harness/test_gha_handback.py`:
+
+- e0#7 and e8#7 missed caching applied by `actions/cache` (and its restore/save actions), which uses
+  `path` and `key` rather than a `cache:` key, so a table without a caching row could pass.
+- e0#8 and e8#5 failed any question that named a known fact, even a decision such as "Should `npm test`
+  also run on release tags?". A question that requests the fact (`which`/`what` within two words of it,
+  or the branch question) still fails; one that only names a fact now goes to the model, so both are split.
+- e8#4 passed any `reusable` question, such as one about a reusable lint workflow. It now needs Docker,
+  container, or image context, or `docker-build-workflow`.
+- e7#8 accepted the words role, region, and environment for the values they stand for. It now needs each
+  introduced value, such as `us-east-1`.
+
+`checks.py --compare` on the 30 iteration-27 runs gives the same verdicts before and after the fix (225
+program-decided, all agreeing with the stored grades), so the results above stand.
 
 Not in README: e0#7, e8#5, and e8#7 were reworded after the run, so `make eval-benchmark` rejects the
 iteration (each run records the assertion texts it started with). A fresh iteration with the final

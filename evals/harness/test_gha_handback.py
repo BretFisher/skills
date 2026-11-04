@@ -72,6 +72,17 @@ class DefaultsTableTests(unittest.TestCase):
     def test_no_section_fails(self):
         self.assertFalse(checks.defaults_table(run("All defaults applied."), self.names)[0])
 
+    def test_actions_cache_step_needs_a_caching_row(self):
+        """actions/cache (and its restore/save actions) applies caching with `path`/`key`, not a `cache:` key."""
+        answer = HANDBACK.replace("| Caching | npm ci is the slowest step here. |\n", "")
+        for action in ("actions/cache", "actions/cache/restore", "actions/cache/save"):
+            yaml = YAML.replace("        with:\n          cache: npm\n",
+                                f"      - uses: {action}@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0\n"
+                                "        with:\n          path: ~/.npm\n          key: npm-${{ hashFiles('package-lock.json') }}\n")
+            ok, evidence = checks.defaults_table(run(answer, yaml), self.names)
+            self.assertIs(ok, False, action)
+            self.assertIn("caching", evidence)
+
 
 class QuestionTests(unittest.TestCase):
     def test_decision_question_passes(self):
@@ -95,10 +106,34 @@ class QuestionTests(unittest.TestCase):
     def test_no_section_fails(self):
         self.assertFalse(checks.asks_only_decisions(run("Should tags publish?"), checks.E0_FACTS)[0])
 
+    def test_decision_question_that_mentions_a_fact_is_not_failed(self):
+        """Naming a known fact inside a decision is not asking for it; the model judges these."""
+        for facts, question in (
+            (checks.E8_FACTS, "2. Do you already use a reusable Docker build workflow, or should I use the existing "
+                              "Dockerfile in a bespoke workflow?"),
+            (checks.E0_FACTS, "2. Should `npm test` also run on release tags?"),
+        ):
+            answer = HANDBACK.replace("1. Should tags also publish an image?", "1. Should tags also publish an image?\n" + question)
+            self.assertIsNot(checks.asks_only_decisions(run(answer), facts)[0], False, question)
+
+    def test_request_for_a_known_fact_fails(self):
+        for question in ("What is your test command?", "Which package manager does this repo use?", "What's the image name?"):
+            answer = HANDBACK + "\n" + question + "\n"
+            self.assertIs(checks.asks_only_decisions(run(answer), checks.E8_FACTS)[0], False, question)
+
     def test_reusable_docker_question(self):
         answer = HANDBACK.replace("1. Should", "1. Do you already use a reusable docker build workflow?\n2. Should")
         self.assertTrue(checks.asks_reusable_docker(run(answer))[0])
         self.assertFalse(checks.asks_reusable_docker(run(HANDBACK))[0])
+
+    def test_unrelated_reusable_workflow_is_not_the_docker_question(self):
+        for line in ("1. Do you already use a reusable lint workflow?", "1. Is there a reusable deploy workflow I should call?"):
+            answer = HANDBACK.replace("1. Should tags also publish an image?", line)
+            self.assertFalse(checks.asks_reusable_docker(run(answer))[0], line)
+
+    def test_named_reusable_docker_workflow(self):
+        answer = HANDBACK.replace("1. Should", "1. Should I call your `docker-build-workflow` instead?\n2. Should")
+        self.assertTrue(checks.asks_reusable_docker(run(answer))[0])
 
     def test_reusable_docker_default_taken(self):
         answer = HANDBACK.replace("1. Should tags also publish an image?",
@@ -130,6 +165,23 @@ class PlaceholderTests(unittest.TestCase):
         ok, evidence = self.check("- `vars.AWS_DEPLOY_ROLE_ARN`\n- environment `production`")
         self.assertFalse(ok)
         self.assertIn("aws-region", evidence)
+
+    def test_category_labels_without_values_fail(self):
+        ok, evidence = self.check("- `vars.AWS_DEPLOY_ROLE_ARN`\n- Confirm the role, region, and environment.")
+        self.assertFalse(ok)
+        self.assertIn("aws-region", evidence)
+        self.assertIn("environment", evidence)
+
+    def test_wrong_values_fail(self):
+        self.assertFalse(self.check("- `vars.AWS_DEPLOY_ROLE_ARN`\n- region `eu-west-1`\n- environment `staging`")[0])
+
+    def test_literal_role_arn_must_be_named(self):
+        yaml = self.yaml.replace("${{ vars.AWS_DEPLOY_ROLE_ARN }}", "arn:aws:iam::123456789012:role/deploy")
+        answer = HANDBACK.replace("## Placeholders\n\nnone", "## Placeholders\n\n- the role\n- region `us-east-1`\n"
+                                  "- environment `production`")
+        self.assertFalse(checks.placeholders_listed(run(answer, yaml), self.fixture, self.deploy)[0])
+        named = answer.replace("- the role", "- role `arn:aws:iam::123456789012:role/deploy`")
+        self.assertTrue(checks.placeholders_listed(run(named, yaml), self.fixture, self.deploy)[0])
 
     def test_fixture_secret_is_not_a_placeholder(self):
         self.assertNotIn("CF_DISTRIBUTION_ID", self.check("none")[1].split("missing")[0])
