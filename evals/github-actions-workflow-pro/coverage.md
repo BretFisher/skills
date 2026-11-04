@@ -50,18 +50,22 @@ with earlier model runs.
 | e5      | 11         | 9       | 2      | 0      | #5 #11           | —             |
 | e6      | 12         | 7       | 2      | 3      | #2 #12           | #5 #10 #11    |
 | e7      | 13         | 9       | 2      | 2      | #12 #13          | #3 #8         |
-| e8      | 10         | 6       | 1      | 3      | #10              | #4 #5 #7      |
+| e8      | 10         | 5       | 2      | 3      | #9 #10           | #4 #5 #7      |
 | e9      | 9          | 6       | 1      | 2      | #9               | #5 #6         |
 | e10     | 9          | 7       | 2      | 0      | #4 #7            | —             |
 | e11     | 10         | 6       | 2      | 2      | #2 #3            | #6 #7         |
 | e12     | 4          | 2       | 2      | 0      | #2 #4            | —             |
 | e13     | 7          | 2       | 4      | 1      | #4 #5 #6 #7      | #2            |
-| **all** | **136**    | **88**  | **29** | **19** |                  |               |
+| **all** | **136**    | **87**  | **30** | **19** |                  |               |
 
 The two cases a program cannot see, found in the 2026-09-09 grader comparison (`runs/grader-compare/`, dashboard
 `evals/_dashboard/grader-compare.html`): a SHA copied from another file and only described in transcript prose (why the transcript
 assertion is split, not program), and proposed YAML that lives inside a Markdown diff rather than an output file (the scanner
 assertion is vacuous there; the model reads the diff).
+
+e8#9 is program when a run writes a `build-push-action` workflow and split when it does not: the image may then be pushed
+from a `run:` step, which only the model can read. The table shows it as split because `--kinds` builds rows without a run.
+Before that change it was labeled program and returned null, which stopped `make eval-grade` (PR #41 review).
 
 ## SKILL.md checklist
 

@@ -3,6 +3,8 @@
 import argparse
 import json
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 from types import SimpleNamespace
 
@@ -49,6 +51,32 @@ def parse_verdicts(text, keys):
     return results
 
 
+def program_pending(value):
+    return [i + 1 for i, e in enumerate(value["expectations"]) if e["passed"] is None and e.get("kind") == "program"]
+
+
+def regrade_program(path, skill):
+    """Rerun the skill's checker on a run that still has null assertions, before any reaches the model.
+
+    A program verdict never goes to the model. A checker that has `--rerun-program` fills its null
+    program entries in place (model verdicts kept), adds `kind` to entries written before kinds existed,
+    and exits 1 when a program check still cannot decide; then grading stops. A checker without the
+    mode emits no program nulls, so its runs pass through unchanged."""
+    value = json.loads(path.read_text())
+    if all(e.get("passed") is not None for e in value["expectations"]):
+        return value
+    checker = ROOT / "evals" / skill / "checks.py"
+    if "--rerun-program" not in checker.read_text():
+        if program_pending(value):
+            raise ValueError(f"Program assertion(s) {program_pending(value)} null in {path} and {checker} cannot rerun them")
+        return value
+    done = subprocess.run([sys.executable, str(checker), "--rerun-program", str(path.parent)],
+                          cwd=ROOT, capture_output=True, text=True)
+    if done.returncode:
+        raise ValueError(f"Program assertion still null in {path}: {(done.stdout + done.stderr).strip()}")
+    return json.loads(path.read_text())
+
+
 def grade(iteration, skill, args):
     definitions = json.loads((ROOT / "evals" / skill / "evals.json").read_text())["evals"]
     specs = {s["id"]: s.get("expectations", s.get("assertions", [])) for s in definitions}
@@ -57,7 +85,7 @@ def grade(iteration, skill, args):
     if not paths:
         raise ValueError("No program grades found; run make eval-check first")
     for path in paths:
-        value = json.loads(path.read_text())
+        value = regrade_program(path, skill)
         metadata = json.loads((path.parent / "eval_metadata.json").read_text())
         validate_grading(value, specs[metadata["eval_id"]], allow_pending=True)
         pending = [{"key": f"{path.parent.relative_to(iteration)}:{i}", "text": entry["text"],

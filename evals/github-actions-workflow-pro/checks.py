@@ -6,13 +6,17 @@ fixture, scanner exit codes) and leaves the rest to the model grader. See AGENTS
 "Deterministic checks before model judgment".
 
 Usage:
-  checks.py --write   [--scanners] <run-dir>...  write grading.json: program verdicts filled in,
+  checks.py --write   [--no-scanners] [--force] <run-dir>...  write grading.json: program verdicts filled in,
                                                  `passed: null` on the assertions left for the model
-  checks.py --compare [--scanners] <run-dir>...  grade, then compare with the verdicts already in
+  checks.py --compare [--no-scanners] <run-dir>...  grade, then compare with the verdicts already in
                                                  grading.json (agreement report; nothing written)
   checks.py --finalize <run-dir>...              recompute summary after the model filled the nulls;
                                                  exit 1 if any null remains
-  checks.py --batch [--budget=60000] <run-dir>... group runs that still have nulls under an excerpt-byte
+  checks.py --rerun-program <run-dir>...         rerun the program checks still null in grading.json and
+                                                 fill them in place (model verdicts kept); exit 1 if one
+                                                 stays null
+  checks.py --batch [--budget=60000] <run-dir>... rerun null program checks as above (stop if one stays null),
+                                                 then group runs that still have nulls under an excerpt-byte
                                                  budget and write one grader prompt per group to
                                                  <iteration>/grader-batches/batch-N.md
   checks.py --kinds                              markdown table of program/split/model per eval (coverage.md)
@@ -22,8 +26,12 @@ YAML, the new SHAs) the model needs to judge it, so the grader can work from gra
 --finalize removes them.
   <run-dir> = evals/<skill>/runs/<iteration>/eval-N-<name>/<config>/run-M
 
-Without --scanners the scanner assertion is left null. Needs yq (brew install yq) and, for
---scanners, actionlint, zizmor, poutine, pinact, and gh auth (scan.sh sets the token).
+The scanners run by default; --no-scanners skips them and leaves the scanner assertion null
+(--scanners is accepted and does nothing, for old commands). Needs yq (brew install yq) and, for the
+scanners, actionlint, zizmor, poutine, pinact, and gh auth (scan.sh sets the token); a scanner that
+is not installed leaves the assertion null with the missing tool named.
+A null entry carries `kind`, so a residual grader can tell a skipped program check from a judgment;
+--rerun-program adds `kind` to the null entries of a grading.json written before kinds existed.
 Kinds per assertion: program (decided here), split (program decides the mechanical half; the
 residual goes to the model), model (judgment only).
 """
@@ -40,7 +48,8 @@ SCAN = f"{skill_dir(SKILL)}/scripts/scan.sh"
 EVALS = json.load(open(f"{HERE}/evals.json"))["evals"]
 SHA = re.compile(r"uses:\s*(\S+)@([0-9a-f]{40})\s*(#.*)?$")
 YAML_BLOCK = re.compile(r"```ya?ml\n(.*?)```", re.S)
-RUN_SCANNERS = "--scanners" in sys.argv
+RUN_SCANNERS = "--no-scanners" not in sys.argv
+SCANNER_TOOLS = ("actionlint", "zizmor", "poutine", "pinact")
 
 
 def yload(text):
@@ -208,7 +217,10 @@ def scanners(run, actionlint_allow=None):
     if not run.wf:
         return True, "no YAML produced (vacuous)"
     if not RUN_SCANNERS:
-        return None, "skipped (--scanners not given)"
+        return None, "skipped (--no-scanners given)"
+    absent = [t for t in SCANNER_TOOLS if not shutil.which(t)]
+    if absent:
+        return None, f"skipped (not installed: {', '.join(absent)})"
     tmp = tempfile.mkdtemp(prefix="gha-check-")
     wfdir = f"{tmp}/.github/workflows"
     os.makedirs(wfdir)
@@ -636,7 +648,8 @@ def checks_for(run):
             (6, "program", no_triggers),
             (7, "model", None),
             (8, "program", S),
-            (9, "program", lambda: trusted_refs(dk[1]) if dk[1] else (None, "no docker workflow written; model")),
+            # no build-push-action workflow: the image may be pushed from a run step, which only the model can read
+            (9, "program" if dk[1] else "split", lambda: trusted_refs(dk[1]) if dk[1] else (None, "no docker workflow written; model")),
             (10, TK, T),
         ]
     if e == 9:
@@ -895,11 +908,14 @@ def grade(run):
         if fn is None:
             yield idx, kind, None, "model: judgment only"
             continue
-        try:
-            res, ev = fn()
-        except Exception as ex:  # a check bug must not stop the run
-            res, ev = None, f"CHECK ERROR {type(ex).__name__}: {ex}"
-        yield idx, kind, res, ev
+        yield idx, kind, *run_check(fn)
+
+
+def run_check(fn):
+    try:
+        return fn()
+    except Exception as ex:  # a check bug must not stop the run
+        return None, f"CHECK ERROR {type(ex).__name__}: {ex}"
 
 
 # ---- excerpts for the model grader --------------------------------------------------
@@ -1002,22 +1018,77 @@ def write_mode(dirs):
                  "evidence": (f"program ({kind}): {ev}" if res is not None else f"model: {ev}"),
                  "graded_by": "program" if res is not None else "model"}
             if res is None:
+                e["kind"] = kind
                 e["context"] = excerpts_for(run, idx)
             exps.append(e)
         n = len(exps); decided = sum(1 for e in exps if e["passed"] is not None)
-        nulls = [i + 1 for i, e in enumerate(exps) if e["passed"] is None]
         ctx_chars = sum(len(c["text"]) for e in exps for c in e.get("context", []))
-        doc = {"expectations": exps,
-               "summary": {"passed": sum(1 for e in exps if e["passed"] is True),
-                           "failed": sum(1 for e in exps if e["passed"] is False), "total": n,
-                           "pass_rate": None, "pending_model": n - decided}}
-        if nulls:
-            doc["residual"] = {"indices": nulls, "prompt": next(x["prompt"] for x in EVALS if x["id"] == run.eval),
-                               "note": "Judge each null entry from its `context` excerpts. Open a source file only if an excerpt is "
-                                       "insufficient, and say so in `evidence`. Set `passed`, replace `evidence` with quoted evidence, "
-                                       "set `graded_by` to \"model\", leave every other entry untouched, then recompute `summary`."}
+        doc = {"expectations": exps}
+        set_summary(doc, run.eval)
         json.dump(doc, open(out, "w"), indent=2)
         print(f"{d}: {decided}/{n} graded by program, {n - decided} left for the model ({ctx_chars} chars of excerpts)")
+
+
+def set_summary(doc, eval_id):
+    """Recompute `summary` and `residual` from the expectations (pass_rate waits for --finalize)."""
+    exps = doc["expectations"]
+    nulls = [i + 1 for i, e in enumerate(exps) if e["passed"] is None]
+    doc["summary"] = {"passed": sum(1 for e in exps if e["passed"] is True),
+                      "failed": sum(1 for e in exps if e["passed"] is False), "total": len(exps),
+                      "pass_rate": None, "pending_model": len(nulls)}
+    if nulls:
+        doc["residual"] = {"indices": nulls, "prompt": next(x["prompt"] for x in EVALS if x["id"] == eval_id),
+                           "note": "Judge each null entry from its `context` excerpts. Open a source file only if an excerpt is "
+                                   "insufficient, and say so in `evidence`. Set `passed`, replace `evidence` with quoted evidence, "
+                                   "set `graded_by` to \"model\", leave every other entry untouched, then recompute `summary`."}
+    else:
+        doc.pop("residual", None)
+
+
+def rerun_program(d):
+    """Rerun the program checks a run's grading.json still holds as null; return [(index, evidence)] still null.
+
+    Only null entries change, so a verdict a model grader already wrote is kept, and the file is replaced
+    atomically and only when something changed. A null entry without `kind` (written before kinds existed)
+    takes its kind from checks_for, so an old skipped scanner entry is rerun instead of reaching the model."""
+    path = f"{d}/grading.json"
+    with open(path) as f:
+        doc = json.load(f)
+    if all(e.get("passed") is not None for e in doc["expectations"]):
+        return []
+    before = json.dumps(doc)
+    run = Run(d)
+    rows = {idx: (kind, fn) for idx, kind, fn in checks_for(run)}
+    left = []
+    for idx, e in enumerate(doc["expectations"], 1):
+        if e.get("passed") is not None:
+            continue
+        kind, fn = rows[idx]
+        e["kind"] = kind
+        if kind != "program":
+            continue
+        res, ev = run_check(fn) if fn else (None, "no program check")
+        if res is None:
+            e["evidence"] = f"model: {ev}"
+            left.append((idx, ev))
+            continue
+        e.update(passed=res, evidence=f"program ({kind}): {ev}", graded_by="program")
+        e.pop("kind"); e.pop("context", None)
+    set_summary(doc, run.eval)
+    if json.dumps(doc) != before:
+        tmp = f"{path}.tmp"
+        with open(tmp, "w") as f:
+            json.dump(doc, f, indent=2)
+        os.replace(tmp, path)
+    return left
+
+
+def rerun_mode(dirs):
+    """Fill null program verdicts in place; exit 1 naming each one a rerun could not decide."""
+    stuck = [(d, idx, ev) for d in dirs for idx, ev in rerun_program(d)]
+    for d, idx, ev in stuck:
+        print(f"{d}: program assertion #{idx} still null: {ev}")
+    return not stuck
 
 
 def finalize_mode(dirs):
@@ -1086,6 +1157,9 @@ When done, reply with one line per file: its eval name, how many entries you jud
 def batch_mode(dirs):
     """Group runs that still have nulls under an excerpt-byte budget; write one grader prompt per group."""
     budget = int(next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--budget=")), 60000))
+    if not rerun_mode(dirs):  # a program verdict never goes to the model
+        print("stopping: install the missing scanner (or fix the check) and rerun; no grader prompt written")
+        sys.exit(1)
     runs = []
     for d in dirs:
         g = json.load(open(f"{d}/grading.json"))
@@ -1141,6 +1215,8 @@ def main():
         kinds_mode(); return
     if "--batch" in sys.argv:
         batch_mode(dirs); return
+    if "--rerun-program" in sys.argv:
+        sys.exit(0 if rerun_mode(dirs) else 1)
     if "--write" in sys.argv:
         write_mode(dirs)
     elif "--finalize" in sys.argv:
