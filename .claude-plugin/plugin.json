@@ -1,6 +1,5 @@
 {
   "name": "bretfisher-skills",
-  "version": "1.0.0",
   "description": "Bret Fisher's agent skills for DevOps and platform engineering. Opinionated, tested with evals, ready to run.",
   "author": {
     "name": "Bret Fisher",
