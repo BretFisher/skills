@@ -50,14 +50,14 @@ with earlier model runs.
 | e5      | 11         | 9       | 2      | 0      | #5 #11           | —             |
 | e6      | 12         | 8       | 2      | 2      | #2 #12           | #10 #11       |
 | e7      | 13         | 10      | 2      | 1      | #12 #13          | #3            |
-| e8      | 10         | 7       | 3      | 0      | #5 #7 #10        | —             |
+| e8      | 10         | 6       | 4      | 0      | #5 #7 #9 #10     | —             |
 | e9      | 9          | 6       | 1      | 2      | #9               | #5 #6         |
 | e10     | 9          | 7       | 2      | 0      | #4 #7            | —             |
 | e11     | 10         | 5       | 3      | 2      | #2 #3 #10        | #6 #7         |
 | e12     | 4          | 2       | 2      | 0      | #2 #4            | —             |
 | e13     | 12         | 7       | 4      | 1      | #4 #5 #6 #12     | #2            |
 | e14     | 4          | 4       | 0      | 0      | —                | —             |
-| **all** | **145**    | **99**  | **34** | **12** |                  |               |
+| **all** | **145**    | **98**  | **35** | **12** |                  |               |
 
 The two cases a program cannot see, found in the 2026-09-09 grader comparison (`runs/grader-compare/`, dashboard
 `evals/_dashboard/grader-compare.html`): a SHA copied from another file and only described in transcript prose (why the transcript
