@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "bretfisher-utils",
-  "description": "Small developer utilities for agents. macOS only: screencapture-mac lets the agent screenshot native desktop apps to see what you see.",
+  "description": "Small developer utilities for agents, such as screencapture-mac, which lets the agent screenshot native macOS apps to see what you see.",
   "author": {
     "name": "Bret Fisher",
     "url": "https://www.bretfisher.com"
@@ -22,7 +22,7 @@
       "interface": {
         "displayName": "Bret Fisher Utilities",
         "shortDescription": "Small developer utilities, like macOS screenshots",
-        "longDescription": "Small developer utilities for agents. macOS only: screencapture-mac lets the agent screenshot native desktop apps to see what you see.",
+        "longDescription": "Small developer utilities for agents, such as screencapture-mac, which lets the agent screenshot native macOS apps to see what you see.",
         "developerName": "Bret Fisher",
         "category": "Coding",
         "websiteURL": "https://github.com/BretFisher/skills#readme",

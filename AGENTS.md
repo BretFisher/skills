@@ -82,9 +82,10 @@ If you want to publish a quality scorecard, copy a single curated `benchmark.md`
 After each completed full-suite model run, update that skill's eval table in
 `README.md` so readers can see the measured benefit. Publish only after every task,
 configuration, and repeat has final grades and report validation passes; use the
-share of all assertions passed. Identify model, effort or variant, harness, repeat
-count, and iteration in the row or adjacent note. Record details in the skill's
-`coverage.md` and state comparison limits when the skill or checks changed. Keep
+share of all assertions passed. A README row holds only the model name, the two
+scores, and the gain; keep run notes out of the README so readers see the benefit
+at a glance. Record effort or variant, harness, repeat count, iteration, and
+comparison limits in the skill's `coverage.md`, which the README links. Keep
 smoke runs and partial suites in coverage notes until full-suite validation is complete.
 
 ## Publishing a skill

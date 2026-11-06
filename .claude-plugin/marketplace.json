@@ -63,7 +63,7 @@
       "name": "bretfisher-utils",
       "displayName": "Bret Fisher Utilities",
       "source": "./plugins/utils",
-      "description": "Small developer utilities for agents. macOS only: screencapture-mac lets the agent screenshot native desktop apps to see what you see.",
+      "description": "Small developer utilities for agents, such as screencapture-mac, which lets the agent screenshot native macOS apps to see what you see.",
       "category": "utilities",
       "tags": ["macos", "screenshot", "gui", "desktop"],
       "keywords": [

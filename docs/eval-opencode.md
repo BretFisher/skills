@@ -1,5 +1,25 @@
 # OpenCode eval support
 
+## Commands
+
+The runner uses OpenCode V2 by default. Set an exact model and variant, and use a
+new iteration ID for each experiment. Only `eval-run` and `eval-grade` make model calls:
+
+```bash
+make eval-plan SKILL=k8s-catch-up ITER=26-opencode MODEL='openai/gpt-6.1-sol#low' EVALS=1
+make eval-run SKILL=k8s-catch-up ITER=26-opencode MODEL='openai/gpt-6.1-sol#low' EVALS=1
+make eval-check SKILL=k8s-catch-up ITER=26-opencode
+make eval-grade SKILL=k8s-catch-up ITER=26-opencode GRADER_MODEL='openai/gpt-6.1-sol#low'
+make eval-finalize SKILL=k8s-catch-up ITER=26-opencode
+make eval-benchmark SKILL=k8s-catch-up ITER=26-opencode
+make eval-view SKILL=k8s-catch-up ITER=26-opencode OPEN=1
+```
+
+`EVALS` selects comma-separated IDs. `REPEAT` sets repeated pairs; `JOBS` limits
+parallel executors. `RESUME=1` skips matching completed runs and retains failed
+runs. For Claude Code, set `HARNESS=claude`, `MODEL` to a full Claude model ID,
+and `EFFORT=high`. The Claude adapter has offline tests but no live validation yet.
+
 ## Shared execution contract
 
 `evals/harness/runner.py` reads the existing eval definitions and starts paired
