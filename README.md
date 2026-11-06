@@ -1,6 +1,7 @@
 # Bret's DevOps and \*Ops Skills
 
 A bunch of skills for daily work in DevOps, grouped into plugins under `./plugins/<group>/skills/`.
+The [`skills-devops`](skills-devops) and [`skills-utils`](skills-utils) symlinks at the repo root point to those folders.
 
 ## Install
 
@@ -43,18 +44,18 @@ npx skills add bretfisher/skills
 
 Mark the ones you want to install. Add `-g` to the command to install them globally.
 `gh skill install bretfisher/skills` also works.
-If you installed `screencapture` this way before it was renamed, `npx skills update` keeps the old copy; run `npx skills remove screencapture` and add `screencapture-mac`.
+If you installed `screencapture` this way before it was renamed, `npx skills update` keeps the old copy; run `npx skills remove screencapture` and add [`screencapture-mac`](plugins/utils/skills/screencapture-mac/SKILL.md).
 
 ## Skills
 
-| Plugin              | Skill                         | Purpose                                                                                                                                       |
-| ------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bretfisher-devops` | `docker-pro`                  | Light up all the best Docker features and security best practices for dockerizing a repo. From a Docker Captain.                              |
-| `bretfisher-devops` | `github-actions-workflow-pro` | Create, edit, audit, and speed up GitHub Actions workflows with opinionated security and speed defaults.                                      |
-| `bretfisher-devops` | `gha-audit`                   | Type `/gha-audit [file]` to run the audit path of `github-actions-workflow-pro` on demand: scanners first, then a report and a proposed diff. |
-| `bretfisher-devops` | `k8s-catch-up`                | Teaches the agent the Kubernetes features that reached beta or GA after its training data ended (currently v1.35 to v1.37).                   |
-| `bretfisher-devops` | `super-linting`               | Picks the right linter for every file type in a project and wires them into a `make lint` target, so code is linted before every commit.      |
-| `bretfisher-utils`  | `screencapture-mac`           | macOS only. Captures the screen, a window, or a region so the agent can see native GUI apps. Web pages go to a browser automation tool.       |
+| Skill                                                                                       | Plugin              | Purpose                                                                                                                                                                                                     |
+| ------------------------------------------------------------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`docker-pro`](plugins/devops/skills/docker-pro/SKILL.md)                                   | `bretfisher-devops` | Light up all the best Docker features and security best practices for dockerizing a repo. From a Docker Captain.                                                                                            |
+| [`github-actions-workflow-pro`](plugins/devops/skills/github-actions-workflow-pro/SKILL.md) | `bretfisher-devops` | Create, edit, audit, and speed up GitHub Actions workflows with opinionated security and speed defaults.                                                                                                    |
+| [`gha-audit`](plugins/devops/skills/gha-audit/SKILL.md)                                     | `bretfisher-devops` | Type `/gha-audit [file]` to run the audit path of [`github-actions-workflow-pro`](plugins/devops/skills/github-actions-workflow-pro/SKILL.md) on demand: scanners first, then a report and a proposed diff. |
+| [`k8s-catch-up`](plugins/devops/skills/k8s-catch-up/SKILL.md)                               | `bretfisher-devops` | Teaches the agent the Kubernetes features that reached beta or GA after its training data ended (currently v1.35 to v1.37).                                                                                 |
+| [`super-linting`](plugins/devops/skills/super-linting/SKILL.md)                             | `bretfisher-devops` | Picks the right linter for every file type in a project and wires them into a `make lint` target, so code is linted before every commit.                                                                    |
+| [`screencapture-mac`](plugins/utils/skills/screencapture-mac/SKILL.md)                      | `bretfisher-utils`  | macOS only. Captures the screen, a window, or a region so the agent can see native GUI apps. Web pages go to a browser automation tool.                                                                     |
 
 ## Does the skill help?
 
@@ -106,7 +107,7 @@ in `evals/harness/` validate the data and call its unchanged viewer functions.
 Each skill's evals run on a model twice: once with the skill installed and once without. Same prompts, same
 grader. The score is the share of assertions passed.
 
-### github-actions-workflow-pro
+### [github-actions-workflow-pro](plugins/devops/skills/github-actions-workflow-pro/SKILL.md)
 
 | Model                       | Without skill | With skill |
 | --------------------------- | ------------- | ---------- |
@@ -125,7 +126,7 @@ result. Fixture mappings and grading defects were corrected, so this is not a
 controlled comparison with earlier model rows. See
 [GitHub Actions eval coverage](evals/github-actions-workflow-pro/coverage.md).
 
-### k8s-catch-up
+### [k8s-catch-up](plugins/devops/skills/k8s-catch-up/SKILL.md)
 
 | Model                       | Without skill | With skill |
 | --------------------------- | ------------- | ---------- |
@@ -145,10 +146,10 @@ The remaining skill failure omitted the command to confirm the served group-snap
 API version. See [Kubernetes eval coverage](evals/k8s-catch-up/coverage.md).
 
 The newer the model, the more it already knows, so the gap shrinks. What a newer model still gets wrong
-without `k8s-catch-up` is mostly the stage of a feature (beta or GA, and in which version) and recent
+without [`k8s-catch-up`](plugins/devops/skills/k8s-catch-up/SKILL.md) is mostly the stage of a feature (beta or GA, and in which version) and recent
 deprecations.
 
-### docker-pro
+### [docker-pro](plugins/devops/skills/docker-pro/SKILL.md)
 
 | Model                       | Without skill | With skill |
 | --------------------------- | ------------- | ---------- |
@@ -163,7 +164,7 @@ in iteration `5-opencode-fixes`. This is a preliminary result, not a stable qual
 estimate. The skill and checkers changed from earlier runs, so these rows are not
 a controlled model comparison. See [Docker eval coverage](evals/docker-pro/coverage.md).
 
-### super-linting
+### [super-linting](plugins/devops/skills/super-linting/SKILL.md)
 
 | Model                       | Without skill | With skill |
 | --------------------------- | ------------- | ---------- |
@@ -180,7 +181,7 @@ This is a preliminary result. OpenCode does not automatically load fixture
 `CLAUDE.md` instructions, which limits comparison with Claude Code runs. See
 [Linting eval coverage](evals/super-linting/coverage.md).
 
-### gha-audit
+### [gha-audit](plugins/devops/skills/gha-audit/SKILL.md)
 
 | Model                       | Without skill | With skill |
 | --------------------------- | ------------- | ---------- |
@@ -192,10 +193,10 @@ This is a preliminary result. OpenCode does not automatically load fixture
 GPT-6.1 Sol: 5/7 assertions without the skill and 7/7 with it, a gain of
 28.6 percentage points. OpenCode v2.0.26; one repeat per task across both tasks
 in iteration `5-opencode-sol`. With-skill runs include the wrapper's required
-`github-actions-workflow-pro` dependency; the baseline receives neither skill.
+[`github-actions-workflow-pro`](plugins/devops/skills/github-actions-workflow-pro/SKILL.md) dependency; the baseline receives neither skill.
 This is a preliminary result. See [Audit eval coverage](evals/gha-audit/coverage.md).
 
-`screencapture-mac` has no evals yet.
+[`screencapture-mac`](plugins/utils/skills/screencapture-mac/SKILL.md) has no evals yet.
 
 ## Repo layout
 
@@ -203,6 +204,7 @@ This is a preliminary result. See [Audit eval coverage](evals/gha-audit/coverage
 | -------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------- |
 | `plugins/<group>/`               | One plugin: a manifest per harness (`plugin.json`, `.claude-plugin/`, `.cursor-plugin/`) and its `skills/` | ✅ yes        |
 | `plugins/<group>/skills/<name>/` | The skill: `SKILL.md`, plus `references/` and `scripts/` where it needs them                               | ✅ yes        |
+| `skills-devops`, `skills-utils`  | Symlinks to `plugins/devops/skills/` and `plugins/utils/skills/`, for quick browsing                       | ✅ yes        |
 | `evals/<name>/`                  | Eval prompts and assertions, fixtures, the program grader, coverage notes                                  | ✅ yes        |
 | `evals/<name>/runs/iteration-N/` | Eval run output (transcripts, gradings, timings)                                                           | ❌ gitignored |
 
@@ -230,7 +232,7 @@ Evals sit outside `plugins/` so an installer copies only the skills. How a run w
 | `make pin [FILES=…]`                     | Pin this repo's workflows with pinact                                                 |
 | `make run-stats [RUNS=3] [REPO=…]`       | Rank a repo's workflows and jobs by duration over recent runs                         |
 
-`SKILL` defaults to `github-actions-workflow-pro`; `ITER` defaults to the highest iteration present.
+`SKILL` defaults to [`github-actions-workflow-pro`](plugins/devops/skills/github-actions-workflow-pro/SKILL.md); `ITER` defaults to the highest iteration present.
 
 See [AGENTS.md](./AGENTS.md) for the repo conventions (also symlinked as `CLAUDE.md`). Open work is tracked in
 [GitHub Issues](https://github.com/BretFisher/skills/issues), one label per skill.

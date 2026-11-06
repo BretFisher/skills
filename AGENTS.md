@@ -13,6 +13,7 @@ plugins/<group>/              # one plugin per group: devops (bretfisher-devops)
     references/*.md           #     detail read only when a branch needs it (rules + why, procedures)
     scripts/*                 #     deterministic helpers the skill runs (linted, --help, structured output)
     agents/openai.yaml        #     Codex display name and short description (and invocation policy when SKILL.md sets one)
+skills-devops, skills-utils   # symlinks to plugins/devops/skills and plugins/utils/skills, for browsing only
 .claude-plugin/marketplace.json  # marketplaces listing both plugins: Claude Code (also read by Copilot and npx skills),
 .agents/plugins/marketplace.json #   Codex,
 .cursor-plugin/marketplace.json  #   and Cursor; package.json points Pi at plugins/*/skills

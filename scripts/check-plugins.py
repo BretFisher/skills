@@ -104,10 +104,14 @@ def main():
         problems.append(f"package.json: pi.skills must be ['./plugins/*/skills'], found {pi}")
 
     readme = (ROOT / "README.md").read_text()
-    rows = {skill: plugin for plugin, skill in
-            re.findall(r"^\| `(bretfisher-[a-z0-9-]+)` +\| `([a-z0-9-]+)` +\|", readme, re.M)}
+    # Each row links the skill name to its SKILL.md so readers can jump to the source.
+    table = re.findall(r"^\| \[`([a-z0-9-]+)`\]\(([^)]+)\) +\| `(bretfisher-[a-z0-9-]+)` +\|", readme, re.M)
+    rows = {skill: plugin for skill, _, plugin in table}
     if rows != owner:
         problems.append(f"README.md skills table must map skills to plugins as {owner}, found {rows}")
+    for skill, link, _ in table:
+        if not link.endswith(f"/skills/{skill}/SKILL.md") or not (ROOT / link).is_file():
+            problems.append(f"README.md skills table: {skill} must link to its SKILL.md, found {link}")
 
     for problem in problems:
         print(problem)
