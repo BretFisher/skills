@@ -24,17 +24,6 @@ Per project, committed so your team gets the skills too (run it from the project
 npx skills add bretfisher/skills
 ```
 
-Per project, local only (not committed). Install per project, then tell Git to ignore the files in this clone only.
-`.git/info/exclude` works like `.gitignore` but is not committed.
-Add the skill folders the command made for your agents, for example:
-
-```bash
-npx skills add bretfisher/skills
-printf '%s\n' .agents/skills/ .claude/skills/ skills-lock.json >> .git/info/exclude
-```
-
-If you installed `screencapture` this way before it was renamed, `npx skills update` keeps the old copy; run `npx skills remove screencapture` and add `screencapture-mac`.
-
 ### As a plugin, per harness
 
 A plugin install gets the whole group and updates with the marketplace.
@@ -81,9 +70,12 @@ copilot plugin install bretfisher-devops@bretfisher
 
 ## Does the skill help?
 
-Each skill has evals: a set of prompts, plus checks that grade each answer.
-Each prompt runs twice on the same model, once with the skill installed and once without.
-The score is the share of checks that passed. The gain is the with-skill score minus the without-skill score, in percentage points.
+My goal is to prove that each skill helps and does not hurt.
+In general, newer and larger models do better without a skill than older and smaller models.
+But as of October 2026, each skill improved the result on every model tested.
+
+To measure this, each eval prompt runs twice on the same model: once with the skill and once without.
+The score is the share of checks that passed. The gain is the difference, in percentage points.
 
 ### [`github-actions-workflow-pro`](plugins/devops/skills/github-actions-workflow-pro/SKILL.md)
 
@@ -148,35 +140,19 @@ Details: [`evals/gha-audit/coverage.md`](evals/gha-audit/coverage.md).
 
 [`screencapture-mac`](plugins/utils/skills/screencapture-mac/SKILL.md) has no evals yet.
 
-To learn how an eval runs and how to run one, read [docs/eval-walkthrough.md](docs/eval-walkthrough.md) and [docs/eval-opencode.md](docs/eval-opencode.md).
-Model, harness, iteration, and per-assertion results for each row are in each skill's `coverage.md`.
-
 ## Makefile
 
-`make help` lists everything. Tools are checked, never installed; a missing one prints its `brew install` formula.
+`make help` lists everything, including the eval targets for agents. Tools are checked, never installed; a missing one prints its `brew install` formula.
 
-| Target                                    | What it does                                                                          |
-| ----------------------------------------- | ------------------------------------------------------------------------------------- |
-| `make lint`                               | Pre-commit gate: the same linters CI runs, plus the scanners on this repo's workflows |
-| `make fmt`                                | `prettier --write` on Markdown and JSON                                               |
-| `make eval-test`                          | Test the eval harness and checkers without model calls                                |
-| `make eval-plan [SKILL=… ITER=… MODEL=…]` | Check fixture mappings and print the run plan without model calls                     |
-| `make eval-run [SKILL=… ITER=… MODEL=…]`  | Run paired evals (with and without the skill) through OpenCode or Claude Code         |
-| `make eval-grade [SKILL=… ITER=…]`        | Grade the assertions that need a model; requires `GRADER_MODEL=`                      |
-| `make eval-recover RUN=…`                 | Recover a run that failed only during evidence collection, without model calls        |
-| `make eval-key`                           | Compatibility target; eval commits are unsigned and need no key                       |
-| `make eval-check [SKILL=… ITER=…]`        | Program-grade every run of an iteration; leaves judgment assertions for the model     |
-| `make eval-batch [SKILL=… ITER=…]`        | Write one grader prompt per group of runs that still need a model grader              |
-| `make eval-finalize [SKILL=… ITER=…]`     | Recompute every grading summary; fails if an assertion is still ungraded              |
-| `make eval-benchmark [SKILL=… ITER=…]`    | Aggregate an iteration into `benchmark.json` and `benchmark.md`                       |
-| `make eval-view [SKILL=… ITER=…]`         | Open the skill-creator review viewer on an iteration                                  |
-| `make k8s-features [SINCE=… RELEASES=…]`  | Print the Kubernetes features that reached beta or GA in a window                     |
-| `make k8s-verify [STRICT=1]`              | Check every k8s-catch-up feature file against its upstream sources                    |
-| `make k8s-check`                          | Exit 1 when a Kubernetes release newer than the skill exists                          |
-| `make pin [FILES=…]`                      | Pin this repo's workflows with pinact                                                 |
-| `make run-stats [RUNS=3] [REPO=…]`        | Rank a repo's workflows and jobs by duration over recent runs                         |
-
-`SKILL` defaults to [`github-actions-workflow-pro`](plugins/devops/skills/github-actions-workflow-pro/SKILL.md); `ITER` defaults to the highest iteration present.
+| Target                                   | What it does                                                                          |
+| ---------------------------------------- | ------------------------------------------------------------------------------------- |
+| `make lint`                              | Pre-commit gate: the same linters CI runs, plus the scanners on this repo's workflows |
+| `make fmt`                               | `prettier --write` on Markdown and JSON                                               |
+| `make k8s-features [SINCE=… RELEASES=…]` | Print the Kubernetes features that reached beta or GA in a window                     |
+| `make k8s-verify [STRICT=1]`             | Check every k8s-catch-up feature file against its upstream sources                    |
+| `make k8s-check`                         | Exit 1 when a Kubernetes release newer than the skill exists                          |
+| `make pin [FILES=…]`                     | Pin this repo's workflows with pinact                                                 |
+| `make run-stats [RUNS=3] [REPO=…]`       | Rank a repo's workflows and jobs by duration over recent runs                         |
 
 See [AGENTS.md](./AGENTS.md) for the repo conventions (also symlinked as `CLAUDE.md`). Open work is tracked in
 [GitHub Issues](https://github.com/BretFisher/skills/issues), one label per skill.
