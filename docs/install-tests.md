@@ -34,6 +34,7 @@ After you push, `origin/main` equals the working tree and the upgrade checks onl
 
 A renamed skill fails `npx-skills-upgrade` until it is pushed, because `npx skills update` keeps the old name and never adds the new one.
 That failure is expected; the fix is a README line telling users to remove the old name and add the new one.
+A new skill fails the same check until it is pushed, for the same reason: `npx skills update` updates the installed skills and adds none (seen when `k8s-podspec-pro` was added).
 
 ## Results for the plugins/ move
 

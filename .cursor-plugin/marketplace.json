@@ -11,7 +11,7 @@
     {
       "name": "bretfisher-devops",
       "source": "plugins/devops",
-      "description": "Opinionated DevOps and platform engineering skills from a Docker Captain: Dockerfiles and Compose, GitHub Actions workflows and audits, recent Kubernetes features, and local linting setup. Tested with evals.",
+      "description": "Opinionated DevOps and platform engineering skills from a Docker Captain: Dockerfiles and Compose, GitHub Actions workflows and audits, production Kubernetes pod specs, recent Kubernetes features, and local linting setup. Tested with evals.",
       "category": "devops"
     },
     {

@@ -1,7 +1,7 @@
 {
   "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
   "name": "bretfisher-devops",
-  "description": "Opinionated DevOps and platform engineering skills from a Docker Captain: Dockerfiles and Compose, GitHub Actions workflows and audits, recent Kubernetes features, and local linting setup. Tested with evals.",
+  "description": "Opinionated DevOps and platform engineering skills from a Docker Captain: Dockerfiles and Compose, GitHub Actions workflows and audits, production Kubernetes pod specs, recent Kubernetes features, and local linting setup. Tested with evals.",
   "author": {
     "name": "Bret Fisher",
     "url": "https://www.bretfisher.com"
@@ -18,6 +18,8 @@
     "ci-cd",
     "kubernetes",
     "helm",
+    "kustomize",
+    "pod-security",
     "linting",
     "super-linter",
     "devops",
@@ -29,7 +31,7 @@
       "interface": {
         "displayName": "Bret Fisher DevOps Skills",
         "shortDescription": "Docker, GitHub Actions, Kubernetes, and linting skills",
-        "longDescription": "Opinionated DevOps and platform engineering skills from a Docker Captain: Dockerfiles and Compose, GitHub Actions workflows and audits, recent Kubernetes features, and local linting setup. Tested with evals.",
+        "longDescription": "Opinionated DevOps and platform engineering skills from a Docker Captain: Dockerfiles and Compose, GitHub Actions workflows and audits, production Kubernetes pod specs, recent Kubernetes features, and local linting setup. Tested with evals.",
         "developerName": "Bret Fisher",
         "category": "Coding",
         "websiteURL": "https://github.com/BretFisher/skills#readme",

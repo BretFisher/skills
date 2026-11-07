@@ -10,7 +10,7 @@
       "name": "bretfisher-devops",
       "displayName": "Bret Fisher DevOps Skills",
       "source": "./plugins/devops",
-      "description": "Opinionated DevOps and platform engineering skills from a Docker Captain: Dockerfiles and Compose, GitHub Actions workflows and audits, recent Kubernetes features, and local linting setup. Tested with evals.",
+      "description": "Opinionated DevOps and platform engineering skills from a Docker Captain: Dockerfiles and Compose, GitHub Actions workflows and audits, production Kubernetes pod specs, recent Kubernetes features, and local linting setup. Tested with evals.",
       "category": "devops",
       "tags": [
         "docker",
@@ -30,6 +30,8 @@
         "ci-cd",
         "kubernetes",
         "helm",
+        "kustomize",
+        "pod-security",
         "linting",
         "super-linter",
         "devops",
@@ -46,7 +48,14 @@
       "relevance": {
         "topic": "DevOps",
         "signals": {
-          "cli": ["docker", "kubectl", "helm", "actionlint", "zizmor"],
+          "cli": [
+            "docker",
+            "kubectl",
+            "helm",
+            "kustomize",
+            "actionlint",
+            "zizmor"
+          ],
           "filesRead": [
             "**/Dockerfile",
             "**/*.Dockerfile",
@@ -54,7 +63,8 @@
             "**/docker-compose*.y*ml",
             "**/docker-bake.hcl",
             "**/.github/workflows/*.y*ml",
-            "**/Chart.yaml"
+            "**/Chart.yaml",
+            "**/kustomization.y*ml"
           ]
         }
       }

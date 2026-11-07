@@ -59,14 +59,15 @@ copilot plugin install bretfisher-devops@bretfisher
 
 ## Skills
 
-| Skill                                                                                       | Plugin              | Purpose                                                                                                                                                                                                                                    |
-| ------------------------------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [`docker-pro`](plugins/devops/skills/docker-pro/SKILL.md)                                   | `bretfisher-devops` | Use it when you create or change a Dockerfile, `.dockerignore`, Bake file, or Compose file. It applies modern Docker and BuildKit features and security best practices from a Docker Captain.                                              |
-| [`github-actions-workflow-pro`](plugins/devops/skills/github-actions-workflow-pro/SKILL.md) | `bretfisher-devops` | Use it when you create, edit, audit, or speed up a GitHub Actions workflow. It applies opinionated security and speed defaults.                                                                                                            |
-| [`gha-audit`](plugins/devops/skills/gha-audit/SKILL.md)                                     | `bretfisher-devops` | Type `/gha-audit [file]` when you want a workflow audit now. It runs the audit path of [`github-actions-workflow-pro`](plugins/devops/skills/github-actions-workflow-pro/SKILL.md): scanners first, then a report and a proposed diff.     |
-| [`k8s-catch-up`](plugins/devops/skills/k8s-catch-up/SKILL.md)                               | `bretfisher-devops` | Use it when you write Kubernetes manifests or Helm templates, run `kubectl`, or ask what a recent Kubernetes version can do. It teaches the agent the features that reached beta or GA after its training data ended (now v1.35 to v1.37). |
-| [`super-linting`](plugins/devops/skills/super-linting/SKILL.md)                             | `bretfisher-devops` | Use it when you add, choose, or standardize linters for local development. It picks the right linter for each file type and adds them to a `make lint` target, so code is linted before each commit.                                       |
-| [`screencapture-mac`](plugins/utils/skills/screencapture-mac/SKILL.md)                      | `bretfisher-utils`  | Use it when the agent must see a native macOS app or a desktop window. It captures the screen, a window, or a region. Web pages go to a browser automation tool.                                                                           |
+| Skill                                                                                       | Plugin              | Purpose                                                                                                                                                                                                                                                                                                   |
+| ------------------------------------------------------------------------------------------- | ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`docker-pro`](plugins/devops/skills/docker-pro/SKILL.md)                                   | `bretfisher-devops` | Use it when you create or change a Dockerfile, `.dockerignore`, Bake file, or Compose file. It applies modern Docker and BuildKit features and security best practices from a Docker Captain.                                                                                                             |
+| [`github-actions-workflow-pro`](plugins/devops/skills/github-actions-workflow-pro/SKILL.md) | `bretfisher-devops` | Use it when you create, edit, audit, or speed up a GitHub Actions workflow. It applies opinionated security and speed defaults.                                                                                                                                                                           |
+| [`gha-audit`](plugins/devops/skills/gha-audit/SKILL.md)                                     | `bretfisher-devops` | Type `/gha-audit [file]` when you want a workflow audit now. It runs the audit path of [`github-actions-workflow-pro`](plugins/devops/skills/github-actions-workflow-pro/SKILL.md): scanners first, then a report and a proposed diff.                                                                    |
+| [`k8s-catch-up`](plugins/devops/skills/k8s-catch-up/SKILL.md)                               | `bretfisher-devops` | Use it when you write Kubernetes manifests or Helm templates, run `kubectl`, or ask what a recent Kubernetes version can do. It teaches the agent the features that reached beta or GA after its training data ended (now v1.35 to v1.37).                                                                |
+| [`k8s-podspec-pro`](plugins/devops/skills/k8s-podspec-pro/SKILL.md)                         | `bretfisher-devops` | Use it when you write or review a Kubernetes workload (Deployment, StatefulSet, DaemonSet, Job, CronJob, Pod), or a Helm chart or Kustomize base that renders one. It applies the production pod spec floor from [BretFisher/podspec](https://github.com/BretFisher/podspec) and checks it with a script. |
+| [`super-linting`](plugins/devops/skills/super-linting/SKILL.md)                             | `bretfisher-devops` | Use it when you add, choose, or standardize linters for local development. It picks the right linter for each file type and adds them to a `make lint` target, so code is linted before each commit.                                                                                                      |
+| [`screencapture-mac`](plugins/utils/skills/screencapture-mac/SKILL.md)                      | `bretfisher-utils`  | Use it when the agent must see a native macOS app or a desktop window. It captures the screen, a window, or a region. Web pages go to a browser automation tool.                                                                                                                                          |
 
 ## Does the skill help?
 
@@ -116,6 +117,14 @@ Details: [`evals/k8s-catch-up/coverage.md`](evals/k8s-catch-up/coverage.md).
 
 Details: [`evals/docker-pro/coverage.md`](evals/docker-pro/coverage.md).
 
+### [`k8s-podspec-pro`](plugins/devops/skills/k8s-podspec-pro/SKILL.md)
+
+| Model      | Without skill | With skill | Gain |
+| ---------- | ------------- | ---------- | ---- |
+| Sonnet 5.5 | 58%           | 98%        | +40  |
+
+Details: [`evals/k8s-podspec-pro/coverage.md`](evals/k8s-podspec-pro/coverage.md).
+
 ### [`super-linting`](plugins/devops/skills/super-linting/SKILL.md)
 
 | Model       | Without skill | With skill | Gain |
@@ -151,6 +160,7 @@ Details: [`evals/gha-audit/coverage.md`](evals/gha-audit/coverage.md).
 | `make k8s-features [SINCE=… RELEASES=…]` | Print the Kubernetes features that reached beta or GA in a window                     |
 | `make k8s-verify [STRICT=1]`             | Check every k8s-catch-up feature file against its upstream sources                    |
 | `make k8s-check`                         | Exit 1 when a Kubernetes release newer than the skill exists                          |
+| `make podspec-check`                     | Exit 1 when k8s-podspec-pro's copy of `pod.yaml` differs from the podspec repo        |
 | `make pin [FILES=…]`                     | Pin this repo's workflows with pinact                                                 |
 | `make run-stats [RUNS=3] [REPO=…]`       | Rank a repo's workflows and jobs by duration over recent runs                         |
 

@@ -1,0 +1,3 @@
+interface:
+  display_name: "Kubernetes Podspec Pro"
+  short_description: "Production pod spec floor for Kubernetes workloads"
