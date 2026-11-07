@@ -1,0 +1,119 @@
+{
+  "skill_name": "k8s-podspec-pro",
+  "notes": "Fixtures under fixtures/<repo>/ are placed at the work repo root. Every assertion a program can decide is graded by checks.py; the rest go to the model grader. e0-e2 are ported from the podspec repo's first draft (2026-10-07); e1 gained a named USER and a REDIS_PORT clash, e3 and e4 test the floor's exceptions.",
+  "evals": [
+    {
+      "id": 0,
+      "name": "generate-deployment",
+      "prompt": "Write me a Kubernetes Deployment manifest for our payments-api service. It's a Go HTTP service listening on port 9090, exposes /healthz for liveness and /readyz for readiness, and the image is registry.acme.io/payments/api:v1.4.2. Three replicas. It handles HTTP long-polling so shutdown shouldn't be too aggressive. Save the YAML to deployment.yaml in the repo root.",
+      "expected_output": "A Deployment that meets the floor, uses the Dockerfile's numeric USER 65532 instead of inventing 1001, marks the resource numbers as TODO placeholders, keeps a teaching comment on each floor field, and ends with the three hand-back sections.",
+      "files": ["evals/k8s-podspec-pro/fixtures/payments-api/Dockerfile"],
+      "expectations": [
+        "`deployment.yaml` is a Deployment with 3 replicas and the image exactly `registry.acme.io/payments/api:v1.4.2`.",
+        "The container's `readinessProbe` is an `httpGet` on path `/readyz` and port 9090 (or a port name that maps to 9090).",
+        "The container declares `containerPort: 9090`.",
+        "The pod `securityContext` sets `seccompProfile.type: RuntimeDefault` and `runAsNonRoot: true`.",
+        "`runAsUser` is either absent or 65532, the numeric `USER` in the repo's Dockerfile.",
+        "Every container sets `allowPrivilegeEscalation: false`.",
+        "Every container has `requests.memory` equal to `limits.memory`, a `requests.cpu`, and no `limits.cpu`.",
+        "The pod sets `terminationGracePeriodSeconds` above 30.",
+        "The pod sets `hostUsers: false`.",
+        "The pod sets `automountServiceAccountToken: false` and `enableServiceLinks: false`.",
+        "A `TODO` comment is on or within two lines of a `memory:` line, marking the resource numbers as placeholders.",
+        "The lines that set `allowPrivilegeEscalation`, `runAsNonRoot`, `hostUsers`, `automountServiceAccountToken`, `enableServiceLinks`, and `terminationGracePeriodSeconds` each carry a `#` comment on the same line or the line above.",
+        "The answer and the YAML do not call this pod's QoS class `Guaranteed` unless they also name `Burstable`.",
+        "The answer contains the headings `## Defaults applied`, `## Questions`, and `## Placeholders`, in that order."
+      ]
+    },
+    {
+      "id": 1,
+      "name": "audit-weak-deployment",
+      "prompt": "Can you review the deployment.yaml in this repo and tell me what's missing for prod? We're about to ship it tomorrow. Write your review to review.md. Don't modify the deployment.yaml itself.",
+      "expected_output": "A review under the three report headings that finds every floor gap, warns that runAsNonRoot fails with the image's named USER node, connects enableServiceLinks to the app's REDIS_PORT variable, proposes no livenessProbe on the Redis-dependent /healthz, and leaves deployment.yaml unchanged.",
+      "files": [
+        "evals/k8s-podspec-pro/fixtures/web-app/deployment.yaml",
+        "evals/k8s-podspec-pro/fixtures/web-app/Dockerfile",
+        "evals/k8s-podspec-pro/fixtures/web-app/package.json",
+        "evals/k8s-podspec-pro/fixtures/web-app/src/server.js"
+      ],
+      "expectations": [
+        "`review.md` contains the headings `## Meets the floor`, `## Missing or wrong`, and `## Suggested`, in that order.",
+        "The review flags the `:latest` image tag.",
+        "The review names `readinessProbe` and the app's `/healthz` endpoint.",
+        "The review names a memory limit and a memory request.",
+        "The review names `seccompProfile` with `RuntimeDefault`.",
+        "The review names `allowPrivilegeEscalation`.",
+        "The review names `runAsNonRoot` and warns that the image's named `USER node` needs a numeric UID (`runAsUser` or a numeric `USER`).",
+        "The review names `terminationGracePeriodSeconds`.",
+        "The review names `hostUsers`.",
+        "The review names `automountServiceAccountToken`.",
+        "The review names `enableServiceLinks` and the app's `REDIS_PORT` variable.",
+        "No `livenessProbe` in the review uses the `/healthz` path, which checks Redis.",
+        "The review does not call the fixed pod's QoS class `Guaranteed` unless it also names `Burstable`.",
+        "`deployment.yaml` is unchanged in the work repo.",
+        "Each finding under `## Missing or wrong` gives a reason the fix matters, not only the fix."
+      ]
+    },
+    {
+      "id": 2,
+      "name": "generate-cronjob",
+      "prompt": "Set up a CronJob that runs every night at 2am UTC to clean stale uploads from our S3 bucket. The image is acme/cleanup-tool:2025.05.21-a1b2c3d, the job takes ~20 min on a slow night, and it's a Python script. No HTTP server. Save to cleanup-cronjob.yaml.",
+      "expected_output": "A CronJob with the floor in the nested pod template, batch settings from the prompt, no port and no readinessProbe, a stated way to get S3 credentials without mounting the API token, and the three hand-back sections.",
+      "files": [],
+      "expectations": [
+        "`cleanup-cronjob.yaml` is a CronJob with `schedule: \"0 2 * * *\"` and `timeZone` `Etc/UTC` or `UTC`.",
+        "The container image is exactly `acme/cleanup-tool:2025.05.21-a1b2c3d`.",
+        "The CronJob sets `concurrencyPolicy: Forbid`.",
+        "The Job spec sets `activeDeadlineSeconds` of 1200 or more.",
+        "The container has no `ports` and no `readinessProbe`.",
+        "The pod `securityContext` sets `seccompProfile.type: RuntimeDefault` and `runAsNonRoot: true`.",
+        "Every container sets `allowPrivilegeEscalation: false`.",
+        "Every container has `requests.memory` equal to `limits.memory`, a `requests.cpu`, and no `limits.cpu`.",
+        "The pod sets `terminationGracePeriodSeconds` above 30.",
+        "The pod sets `hostUsers: false` and `enableServiceLinks: false`.",
+        "The pod sets `automountServiceAccountToken: false`, and the answer or YAML names how the job gets S3 credentials (IRSA, EKS Pod Identity, workload identity, an IAM role, `serviceAccountName`, or a Secret).",
+        "The answer contains the headings `## Defaults applied`, `## Questions`, and `## Placeholders`, in that order."
+      ]
+    },
+    {
+      "id": 3,
+      "name": "daemonset-host-namespaces",
+      "prompt": "Write a DaemonSet that runs quay.io/prometheus/node-exporter:v1.9.1 on every node so Prometheus can scrape it on port 9100. It has to use the host network and the host PID namespace, and it reads the host's /proc and /sys (mount them read-only). Save it to node-exporter.yaml.",
+      "expected_output": "A DaemonSet with hostNetwork and hostPID, read-only host mounts, the rest of the floor, hostUsers left out with the reason given, and the three hand-back sections.",
+      "files": [],
+      "expectations": [
+        "`node-exporter.yaml` is a DaemonSet with the image exactly `quay.io/prometheus/node-exporter:v1.9.1`, `hostNetwork: true`, and `hostPID: true`.",
+        "The pod does not set `hostUsers: false`.",
+        "The answer or a YAML comment says `hostUsers` is left out because the pod uses the host network or PID namespace.",
+        "The `/proc` and `/sys` host paths are mounted with `readOnly: true`.",
+        "The container has a `readinessProbe` on port 9100.",
+        "The pod `securityContext` sets `seccompProfile.type: RuntimeDefault` and `runAsNonRoot: true`, and every container sets `allowPrivilegeEscalation: false`.",
+        "The pod sets `automountServiceAccountToken: false` and `enableServiceLinks: false`.",
+        "Every container has `requests.memory` equal to `limits.memory`, a `requests.cpu`, and no `limits.cpu`.",
+        "The answer contains the headings `## Defaults applied`, `## Questions`, and `## Placeholders`, in that order."
+      ]
+    },
+    {
+      "id": 4,
+      "name": "harden-controller",
+      "prompt": "Harden deploy/controller.yaml for production. It's our config-watcher controller (source in cmd/watcher). Edit the file in place.",
+      "expected_output": "The controller Deployment edited in place to the floor, keeping its ServiceAccount token because the controller calls the Kubernetes API, removing the CPU limit, setting memory limit equal to request, adding a readinessProbe on /readyz port 8081 from the code, and ending with the three hand-back sections.",
+      "files": [
+        "evals/k8s-podspec-pro/fixtures/config-watcher/deploy/controller.yaml",
+        "evals/k8s-podspec-pro/fixtures/config-watcher/cmd/watcher/main.go",
+        "evals/k8s-podspec-pro/fixtures/config-watcher/Dockerfile"
+      ],
+      "expectations": [
+        "`deploy/controller.yaml` in the work repo is changed, still uses `serviceAccountName: config-watcher` and the image `ghcr.io/acme/config-watcher:0.8.3`.",
+        "The pod does not set `automountServiceAccountToken: false`.",
+        "The answer says the ServiceAccount token stays mounted because the controller calls the Kubernetes API.",
+        "The container's `readinessProbe` is an `httpGet` on path `/readyz` and port 8081.",
+        "The pod `securityContext` sets `seccompProfile.type: RuntimeDefault` and `runAsNonRoot: true`, and every container sets `allowPrivilegeEscalation: false`.",
+        "The pod sets `hostUsers: false` and `enableServiceLinks: false`.",
+        "Every container has `requests.memory` equal to `limits.memory`, a `requests.cpu`, and no `limits.cpu`.",
+        "The pod sets `terminationGracePeriodSeconds` above 30.",
+        "The answer contains the headings `## Defaults applied`, `## Questions`, and `## Placeholders`, in that order."
+      ]
+    }
+  ]
+}
