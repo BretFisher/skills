@@ -76,7 +76,7 @@ the repo, and mention `make lint` in `README.md`. Match the existing Makefile an
 .PHONY: lint
 lint: ## Run all project linters
 	ruff check .
-	shellcheck $$(git ls-files '*.sh')
+	git ls-files -z --cached --others --exclude-standard '*.sh' | xargs -0 -r shellcheck
 ```
 
 ### 6. Summarize, then offer a git hook
