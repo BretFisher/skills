@@ -1,13 +1,13 @@
 ---
 name: k8s-podspec-pro
-description: Writes and reviews Kubernetes pod specs against Bret Fisher's production floor (github.com/BretFisher/podspec) for security context, user namespaces, service account tokens, probes, resources, and graceful shutdown. Use it when the user creates or edits a Deployment, StatefulSet, DaemonSet, Job, CronJob, or Pod, changes a Helm chart or Kustomize base that renders one, asks to review or harden a workload for production, or asks why a pod spec setting matters, even if they only say "deploy this to Kubernetes".
+description: Writes and reviews Kubernetes pod specs against Bret Fisher's hardened pod spec recommendations (github.com/BretFisher/podspec) for security context, user namespaces, service account tokens, probes, resources, and graceful shutdown. Use it when the user creates or edits a Deployment, StatefulSet, DaemonSet, Job, CronJob, or Pod, changes a Helm chart or Kustomize base that renders one, asks to review or harden a workload for production, or asks why a pod spec setting matters, even if they only say "deploy this to Kubernetes".
 license: MIT
-compatibility: scripts/floor-check.py needs Python 3 and yq.
+compatibility: scripts/hardening-check.py needs Python 3 and yq.
 ---
 
-# Kubernetes pod spec floor
+# Hardened Kubernetes Pod Spec Recommendations
 
-Every pod template you write or review meets the **floor**: the settings in [pod.yaml](references/pod.yaml),
+Every pod template you write or review meets the **recommendations**: the settings in [pod.yaml](references/pod.yaml),
 an exact copy of <https://github.com/BretFisher/podspec/blob/main/pod.yaml>. Read pod.yaml at the start of
 each task. Its field layout and its inline comments are the shape you copy, and the table below is the
 summary with the exceptions.
@@ -23,10 +23,10 @@ summary with the exceptions.
    `USER`, a probe path the code does not show, a livenessProbe, a grace period other than 600. Ask for
    them in one bundled question. When the user is unavailable or says to go ahead, write the pod.yaml
    value with a `# TODO:` comment and list it under `## Placeholders`.
-4. An edit brings every pod template you touch up to the floor, because the user asked you into that
+4. An edit makes every pod template you touch meet the recommendations, because the user asked you into that
    file; other files keep their content.
 
-## The floor
+## The recommendations
 
 | Field                                | Value                                                                                                    | Why, and the exception                                                                                                                                                                                                                                                                                                                                                   |
 | ------------------------------------ | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -49,16 +49,16 @@ read it when the user asks why, or when an exception in the table applies.
 
 ## Teaching comments
 
-A manifest you write keeps the pod.yaml style: one short inline `#` comment on each floor field that says
-why it is there. The comments are how the user's team learns the floor, so they stay in the output.
+A manifest you write keeps the pod.yaml style: one short inline `#` comment on each recommended field that says
+why it is there. The comments are how the user's team learns the recommendations, so they stay in the output.
 
 ## Review
 
-When the user asks you to review, audit, or check a manifest for production, run `scripts/floor-check.py`
+When the user asks you to review, audit, or check a manifest for production, run `scripts/hardening-check.py`
 on it (or on `helm template` / `kustomize build` output piped to `-`) and write the report under these
 three `##` headings, in this order:
 
-- `## Meets the floor`: the floor fields already set.
+- `## Meets the recommendations`: the recommended fields already set.
 - `## Missing or wrong`: one entry per finding with the field, its location, the fixed YAML, and one
   sentence on why. Cite the script's rule id. Add what the script cannot see: a probe that checks a
   dependency, numbers that look copied from pod.yaml.
@@ -71,15 +71,15 @@ Change the manifest only when the user asks for fixes, because a review is a rep
 
 End every create or edit task with these three `##` sections, in this order:
 
-- `## Defaults applied`: a `| Default | Why here |` table, one row per floor field you set.
+- `## Defaults applied`: a `| Default | Why here |` table, one row per recommended field you set.
 - `## Questions`: the decisions from working style step 3 that are still open, numbered. Write `none`
   when there are none.
 - `## Placeholders`: every `# TODO:` value with its field. Write `none` when there are none.
 
 ## Validate
 
-Run `scripts/floor-check.py <file>...` on every manifest you wrote or edited. It prints one line per
-finding with a rule id and ends with `floor-check: clean` or the finding count. Fix each finding, or
+Run `scripts/hardening-check.py <file>...` on every manifest you wrote or edited. It prints one line per
+finding with a rule id and ends with `hardening-check: clean` or the finding count. Fix each finding, or
 keep it and say why in the hand-back (a CPU limit for Guaranteed QoS, a token for an operator). When
 `kubeconform` is installed, also run `kubeconform -strict -summary <file>` for schema errors. A tool that
 is absent: say so by name and offer the `brew install` command.
@@ -88,8 +88,8 @@ For fields newer than your training data, the `k8s-catch-up` skill has one file 
 
 ## Done when
 
-- [ ] `floor-check.py` is clean on every manifest you wrote or edited, or each remaining rule id is
+- [ ] `hardening-check.py` is clean on every manifest you wrote or edited, or each remaining rule id is
       named in the hand-back with its reason
-- [ ] Every floor field in the output has its teaching comment
+- [ ] Every recommended field in the output has its teaching comment
 - [ ] A review has the three headings and changes no file the user did not ask to change
 - [ ] A create or edit ends with `## Defaults applied`, `## Questions`, and `## Placeholders`

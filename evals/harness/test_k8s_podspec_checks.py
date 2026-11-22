@@ -13,7 +13,7 @@ ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location("podspec_checks", ROOT / "evals/k8s-podspec-pro/checks.py")
 checks = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(checks)
-FLOOR = ROOT / "plugins/devops/skills/k8s-podspec-pro/scripts/floor-check.py"
+HARDENING = ROOT / "plugins/devops/skills/k8s-podspec-pro/scripts/hardening-check.py"
 POD = (ROOT / "plugins/devops/skills/k8s-podspec-pro/references/pod.yaml").read_text()
 
 DEPLOY = """apiVersion: apps/v1
@@ -67,10 +67,10 @@ class PodspecChecksTests(unittest.TestCase):
         (d / "outputs/answer.md").write_text(answer)
         return checks.Run(str(d))
 
-    def test_floor_deployment_passes_shared_checks(self):
+    def test_hardened_deployment_passes_shared_checks(self):
         r = self.run_dir(0, {"outputs/deployment.yaml": DEPLOY})
         for fn in (checks.e0_1, checks.e0_3, checks.e0_5, checks.e0_11, checks.seccomp_nonroot, checks.no_escalation,
-                   checks.resources, checks.grace, checks.probe("/readyz", 9090), checks.commented(checks.FLOOR_COMMENTS)):
+                   checks.resources, checks.grace, checks.probe("/readyz", 9090), checks.commented(checks.RECOMMENDED_COMMENTS)):
             with self.subTest(fn=getattr(fn, "__name__", fn)):
                 self.assertTrue(fn(r)[0], fn(r)[1])
 
@@ -109,16 +109,16 @@ class PodspecChecksTests(unittest.TestCase):
         self.assertTrue(checks.e3_3(r)[0])
         self.assertIsNone(checks.e3_3(self.run_dir(3, {"outputs/node-exporter.yaml": ds}, "done"))[0])
 
-    def test_floor_check_script(self):
-        clean = subprocess.run([sys.executable, str(FLOOR), "-"], input=POD, capture_output=True, text=True)
+    def test_hardening_check_script(self):
+        clean = subprocess.run([sys.executable, str(HARDENING), "-"], input=POD, capture_output=True, text=True)
         self.assertEqual(clean.returncode, 0, clean.stdout)
         weak = POD.replace("hostUsers: false", "hostUsers: true").replace("image: my-image:tag", "image: my-image:latest")
-        out = subprocess.run([sys.executable, str(FLOOR), "-"], input=weak, capture_output=True, text=True)
+        out = subprocess.run([sys.executable, str(HARDENING), "-"], input=weak, capture_output=True, text=True)
         self.assertEqual(out.returncode, 1)
         self.assertIn(": host-users:", out.stdout)
         self.assertIn(": image-tag:", out.stdout)
         host = POD.replace("hostUsers: false", "hostNetwork: true")
-        noted = subprocess.run([sys.executable, str(FLOOR), "-"], input=host, capture_output=True, text=True)
+        noted = subprocess.run([sys.executable, str(HARDENING), "-"], input=host, capture_output=True, text=True)
         self.assertEqual(noted.returncode, 0, noted.stdout)
         self.assertIn("note: hostUsers skipped", noted.stdout)
 

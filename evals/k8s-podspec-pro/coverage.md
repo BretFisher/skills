@@ -8,31 +8,31 @@ proves it and leaves the rest to the model), **model** (judgment only).
 
 ## Coverage map
 
-| Skill part                                                | Assertions                           | Gap                                               |
-| --------------------------------------------------------- | ------------------------------------ | ------------------------------------------------- |
-| Read pod.yaml; teaching comments on floor fields          | e0#12                                | comments are checked only in e0                   |
-| Working style 1 (nesting by kind)                         | e2 (CronJob), e3 (DaemonSet)         | StatefulSet, Job, raw Pod                         |
-| Working style 2 (facts from the repo)                     | e0#5 (Dockerfile UID), e1#3 e4#4     | `EXPOSE` without a port in the prompt             |
-| Working style 3 (decisions → TODO placeholders)           | e0#11                                | the bundled question when the user is present     |
-| Working style 4 (edit brings the template to floor)       | e4                                   | —                                                 |
-| Floor: image tag                                          | e0#1 e1#2 e2#2 e3#1 e4#1             | digest pins                                       |
-| Floor: containerPort; no port on batch                    | e0#3 e2#5                            | —                                                 |
-| Floor: readinessProbe; none on batch                      | e0#2 e1#3 e2#5 e3#5 e4#4             | `exec` probe for a portless long-running app      |
-| Floor: livenessProbe never checks a dependency            | e1#12                                | —                                                 |
-| Floor: resources and the QoS class                        | e0#7 e0#13 e1#4 e1#13 e2#8 e3#8 e4#7 | Guaranteed on request                             |
-| Floor: container securityContext                          | e0#6 e1#6 e2#7 e3#6 e4#5             | `privileged: false` is not asserted               |
-| Floor: seccomp and runAsNonRoot                           | e0#4 e1#5 e2#6 e3#6 e4#5             | —                                                 |
-| Floor: named `USER` gotcha                                | e1#7                                 | —                                                 |
-| Floor: hostUsers and its host-namespace exception         | e0#9 e1#9 e2#10 e3#2 e3#3 e4#6       | node requirements in the hand-back                |
-| Floor: automountServiceAccountToken and the API exception | e0#10 e1#10 e2#11 e3#7 e4#2 e4#3     | —                                                 |
-| Floor: enableServiceLinks and the env var search          | e0#10 e1#11 e2#10 e3#7 e4#6          | —                                                 |
-| Floor: terminationGracePeriodSeconds                      | e0#8 e1#8 e2#9 e4#8                  | —                                                 |
-| Floor: appArmorProfile                                    | —                                    | not tested                                        |
-| Review: three headings, file unchanged, the why           | e1#1 e1#14 e1#15                     | the script run is not checked from the transcript |
-| Hand-back: three headings                                 | e0#14 e2#12 e3#9 e4#9                | the content of each section                       |
-| Batch settings (workload-kinds.md)                        | e2#1 e2#3 e2#4                       | `ttlSecondsAfterFinished`, `backoffLimit`         |
-| Helm and Kustomize (workload-kinds.md)                    | —                                    | not tested                                        |
-| Validate: floor-check.py clean                            | indirectly, by the floor rows        | the run of the script is not checked              |
+| Skill part                                                         | Assertions                             | Gap                                               |
+| ------------------------------------------------------------------ | -------------------------------------- | ------------------------------------------------- |
+| Read pod.yaml; teaching comments on recommended fields             | e0#12                                  | comments are checked only in e0                   |
+| Working style 1 (nesting by kind)                                  | e2 (CronJob), e3 (DaemonSet)           | StatefulSet, Job, raw Pod                         |
+| Working style 2 (facts from the repo)                              | e0#5 (Dockerfile UID), e1#3 e4#4       | `EXPOSE` without a port in the prompt             |
+| Working style 3 (decisions → TODO placeholders)                    | e0#11                                  | the bundled question when the user is present     |
+| Working style 4 (edit makes the template meet the recommendations) | e4                                     | —                                                 |
+| Recommendation: image tag                                          | e0#1 e1#2 e2#2 e3#1 e4#1               | digest pins                                       |
+| Recommendation: containerPort; no port on batch                    | e0#3 e2#5                              | —                                                 |
+| Recommendation: readinessProbe; none on batch                      | e0#2 e1#3 e2#5 e3#5 e4#4               | `exec` probe for a portless long-running app      |
+| Recommendation: livenessProbe never checks a dependency            | e1#12                                  | —                                                 |
+| Recommendation: resources and the QoS class                        | e0#7 e0#13 e1#4 e1#13 e2#8 e3#8 e4#7   | Guaranteed on request                             |
+| Recommendation: container securityContext                          | e0#6 e1#6 e2#7 e3#6 e4#5               | `privileged: false` is not asserted               |
+| Recommendation: seccomp and runAsNonRoot                           | e0#4 e1#5 e2#6 e3#6 e4#5               | —                                                 |
+| Recommendation: named `USER` gotcha                                | e1#7                                   | —                                                 |
+| Recommendation: hostUsers and its host-namespace exception         | e0#9 e1#9 e2#10 e3#2 e3#3 e4#6         | node requirements in the hand-back                |
+| Recommendation: automountServiceAccountToken and the API exception | e0#10 e1#10 e2#11 e3#7 e4#2 e4#3       | —                                                 |
+| Recommendation: enableServiceLinks and the env var search          | e0#10 e1#11 e2#10 e3#7 e4#6            | —                                                 |
+| Recommendation: terminationGracePeriodSeconds                      | e0#8 e1#8 e2#9 e4#8                    | —                                                 |
+| Recommendation: appArmorProfile                                    | —                                      | not tested                                        |
+| Review: three headings, file unchanged, the why                    | e1#1 e1#14 e1#15                       | the script run is not checked from the transcript |
+| Hand-back: three headings                                          | e0#14 e2#12 e3#9 e4#9                  | the content of each section                       |
+| Batch settings (workload-kinds.md)                                 | e2#1 e2#3 e2#4                         | `ttlSecondsAfterFinished`, `backoffLimit`         |
+| Helm and Kustomize (workload-kinds.md)                             | —                                      | not tested                                        |
+| Validate: hardening-check.py clean                                 | indirectly, by the recommendation rows | the run of the script is not checked              |
 
 ## Assertion kinds
 
@@ -52,7 +52,7 @@ Output of `checks.py --kinds`; regenerate when `evals.json` or `checks.py` chang
 The first draft of this skill and e0 to e2 were written in the podspec repo on 2026-10-07 and never
 committed. Its iteration 1 ran one pair per eval on Sonnet 5.5 (88% without the skill, 100% with it),
 but its benchmark header said three runs, and its audit eval scored 12/12 in both arms. Regraded with
-this `checks.py` (scratch copy, fixtures differ for e1), the old with-skill answer called the floor's QoS
+this `checks.py` (scratch copy, fixtures differ for e1), the old with-skill answer called the recommendations' QoS
 class `Guaranteed`, which the draft skill taught, and its CronJob had a readinessProbe. Both are fixed in
 this skill and covered by e0#13, e1#13, and e2#5.
 
