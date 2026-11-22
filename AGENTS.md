@@ -91,14 +91,21 @@ smoke runs and partial suites in coverage notes until full-suite validation is c
 ## Publishing a skill
 
 A skill ships in the plugin whose `skills/` folder holds it: `plugins/devops/skills/` for DevOps and platform work, `plugins/utils/skills/` for anything else.
-Every harness loads a plugin's whole `skills/` folder, so the folder is the only list of a plugin's skills.
-When you add, rename, or remove a skill, also update the README skills table and give the skill an `agents/openai.yaml`.
+Every harness loads a plugin's whole `skills/` folder, so the folder decides which skills a plugin ships.
+When you add, rename, or remove a skill, also update the README skills table, the skills table in `plugins/<group>/README.md`, the plugin's `skills` list in `.claude-plugin/marketplace.json`, the plugin's group in `skills.sh.json`, and give the skill an `agents/openai.yaml`.
+That `skills` list repeats the folder because `npx skills list` groups a skill under its plugin only when the marketplace entry lists the skill's path; Claude Code adds the list to its folder scan and loads each skill once.
+`skills.sh.json` groups the repo page on skills.sh by plugin; skills.sh reads it on the next `npx skills` install with telemetry on.
 Give every SKILL.md `license: MIT`, and add `compatibility` when the skill needs a specific OS or tool.
 Leave `version` out of every manifest so each commit counts as an update.
 Keep a plugin's name, description, and keywords the same in its three manifests and three marketplace entries, because each harness reads only its own file.
 The logo lives at `assets/logo.png`; copy it to `plugins/<group>/assets/logo.png` whenever it changes, because an installer copies only the plugin folder.
 Never rename a plugin without adding the old name to `renames` in `.claude-plugin/marketplace.json`, because installed users reference the plugin by name.
 `make lint` runs `scripts/check-plugins.py`, which fails when those files disagree, and `claude plugin validate .` when the `claude` CLI is installed.
+Harness priority, highest first: `npx skills`, Claude Code and Claude Desktop, Codex, Cursor, GitHub Copilot, OpenCode, Pi, then Amp, Hermes, and the rest.
+Before you change the layout, a manifest, or skill frontmatter, check the current docs of each harness in that order for fields and commands we do not use yet, because each harness reads its own file and a missed field fails silently.
+The `npx skills` docs ship in its npm package (`docs/creating-skills.md`, `docs/commands.md`); skills.sh documents `skills.sh.json` at <https://skills.sh/docs/customize>.
+Each plugin folder has its own README of 40 words or more, because the Anthropic plugin directory blocks a submission without one.
+Keep frontmatter that only some harnesses read (`disable-model-invocation`, `paths`) to skills that need it, because claude.ai skill upload accepts only `name`, `description`, `license`, `compatibility`, `metadata`, and `allowed-tools`.
 Before pushing a change to the repo layout, plugin entries, or skill names, run `make test-install`; it installs the skills into each harness in containers and upgrades from `origin/main` ([docs/install-tests.md](docs/install-tests.md)).
 
 ## Before committing

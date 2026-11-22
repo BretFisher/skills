@@ -1,5 +1,7 @@
 # Bret's DevOps and \*Ops Skills
 
+[![skills.sh](https://skills.sh/b/bretfisher/skills)](https://skills.sh/bretfisher/skills)
+
 A bunch of skills for daily work in DevOps, grouped into plugins under `./plugins/<group>/skills/`.
 The [`skills-devops`](skills-devops) and [`skills-utils`](skills-utils) symlinks at the repo root point to those folders.
 
@@ -24,6 +26,28 @@ Per project, committed so your team gets the skills too (run it from the project
 npx skills add bretfisher/skills
 ```
 
+To see the skills first, or to install only some of them:
+
+```bash
+npx skills add bretfisher/skills --list
+```
+
+```bash
+npx skills add bretfisher/skills --skill docker-pro --skill github-actions-workflow-pro -g
+```
+
+To get new versions later (`check` only reports them):
+
+```bash
+npx skills check
+```
+
+```bash
+npx skills update -g
+```
+
+`npx skills list -g` shows the skills grouped by plugin.
+
 ### As a plugin, per harness
 
 A plugin install gets the whole group and updates with the marketplace.
@@ -39,21 +63,34 @@ A plugin install gets the whole group and updates with the marketplace.
 To get every new commit automatically, open `/plugin`, go to **Marketplaces**, select `bretfisher`, and choose **Enable auto-update**.
 If you installed the old `bretfisher-skills` plugin, run the `bretfisher-devops` install line once: updating the marketplace removes the old plugin.
 
+**Claude Desktop and claude.ai:** open **Customize** > **Plugins**, add the marketplace `bretfisher/skills`, then install `bretfisher-devops` and `bretfisher-utils`.
+
 **Codex:**
 
 ```bash
 codex plugin marketplace add bretfisher/skills
 codex plugin add bretfisher-devops@bretfisher
+codex plugin add bretfisher-utils@bretfisher
 ```
+
+To update later, run `codex plugin marketplace upgrade bretfisher`.
+
+**Cursor:** a team admin opens **Dashboard** > **Plugins & MCPs** > **Add Marketplace** > **Import from Repo** and enters `bretfisher/skills`.
+For one user, `npx skills add bretfisher/skills -g -a cursor` installs the same skills.
 
 **GitHub Copilot CLI:**
 
 ```bash
 copilot plugin marketplace add bretfisher/skills
 copilot plugin install bretfisher-devops@bretfisher
+copilot plugin install bretfisher-utils@bretfisher
 ```
 
-**Cursor:** add `bretfisher/skills` as a plugin marketplace; it reads `.cursor-plugin/marketplace.json`.
+To update later, run `copilot plugin marketplace update bretfisher`, then `copilot plugin update --all`.
+
+**VS Code (Copilot agent mode):** set `chat.plugins.enabled` to `true`, add `bretfisher/skills` to `chat.plugins.marketplaces`, then install the plugins from **Chat: Open Customizations**.
+
+**OpenCode, Amp, Gemini CLI, Hermes, Goose, Kiro, Windsurf, and others:** use `npx skills add bretfisher/skills`. It knows the skills folder of each agent.
 
 **Pi:** `pi install git:github.com/BretFisher/skills` loads every skill.
 
