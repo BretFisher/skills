@@ -37,10 +37,17 @@ class AnswerCheckTests(unittest.TestCase):
         return SimpleNamespace(calls=calls, answer=answer)
 
     def test_reference_read_after_cd_counts(self):
-        self.assertTrue(checks.e0_5(self.run_("cd skill/super-linting/references && cat linter-commands.md"))[0])
+        self.assertTrue(checks.e0_5(self.run_("shell: cd skill/super-linting/references && cat linter-commands.md"))[0])
+
+    def test_read_tool_counts(self):
+        self.assertTrue(checks.e0_5(self.run_("read: /tmp/skill/super-linting/references/linter-commands.md"))[0])
+
+    def test_name_only_mentions_do_not_count(self):
+        for calls in ("shell: ls references/linter-commands.md", "shell: echo linter-commands.md"):
+            self.assertFalse(checks.e0_5(self.run_(calls))[0], calls)
 
     def test_fetch_of_super_linter_fails(self):
-        calls = "Read references/linter-commands.md\ncurl https://raw.githubusercontent.com/super-linter/super-linter/main/README.md"
+        calls = "read: references/linter-commands.md\nshell: curl https://raw.githubusercontent.com/super-linter/super-linter/main/README.md"
         self.assertFalse(checks.e0_5(self.run_(calls))[0])
 
     def test_hook_question_wrapped_over_lines_counts(self):

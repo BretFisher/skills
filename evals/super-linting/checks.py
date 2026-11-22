@@ -124,8 +124,10 @@ def e0_4(r):
 
 def e0_5(r):
     # The skill ships super-linter's list, so the agent reads the reference and fetches no URL.
-    # The file name alone: an agent may `cd references && cat linter-commands.md`.
-    read = re.search(r"linter-commands\.md", r.calls)
+    # A read: the Read tool, or a shell command that consumes the file (`cd references && cat linter-commands.md`
+    # counts; `ls` or `echo` of the name does not).
+    read = re.search(r"^read:[^\n]*linter-commands\.md"
+                     r"|\b(?:cat|head|tail|less|more|sed|awk|grep|rg|bat|nl)\b[^\n;&|]*linter-commands\.md", r.calls, re.M)
     fetched = re.search(r"(raw\.githubusercontent\.com|github\.com)/super-linter", r.calls)
     return ok(read and not fetched, f"read reference={bool(read)} fetched super-linter={bool(fetched)}")
 
