@@ -1,0 +1,64 @@
+Ansible | ansible-lint | See YAML and Python formatters
+Amazon States Language | ASL Validator | See JSON formatters
+Astro | Biome | Biome
+AWS CloudFormation templates | AWS CloudFormation Linter (cfn-lint), Checkov, Trivy | See YAML formatters
+Azure Resource Manager (ARM) | Azure Resource Manager Template Toolkit (arm-ttk), Checkov, Trivy | See JSON formatters
+C, C++ | cpp-lint | clang-format
+C# | See Dotnet solutions | dotnet format whitespace command
+CSS, SCSS, Sass | stylelint, Biome | Prettier, Biome
+Clojure | clj-kondo |
+CoffeeScript | coffeelint |
+Commit messages | commitlint |
+Copy/paste detection | jscpd | N/A
+Dart | dart analyze command |
+Dockerfile | Haskell Dockerfile Linter (Hadolint), Checkov, Trivy |
+Dotnet (.NET) solutions (sln) | dotnet format command: analyzers, style subcommands. | dotnet format command: whitespace subcommand.
+EditorConfig | editorconfig-checker |
+.env | dotenv-linter |
+Git merge conflict markers | Git conflict markers presence in files | N/A
+GitHub Actions | actionlint, zizmor | See YAML formatters
+Go | golangci-lint |
+GoReleaser | GoReleaser | See YAML formatters
+GraphQL | Biome | Prettier, Biome
+GritQL |  | Biome
+Groovy | npm-groovy-lint |
+Helm charts | Checkov | See YAML formatters
+HTML | HTMLHint | Prettier, Biome
+Java | checkstyle | google-java-format
+JavaScript | ESLint, Biome | Prettier, Biome
+JSON | eslint-plugin-jsonc (configured for JSON) (ESLint default), eslint-plugin-json, Biome | Prettier, Biome
+JSONC, JSON5 | eslint-plugin-jsonc, Biome | Prettier, Biome
+JSX, TSX | eslint-plugin-jsx-a11y, eslint-plugin-react, Biome | Prettier, Biome
+Kubernetes | Checkov, Trivy, kubeconform | See YAML formatters
+Kotlin | ktlint |
+LaTeX | ChkTex |
+Licenses | Trivy | N/A
+Lua | luacheck |
+Markdown | markdownlint | Prettier
+Natural language | textlint | N/A
+OpenAPI | spectral | See YAML formatters
+Perl | perlcritic |
+PHP | PHP built-in linter, PHP CodeSniffer, PHPStan, Psalm |
+PowerShell | PSScriptAnalyzer |
+Pre-commit | pre-commit |
+Protocol Buffers (Protobuf) | protolint |
+Python3 | pylint, flake8, isort, ruff | black
+R | lintr |
+Renovate | renovate-config-validator | See JSON formatters
+Ruby | RuboCop |
+Rust | Clippy | Rustfmt
+Scala |  | scalafmt
+Software bill of materials (SBOM) | Trivy | N/A
+Secrets | GitLeaks, Trivy | N/A
+Shell | ShellCheck, `executable bit check` | shfmt
+Snakemake | snakemake --lint | snakefmt
+Spelling | codespell | N/A
+SQL | sqlfluff |
+Svelte | Biome | Biome
+Terraform | tflint, Checkov, Trivy | terraform fmt
+Terragrunt | terragrunt | N/A
+TypeScript | ESLint, Biome | Prettier, Biome
+Vue | eslint-plugin-vue, Biome | Prettier, Biome
+Vulnerabilities | Trivy | N/A
+XML | LibXML |
+YAML | YamlLint | Prettier

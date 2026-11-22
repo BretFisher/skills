@@ -106,6 +106,8 @@ Before you change the layout, a manifest, or skill frontmatter, check the curren
 The `npx skills` docs ship in its npm package (`docs/creating-skills.md`, `docs/commands.md`); skills.sh documents `skills.sh.json` at <https://skills.sh/docs/customize>.
 Each plugin folder has its own README of 40 words or more, because the Anthropic plugin directory blocks a submission without one.
 Keep frontmatter that only some harnesses read (`disable-model-invocation`, `paths`) to skills that need it, because claude.ai skill upload accepts only `name`, `description`, `license`, `compatibility`, `metadata`, and `allowed-tools`.
+A skill ships every fact it needs and tells the agent to fetch no URL, because skill scanners flag skills that send agents to the web.
+Vendored upstream data carries a `Last checked` date, and a `make` target compares it with upstream: `make podspec-check` for k8s-podspec-pro, `make super-linter-check` for super-linting (then run `scripts/check-super-linter.py --update`, update both references, and set their date).
 Before pushing a change to the repo layout, plugin entries, or skill names, run `make test-install`; it installs the skills into each harness in containers and upgrades from `origin/main` ([docs/install-tests.md](docs/install-tests.md)).
 
 ## Before committing

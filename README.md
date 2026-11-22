@@ -167,7 +167,7 @@ Details: [`evals/k8s-podspec-pro/coverage.md`](evals/k8s-podspec-pro/coverage.md
 | Model       | Without skill | With skill | Gain |
 | ----------- | ------------- | ---------- | ---- |
 | Haiku 5.5   | 41%           | 100%       | +59  |
-| Sonnet 5.5  | 35%           | 100%       | +65  |
+| Sonnet 5.5  | 29%           | 100%       | +71  |
 | Opus 5.5    | 35%           | 100%       | +65  |
 | GPT-6.1 Sol | 6%            | 94%        | +88  |
 
@@ -190,16 +190,17 @@ Details: [`evals/gha-audit/coverage.md`](evals/gha-audit/coverage.md).
 
 `make help` lists everything, including the eval targets for agents. Tools are checked, never installed; a missing one prints its `brew install` formula.
 
-| Target                                   | What it does                                                                          |
-| ---------------------------------------- | ------------------------------------------------------------------------------------- |
-| `make lint`                              | Pre-commit gate: the same linters CI runs, plus the scanners on this repo's workflows |
-| `make fmt`                               | `prettier --write` on Markdown and JSON                                               |
-| `make k8s-features [SINCE=… RELEASES=…]` | Print the Kubernetes features that reached beta or GA in a window                     |
-| `make k8s-verify [STRICT=1]`             | Check every k8s-catch-up feature file against its upstream sources                    |
-| `make k8s-check`                         | Exit 1 when a Kubernetes release newer than the skill exists                          |
-| `make podspec-check`                     | Exit 1 when k8s-podspec-pro's copy of `pod.yaml` differs from the podspec repo        |
-| `make pin [FILES=…]`                     | Pin this repo's workflows with pinact                                                 |
-| `make run-stats [RUNS=3] [REPO=…]`       | Rank a repo's workflows and jobs by duration over recent runs                         |
+| Target                                   | What it does                                                                            |
+| ---------------------------------------- | --------------------------------------------------------------------------------------- |
+| `make lint`                              | Pre-commit gate: the same linters CI runs, plus the scanners on this repo's workflows   |
+| `make fmt`                               | `prettier --write` on Markdown and JSON                                                 |
+| `make k8s-features [SINCE=… RELEASES=…]` | Print the Kubernetes features that reached beta or GA in a window                       |
+| `make k8s-verify [STRICT=1]`             | Check every k8s-catch-up feature file against its upstream sources                      |
+| `make k8s-check`                         | Exit 1 when a Kubernetes release newer than the skill exists                            |
+| `make podspec-check`                     | Exit 1 when k8s-podspec-pro's copy of `pod.yaml` differs from the podspec repo          |
+| `make super-linter-check`                | Exit 1 when super-linter's linter table differs from the super-linting skill's snapshot |
+| `make pin [FILES=…]`                     | Pin this repo's workflows with pinact                                                   |
+| `make run-stats [RUNS=3] [REPO=…]`       | Rank a repo's workflows and jobs by duration over recent runs                           |
 
 See [AGENTS.md](./AGENTS.md) for the repo conventions (also symlinked as `CLAUDE.md`). Open work is tracked in
 [GitHub Issues](https://github.com/BretFisher/skills/issues), one label per skill.
