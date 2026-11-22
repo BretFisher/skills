@@ -28,7 +28,7 @@ EVALS = json.load(open(f"{HERE}/evals.json"))["evals"]
 FIXTURES = f"{HERE}/fixtures"
 OUTPUT = {0: "deployment.yaml", 2: "cleanup-cronjob.yaml", 3: "node-exporter.yaml", 4: "deploy/controller.yaml"}
 HANDBACK = ["## Defaults applied", "## Questions", "## Placeholders"]
-REPORT = ["## Meets the floor", "## Missing or wrong", "## Suggested"]
+REPORT = ["## Meets the recommendations", "## Missing or wrong", "## Suggested"]
 
 
 def read(p):
@@ -99,7 +99,7 @@ def ok(cond, ev):
     return (bool(cond), ev)
 
 
-# ---- shared floor checks ----
+# ---- shared recommendation checks ----
 
 def seccomp_nonroot(r):
     sc = r.ps.get("securityContext") or {}
@@ -284,7 +284,7 @@ def e3_5(r):
     return ok(rp and (str(port) == "9100" or named.get(port) == 9100), f"readinessProbe port={port}")
 
 
-def floor_trio(r):
+def hardened_trio(r):
     a, ea = seccomp_nonroot(r)
     b, eb = no_escalation(r)
     return ok(a and b, f"{ea}; {eb}")
@@ -310,20 +310,20 @@ def e4_3(r):
     return (None, "no line ties the token to API access; model judges")
 
 
-FLOOR_COMMENTS = ["allowPrivilegeEscalation", "runAsNonRoot", "hostUsers", "automountServiceAccountToken", "enableServiceLinks", "terminationGracePeriodSeconds"]
+RECOMMENDED_COMMENTS = ["allowPrivilegeEscalation", "runAsNonRoot", "hostUsers", "automountServiceAccountToken", "enableServiceLinks", "terminationGracePeriodSeconds"]
 CHECKS = {
     (0, 1): e0_1, (0, 2): probe("/readyz", 9090), (0, 3): e0_3, (0, 4): seccomp_nonroot, (0, 5): e0_5, (0, 6): no_escalation,
     (0, 7): resources, (0, 8): grace, (0, 9): pod_false("hostUsers"), (0, 10): pod_false("automountServiceAccountToken", "enableServiceLinks"),
-    (0, 11): e0_11, (0, 12): commented(FLOOR_COMMENTS), (0, 13): not_guaranteed("text"), (0, 14): headings(HANDBACK, "answer"),
+    (0, 11): e0_11, (0, 12): commented(RECOMMENDED_COMMENTS), (0, 13): not_guaranteed("text"), (0, 14): headings(HANDBACK, "answer"),
     (1, 1): headings(REPORT, "review"), (1, 2): has(r"latest"), (1, 3): has(r"readinessProbe|readiness probe", r"/healthz"),
     (1, 4): has(r"memory", r"limit", r"request"), (1, 5): has(r"seccomp", r"RuntimeDefault"), (1, 6): has(r"allowPrivilegeEscalation"),
     (1, 7): e1_7, (1, 8): has(r"terminationGracePeriodSeconds"), (1, 9): has(r"hostUsers"), (1, 10): has(r"automountServiceAccountToken"),
     (1, 11): has(r"enableServiceLinks", r"REDIS_PORT"), (1, 12): e1_12, (1, 13): not_guaranteed("review"), (1, 14): e1_14,
     (2, 1): e2_1, (2, 2): e2_2, (2, 3): e2_3, (2, 4): e2_4, (2, 5): e2_5, (2, 6): seccomp_nonroot, (2, 7): no_escalation,
     (2, 8): resources, (2, 9): grace, (2, 10): pod_false("hostUsers", "enableServiceLinks"), (2, 11): e2_11, (2, 12): headings(HANDBACK, "answer"),
-    (3, 1): e3_1, (3, 2): e3_2, (3, 3): e3_3, (3, 4): e3_4, (3, 5): e3_5, (3, 6): floor_trio,
+    (3, 1): e3_1, (3, 2): e3_2, (3, 3): e3_3, (3, 4): e3_4, (3, 5): e3_5, (3, 6): hardened_trio,
     (3, 7): pod_false("automountServiceAccountToken", "enableServiceLinks"), (3, 8): resources, (3, 9): headings(HANDBACK, "answer"),
-    (4, 1): e4_1, (4, 2): e4_2, (4, 3): e4_3, (4, 4): probe("/readyz", 8081), (4, 5): floor_trio,
+    (4, 1): e4_1, (4, 2): e4_2, (4, 3): e4_3, (4, 4): probe("/readyz", 8081), (4, 5): hardened_trio,
     (4, 6): pod_false("hostUsers", "enableServiceLinks"), (4, 7): resources, (4, 8): grace, (4, 9): headings(HANDBACK, "answer"),
 }
 SPLIT = {(3, 3), (4, 3)}

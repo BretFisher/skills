@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
-"""floor-check.py: check every pod template in Kubernetes manifests against the pod spec floor.
+"""hardening-check.py: check every pod template in Kubernetes manifests against the hardened pod spec recommendations.
 
-Why: the floor is fifteen fields across three nesting levels and seven workload kinds. A program finds
+Why: the recommendations are fifteen fields across three nesting levels and seven workload kinds. A program finds
 a missing field the same way every time; reading YAML by eye does not.
 
 Usage:
-  floor-check.py <file>...          plain manifests (multi-document YAML is fine)
-  helm template <chart> | floor-check.py -
-  kustomize build <dir> | floor-check.py -
+  hardening-check.py <file>...          plain manifests (multi-document YAML is fine)
+  helm template <chart> | hardening-check.py -
+  kustomize build <dir> | hardening-check.py -
 
 Output: one line per finding, "<file> <Kind>/<name> [<container>]: <rule-id>: <message>", then a
-summary line "floor-check: clean" or "floor-check: N finding(s)". Lines marked "note:" are exceptions
+summary line "hardening-check: clean" or "hardening-check: N finding(s)". Lines marked "note:" are exceptions
 the script applied (for example hostUsers skipped on a hostNetwork pod); they are not findings.
 
 Rule ids: image-tag, readiness-probe, memory-limit, cpu-request, cpu-limit, allow-privilege-escalation,
@@ -33,7 +33,7 @@ def load(path):
     args = ["yq", "-o=json", "-I=0", "ea", "[.]"] + ([] if path == "-" else [path])
     out = subprocess.run(args, input=src, capture_output=True, text=True)
     if out.returncode:
-        sys.exit(f"floor-check: cannot parse {path}: {out.stderr.strip()}")
+        sys.exit(f"hardening-check: cannot parse {path}: {out.stderr.strip()}")
     return [d for d in json.loads(out.stdout or "[]") if isinstance(d, dict)]
 
 
@@ -121,7 +121,7 @@ def main():
         print(__doc__)
         sys.exit(0 if args else 2)
     if not shutil.which("yq"):
-        print("floor-check: absent yq (brew install yq)")
+        print("hardening-check: absent yq (brew install yq)")
         sys.exit(3)
     total = templates = 0
     for path in args:
@@ -136,9 +136,9 @@ def main():
                     print(f"{path} {kind}/{name}: note: {note}")
                 total += len(findings)
     if not templates:
-        print("floor-check: no pod templates found")
+        print("hardening-check: no pod templates found")
         sys.exit(2)
-    print("floor-check: clean" if not total else f"floor-check: {total} finding(s)")
+    print("hardening-check: clean" if not total else f"hardening-check: {total} finding(s)")
     sys.exit(1 if total else 0)
 
 

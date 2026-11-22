@@ -130,7 +130,7 @@ podspec-check: ## Exit 1 when k8s-podspec-pro's copy of pod.yaml differs from th
 	@$(call need,curl,curl)
 	@curl -fsSL "$(PODSPEC_URL)" | diff -u --label upstream --label $(PODSPEC_COPY) - $(PODSPEC_COPY) \
 		&& echo "podspec-check: $(PODSPEC_COPY) matches upstream" \
-		|| { echo "podspec-check: differs; copy upstream pod.yaml, then update SKILL.md's floor table and references/why.md"; exit 1; }
+		|| { echo "podspec-check: differs; copy upstream pod.yaml, then update SKILL.md's recommendations table and references/why.md"; exit 1; }
 
 pin: ## Pin this repo's workflows with pinact (newest release at least 7 days old); FILES= to limit
 	@$(call need,pinact,pinact)

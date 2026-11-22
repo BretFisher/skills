@@ -13,7 +13,7 @@ The repository also has the `bretfisher-utils` plugin.
 | [`gha-audit`](skills/gha-audit/SKILL.md)                                     | Audit this repo's workflows and propose a fix diff          |
 | [`github-actions-workflow-pro`](skills/github-actions-workflow-pro/SKILL.md) | Create, harden, and speed up GitHub Actions workflows       |
 | [`k8s-catch-up`](skills/k8s-catch-up/SKILL.md)                               | Kubernetes v1.35 to v1.37 features newer than training data |
-| [`k8s-podspec-pro`](skills/k8s-podspec-pro/SKILL.md)                         | Production pod spec floor for Kubernetes workloads          |
+| [`k8s-podspec-pro`](skills/k8s-podspec-pro/SKILL.md)                         | Hardened pod spec recommendations for Kubernetes workloads  |
 | [`super-linting`](skills/super-linting/SKILL.md)                             | Pick linters per file type and wire up make lint            |
 
 ## Install

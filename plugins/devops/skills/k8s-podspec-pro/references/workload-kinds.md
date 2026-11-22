@@ -1,6 +1,6 @@
 # Workload kinds, Helm, and Kustomize
 
-Where the floor goes in each wrapper, and what each wrapper adds.
+Where the recommendations go in each wrapper, and what each wrapper adds.
 
 ## Nesting
 
@@ -38,19 +38,19 @@ cleanup (or `persistentVolumeClaimRetentionPolicy`). Every volume must support i
 
 Node agents (CNI, log shippers, monitors) often need `hostNetwork`, `hostPID`, host paths, or extra
 capabilities. Keep each one the agent's docs require, leave `hostUsers` out of a pod that uses a host
-namespace, and say in the hand-back which floor fields the agent cannot meet and why.
+namespace, and say in the hand-back which recommended fields the agent cannot meet and why.
 
 ## Helm charts
 
-- Put the floor in the template (`templates/deployment.yaml`). Security, probe, and QoS structure is
-  always rendered, not behind a values toggle, because an off toggle ships a pod below the floor.
+- Put the recommendations in the template (`templates/deployment.yaml`). Security, probe, and QoS structure is
+  always rendered, not behind a values toggle, because an off toggle ships a pod without the recommendations.
 - Values carry what changes per install: image repository and tag, port, probe paths, resource numbers.
-- Check that the default `values.yaml` renders a pod that meets the floor:
-  `helm template <chart> | scripts/floor-check.py -`.
+- Check that the default `values.yaml` renders a pod that meets the recommendations:
+  `helm template <chart> | scripts/hardening-check.py -`.
 - A value that the user can set to `true` (for example `serviceAccount.automount`) defaults to `false`.
 
 ## Kustomize
 
-Put the floor in the base. Overlays change values (replicas, image tag, resource numbers), because a
-base below the floor ships below the floor in every overlay that forgets the patch. Check the rendered
-result: `kustomize build <overlay> | scripts/floor-check.py -`.
+Put the recommendations in the base. Overlays change values (replicas, image tag, resource numbers), because a
+base without the recommendations ships without them in every overlay that forgets the patch. Check the rendered
+result: `kustomize build <overlay> | scripts/hardening-check.py -`.

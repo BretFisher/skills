@@ -1,4 +1,4 @@
-# Why each floor setting is there
+# Why each recommended setting is there
 
 The long reasons behind the table in SKILL.md, from the podspec README
 (<https://github.com/BretFisher/podspec#why-each-setting-is-in-the-spec>). Use them when the user asks
@@ -94,7 +94,7 @@ on its own, which is easier to see than a node-wide memory problem.
 A limit throttles the app even on an idle node, which hurts latency.
 
 **QoS class.** A pod is `Guaranteed` only when every container sets CPU and memory limits equal to its
-requests. The floor has no CPU limit, so the pod is `Burstable`: no throttling, and memory stays safe.
+requests. The recommendations set no CPU limit, so the pod is `Burstable`: no throttling, and memory stays safe.
 Set `limits.cpu` = `requests.cpu` on every container when the user needs `Guaranteed`, for example for
 CPU pinning with the static CPU manager.
 
@@ -121,7 +121,7 @@ start in large namespaces (and can stop it), they show every Service IP to anyon
 environment, and they go stale. `KUBERNETES_SERVICE_HOST` and `KUBERNETES_SERVICE_PORT` stay set, so
 client libraries still work.
 
-## Suggested beyond the floor
+## Suggested beyond the recommendations
 
 `readOnlyRootFilesystem: true` is good when the app writes only to mounted volumes, but many traditional
 apps write to `/tmp` or their own directory and fail without an `emptyDir`.
