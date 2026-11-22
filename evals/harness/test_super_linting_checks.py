@@ -32,5 +32,25 @@ class LintRecipeTests(unittest.TestCase):
         self.assertNotIn("tflint", self.recipe("lint:\n\tbash ../scripts/lint.sh\n"))
 
 
+class AnswerCheckTests(unittest.TestCase):
+    def run_(self, calls="", answer=""):
+        return SimpleNamespace(calls=calls, answer=answer)
+
+    def test_reference_read_after_cd_counts(self):
+        self.assertTrue(checks.e0_5(self.run_("cd skill/super-linting/references && cat linter-commands.md"))[0])
+
+    def test_fetch_of_super_linter_fails(self):
+        calls = "Read references/linter-commands.md\ncurl https://raw.githubusercontent.com/super-linter/super-linter/main/README.md"
+        self.assertFalse(checks.e0_5(self.run_(calls))[0])
+
+    def test_hook_question_wrapped_over_lines_counts(self):
+        answer = "Do you also want a git pre-commit hook that blocks a commit when a linter fails,\nor is `make lint` enough?"
+        self.assertTrue(checks.e0_8(self.run_(answer=answer))[0])
+
+    def test_hook_statement_is_not_a_question(self):
+        answer = "I did not add a git hook. Do you want me to commit?"
+        self.assertFalse(checks.e0_8(self.run_(answer=answer))[0])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -14,7 +14,7 @@ need = command -v $(1) >/dev/null 2>&1 || { echo "missing: $(1)  ->  brew instal
 # scan.sh sets the GitHub token inside its own process; never inline `gh auth token` in a recipe
 SCAN := plugins/devops/skills/github-actions-workflow-pro/scripts/scan.sh
 
-.PHONY: help lint lint-plugin lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins fmt eval-key eval-check eval-batch eval-finalize eval-benchmark eval-view pin run-stats k8s-features k8s-verify k8s-check podspec-check
+.PHONY: help lint lint-plugin lint-md lint-fmt lint-yaml lint-sh lint-py lint-actions lint-pins fmt eval-key eval-check eval-batch eval-finalize eval-benchmark eval-view pin run-stats k8s-features k8s-verify k8s-check podspec-check super-linter-check
 
 help: ## Show this help
 	@grep -E '^[a-zA-Z0-9_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-16s %s\n", $$1, $$2}'
@@ -125,6 +125,9 @@ k8s-check: ## Exit 1 when a Kubernetes minor release newer than k8s-catch-up's C
 
 PODSPEC_URL  ?= https://raw.githubusercontent.com/BretFisher/podspec/main/pod.yaml
 PODSPEC_COPY := plugins/devops/skills/k8s-podspec-pro/references/pod.yaml
+
+super-linter-check: ## Exit 1 when super-linter's linter table differs from the super-linting snapshot (needs the network)
+	@scripts/check-super-linter.py
 
 podspec-check: ## Exit 1 when k8s-podspec-pro's copy of pod.yaml differs from the podspec repo (run after each podspec change; needs the network)
 	@$(call need,curl,curl)
