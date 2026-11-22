@@ -1,8 +1,7 @@
 {
   "name": "bretfisher",
   "owner": {
-    "name": "Bret Fisher",
-    "url": "https://www.bretfisher.com"
+    "name": "Bret Fisher"
   },
   "metadata": {
     "description": "Bret Fisher's agent skills: opinionated DevOps and platform engineering skills tested with evals, plus small developer utilities"

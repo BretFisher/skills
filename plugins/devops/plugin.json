@@ -39,6 +39,7 @@
           "Modernize this repo's Dockerfile and Compose file.",
           "Audit this repo's GitHub Actions workflows."
         ],
+        "brandColor": "#DB631B",
         "logo": "./assets/logo.png",
         "composerIcon": "./assets/logo.png"
       }

@@ -1,0 +1,23 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "DevOps",
+      "description": "The bretfisher-devops plugin: Dockerfiles and Compose, GitHub Actions, Kubernetes, and linting.",
+      "skills": [
+        "docker-pro",
+        "gha-audit",
+        "github-actions-workflow-pro",
+        "k8s-catch-up",
+        "k8s-podspec-pro",
+        "super-linting"
+      ]
+    },
+    {
+      "title": "Utilities",
+      "description": "The bretfisher-utils plugin: small developer utilities for agents.",
+      "skills": ["screencapture-mac"]
+    }
+  ]
+}
