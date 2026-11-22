@@ -1,3 +1,5 @@
 interface:
   display_name: "Kubernetes Catch-Up"
   short_description: "Kubernetes v1.35 to v1.37 features newer than training data"
+  brand_color: "#DB631B"
+  default_prompt: "Which new Kubernetes features could improve these manifests?"

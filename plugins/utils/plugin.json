@@ -29,6 +29,7 @@
         "defaultPrompt": [
           "Take a screenshot of the app window and tell me what you see."
         ],
+        "brandColor": "#DB631B",
         "logo": "./assets/logo.png",
         "composerIcon": "./assets/logo.png"
       }

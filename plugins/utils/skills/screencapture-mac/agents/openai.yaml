@@ -1,3 +1,5 @@
 interface:
   display_name: "Screen Capture (macOS)"
   short_description: "Screenshot native macOS apps so the agent can see them"
+  brand_color: "#DB631B"
+  default_prompt: "Take a screenshot of my app's window and check how it looks."

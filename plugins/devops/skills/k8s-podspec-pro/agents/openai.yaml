@@ -1,3 +1,5 @@
 interface:
   display_name: "Kubernetes Podspec Pro"
   short_description: "Production pod spec floor for Kubernetes workloads"
+  brand_color: "#DB631B"
+  default_prompt: "Review this repo's Kubernetes workloads against the production pod spec floor."

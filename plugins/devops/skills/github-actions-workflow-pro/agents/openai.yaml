@@ -1,3 +1,5 @@
 interface:
   display_name: "GitHub Actions Workflow Pro"
   short_description: "Create, harden, and speed up GitHub Actions workflows"
+  brand_color: "#DB631B"
+  default_prompt: "Create a CI workflow that tests and builds this repo."

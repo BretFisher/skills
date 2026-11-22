@@ -5,11 +5,22 @@
     "url": "https://www.bretfisher.com"
   },
   "description": "Bret Fisher's agent skills: opinionated DevOps and platform engineering skills tested with evals, plus small developer utilities",
+  "metadata": {
+    "description": "Bret Fisher's agent skills: opinionated DevOps and platform engineering skills tested with evals, plus small developer utilities"
+  },
   "plugins": [
     {
       "name": "bretfisher-devops",
       "displayName": "Bret Fisher DevOps Skills",
       "source": "./plugins/devops",
+      "skills": [
+        "./skills/docker-pro",
+        "./skills/gha-audit",
+        "./skills/github-actions-workflow-pro",
+        "./skills/k8s-catch-up",
+        "./skills/k8s-podspec-pro",
+        "./skills/super-linting"
+      ],
       "description": "Opinionated DevOps and platform engineering skills from a Docker Captain: Dockerfiles and Compose, GitHub Actions workflows and audits, production Kubernetes pod specs, recent Kubernetes features, and local linting setup. Tested with evals.",
       "category": "devops",
       "tags": [
@@ -73,6 +84,7 @@
       "name": "bretfisher-utils",
       "displayName": "Bret Fisher Utilities",
       "source": "./plugins/utils",
+      "skills": ["./skills/screencapture-mac"],
       "description": "Small developer utilities for agents, such as screencapture-mac, which lets the agent screenshot native macOS apps to see what you see.",
       "category": "utilities",
       "tags": ["macos", "screenshot", "gui", "desktop"],
