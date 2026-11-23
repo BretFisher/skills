@@ -1,0 +1,5 @@
+name = "lint"
+
+[entrypoint]
+  kind = "dang"
+  source = "./sdk/entrypoint"

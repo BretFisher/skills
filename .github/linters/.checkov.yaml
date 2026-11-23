@@ -1,7 +1,15 @@
 ---
-# super-linter's default (TEMPLATES/.checkov.yaml) plus skip-path.
+# checkov settings for the `checkov` check in .dagger/modules/lint.
 # Don't report passed checks in output
 quiet: true
 # Eval fixtures are deliberately insecure or outdated inputs that the evals ask the agent to fix.
+# .agents is vendored upstream code; .dagger holds Dagger's generated SDK code.
+# Use plain names, never regex characters such as + * ? [ ]: checkov 3.4 joins the characters of this
+# list into one regex when it loads Terraform modules, a quantifier then raises re.error in a forked
+# worker, and checkov waits for that worker forever (this stopped every super-linter run from 2026-09-25).
 skip-path:
-  - evals/[^/]+/fixtures
+  - fixtures
+  - .agents
+  - .dagger
+  # Vendored copy of BretFisher/podspec pod.yaml; `make podspec-check` keeps it identical to upstream.
+  - k8s-podspec-pro/references/pod.yaml

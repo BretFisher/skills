@@ -1,3 +1,5 @@
 interface:
   display_name: "Docker Pro"
   short_description: "Modern Dockerfiles, Compose, and Bake with BuildKit"
+  brand_color: "#DB631B"
+  default_prompt: "Modernize this repo's Dockerfile and Compose file."

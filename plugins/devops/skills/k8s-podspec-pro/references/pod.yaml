@@ -1,0 +1,70 @@
+# generic pod spec that's usable inside a deployment or other higher level k8s spec
+# via https://github.com/BretFisher/podspec
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: mypod
+
+spec:
+
+  containers:
+
+      # basic container details
+    - name: my-container-name
+      # never use reusable tags like latest or stable
+      image: my-image:tag
+      # hardcode the listening port if Dockerfile isn't set with EXPOSE
+      ports:
+        - containerPort: 8080
+          protocol: TCP
+
+      readinessProbe:        # I always recommend using these, even if your app has no listening ports (this affects any rolling update)
+        httpGet:             # Lots of timeout values with defaults, be sure they are ideal for your workload
+          path: /ready
+          port: 8080
+      livenessProbe:         # only needed if your app tends to go unresponsive or you don't have a readinessProbe, but this is up for debate
+        httpGet:             # Lots of timeout values with defaults, be sure they are ideal for your workload
+          path: /alive
+          port: 8080
+
+      resources:             # memory limit = request, so the scheduler reserves what the app can actually use
+        limits:
+          memory: "500Mi"    # If container uses over 500MB it is killed (OOM)
+          #cpu: "2"          # Not normally needed, unless you need to protect other workloads or QoS must be "Guaranteed"
+        requests:
+          memory: "500Mi"    # Scheduler finds a node where 500MB is available
+          cpu: "1"           # Scheduler finds a node where 1 vCPU is available
+
+      # per-container security context
+      # lock down privileges inside the container
+      securityContext:
+        allowPrivilegeEscalation: false # prevent sudo, etc.
+        privileged: false               # prevent acting like host root
+  
+  terminationGracePeriodSeconds: 600 # default is 30, but you may need more time to gracefully shutdown (HTTP long polling, user uploads, etc)
+
+  # don't inject Docker-link-style env vars for every Service in the namespace (use DNS names instead)
+  enableServiceLinks: false  # default is true, which adds ~7 env vars per Service and can clash with your app's own env vars
+
+  # don't mount a Kubernetes API token into the pod unless the app calls the Kubernetes API
+  automountServiceAccountToken: false # a stolen token is an API credential, so only mount it when needed
+
+  # give the pod its own Linux user namespace (GA in Kubernetes 1.36, needs Linux 6.3+ and containerd 2.0+ or CRI-O 1.25+)
+  hostUsers: false           # container UIDs (even root) map to unprivileged UIDs on the host that no other pod uses
+
+  # per-pod security context
+  # enable seccomp and force non-root user
+  securityContext:
+
+    seccompProfile:
+      type: RuntimeDefault   # enable seccomp and the runtimes default profile
+
+    # appArmorProfile is unset on purpose: on AppArmor nodes, containerd already applies its default profile when this is unset,
+    # and the kubelet rejects pods that set it on nodes without AppArmor (SELinux nodes). See the README.
+    #appArmorProfile:
+    #  type: RuntimeDefault  # GA since 1.31. Uncomment only if every node runs AppArmor (Ubuntu, Debian, COS)
+
+    runAsUser: 1001          # hardcode user to non-root if not set in Dockerfile
+    runAsGroup: 1001         # hardcode group to non-root if not set in Dockerfile
+    runAsNonRoot: true       # hardcode to non-root. Redundant to above if Dockerfile is set USER 1000

@@ -123,9 +123,13 @@ def e0_4(r):
 
 
 def e0_5(r):
-    fetched = re.search(r"super-linter", r.calls)
-    fallback = re.search(r"offline|fallback", r.answer, re.I)
-    return ok(fetched or fallback, f"fetched={bool(fetched)} fallback stated={bool(fallback)}")
+    # The skill ships super-linter's list, so the agent reads the reference and fetches no URL.
+    # A read: the Read tool, or a shell command that consumes the file (`cd references && cat linter-commands.md`
+    # counts; `ls` or `echo` of the name does not).
+    read = re.search(r"^read:[^\n]*linter-commands\.md"
+                     r"|\b(?:cat|head|tail|less|more|sed|awk|grep|rg|bat|nl)\b[^\n;&|]*linter-commands\.md", r.calls, re.M)
+    fetched = re.search(r"(raw\.githubusercontent\.com|github\.com)/super-linter", r.calls)
+    return ok(read and not fetched, f"read reference={bool(read)} fetched super-linter={bool(fetched)}")
 
 
 HEREDOC = re.compile(r"<<-?\s*['\"]?(\w+)['\"]?[^\n]*\n.*?^\s*\1\s*$", re.M | re.S)
@@ -150,7 +154,9 @@ def e0_7(r):
 
 
 def e0_8(r):
-    asked = any(re.search(r"hook", l, re.I) and "?" in l for l in r.answer.splitlines())
+    # A sentence, not a line: answers wrap one question over several lines.
+    sentences = re.split(r"(?<=[.?!])\s+", re.sub(r"\s*\n\s*>?\s*", " ", r.answer))
+    asked = any(re.search(r"hook", s, re.I) and s.rstrip("\"'*_ )").endswith("?") for s in sentences)
     return ok(asked, "asks about a hook" if asked else "no question about a hook")
 
 

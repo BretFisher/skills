@@ -1,0 +1,5 @@
+interface:
+  display_name: "Kubernetes Podspec Pro"
+  short_description: "Hardened pod spec recommendations for Kubernetes workloads"
+  brand_color: "#DB631B"
+  default_prompt: "Review this repo's Kubernetes workloads against the hardened pod spec recommendations."

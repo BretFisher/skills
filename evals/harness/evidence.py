@@ -56,7 +56,9 @@ def claude_events(records):
     for record in records:
         if record.get("type") in ("assistant", "user", "system", "result"):
             recognized = True
-        content = record.get("message", {}).get("content", [])
+        message = record.get("message")
+        # A system record (permission_denied) carries its message as a string, not a dict.
+        content = message.get("content", []) if isinstance(message, dict) else []
         if not isinstance(content, list):
             continue
         for block in content:

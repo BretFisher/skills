@@ -6,13 +6,17 @@ fixture, scanner exit codes) and leaves the rest to the model grader. See AGENTS
 "Deterministic checks before model judgment".
 
 Usage:
-  checks.py --write   [--scanners] <run-dir>...  write grading.json: program verdicts filled in,
+  checks.py --write   [--no-scanners] [--force] <run-dir>...  write grading.json: program verdicts filled in,
                                                  `passed: null` on the assertions left for the model
-  checks.py --compare [--scanners] <run-dir>...  grade, then compare with the verdicts already in
+  checks.py --compare [--no-scanners] <run-dir>...  grade, then compare with the verdicts already in
                                                  grading.json (agreement report; nothing written)
   checks.py --finalize <run-dir>...              recompute summary after the model filled the nulls;
                                                  exit 1 if any null remains
-  checks.py --batch [--budget=60000] <run-dir>... group runs that still have nulls under an excerpt-byte
+  checks.py --rerun-program <run-dir>...         rerun the program checks still null in grading.json and
+                                                 fill them in place (model verdicts kept); exit 1 if one
+                                                 stays null
+  checks.py --batch [--budget=60000] <run-dir>... rerun null program checks as above (stop if one stays null),
+                                                 then group runs that still have nulls under an excerpt-byte
                                                  budget and write one grader prompt per group to
                                                  <iteration>/grader-batches/batch-N.md
   checks.py --kinds                              markdown table of program/split/model per eval (coverage.md)
@@ -22,12 +26,17 @@ YAML, the new SHAs) the model needs to judge it, so the grader can work from gra
 --finalize removes them.
   <run-dir> = evals/<skill>/runs/<iteration>/eval-N-<name>/<config>/run-M
 
-Without --scanners the scanner assertion is left null. Needs yq (brew install yq) and, for
---scanners, actionlint, zizmor, poutine, pinact, and gh auth (scan.sh sets the token).
+The scanners run by default; --no-scanners skips them and leaves the scanner assertion null
+(--scanners is accepted and does nothing, for old commands). Needs yq (brew install yq) and, for the
+scanners, actionlint, zizmor, poutine, pinact, and gh auth (scan.sh sets the token); a scanner that
+is not installed leaves the assertion null with the missing tool named.
+A null entry carries `kind`, so a residual grader can tell a skipped program check from a judgment;
+--rerun-program adds `kind` to the null entries of a grading.json written before kinds existed.
 Kinds per assertion: program (decided here), split (program decides the mechanical half; the
 residual goes to the model), model (judgment only).
 """
 import json, re, subprocess, sys, os, glob, shutil, tempfile
+from types import SimpleNamespace
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.dirname(HERE))
@@ -40,7 +49,8 @@ SCAN = f"{skill_dir(SKILL)}/scripts/scan.sh"
 EVALS = json.load(open(f"{HERE}/evals.json"))["evals"]
 SHA = re.compile(r"uses:\s*(\S+)@([0-9a-f]{40})\s*(#.*)?$")
 YAML_BLOCK = re.compile(r"```ya?ml\n(.*?)```", re.S)
-RUN_SCANNERS = "--scanners" in sys.argv
+RUN_SCANNERS = "--no-scanners" not in sys.argv
+SCANNER_TOOLS = ("actionlint", "zizmor", "poutine", "pinact")
 
 
 def yload(text):
@@ -208,7 +218,10 @@ def scanners(run, actionlint_allow=None):
     if not run.wf:
         return True, "no YAML produced (vacuous)"
     if not RUN_SCANNERS:
-        return None, "skipped (--scanners not given)"
+        return None, "skipped (--no-scanners given)"
+    absent = [t for t in SCANNER_TOOLS if not shutil.which(t)]
+    if absent:
+        return None, f"skipped (not installed: {', '.join(absent)})"
     tmp = tempfile.mkdtemp(prefix="gha-check-")
     wfdir = f"{tmp}/.github/workflows"
     os.makedirs(wfdir)
@@ -336,6 +349,133 @@ def tools_line(run, names):
     return not missing and states, f"missing={missing} states={states}"
 
 
+# ---- hand-back sections (SKILL.md "Hand-back") ---------------------------------------
+# Each default: (does the produced YAML apply it?, pattern its row's first cell must match).
+HANDBACK_DEFAULTS = {
+    "permissions": (lambda t: "permissions:" in t, r"permission|least.privilege"),
+    "pinning": (lambda t: bool(re.search(r"uses:\s*\S+@[0-9a-f]{40}", t)), r"\bpin|\bsha\b"),
+    "concurrency": (lambda t: "concurrency:" in t, r"concurren"),
+    # setup-* `cache:` and buildx `cache-from:` keys, or actions/cache (and its restore/save actions), which use path/key
+    "caching": (lambda t: bool(re.search(r"\bcache(-from)?:|uses:\s*actions/cache(/restore|/save)?@", t)), r"cach"),
+    "timeout": (lambda t: "timeout-minutes" in t, r"timeout"),
+    "trusted refs": (lambda t: "docker/build-push-action" in t, r"trusted|PR builds?|pull.request|push: false|publish"),
+    "provenance/sbom": (lambda t: bool(re.search(r"(provenance|sbom): true", t)), r"provenance|sbom"),
+    "persist-credentials": (lambda t: "persist-credentials: false" in t, r"persist"),
+    "pipefail": (lambda t: "set -euo pipefail" in t, r"pipefail"),
+}
+# Facts the prompt or the fixture states. Asking for one asks the user for something the agent could read, but
+# naming one inside a decision ("or should I use the existing Dockerfile?") does not, so a mention alone is a judgment.
+BRANCH_FACT = r"(which|what|is (the|it|your))[^?]{0,30}\bbranch"  # request-shaped by itself
+E0_FACTS = r"install command|test command|\bnpm (ci|install|test)\b|package manager|yarn|pnpm"
+E8_FACTS = r"node(\.js)? version|version of node|\.nvmrc|(lint|test|build) (command|script)|package manager|yarn|pnpm|dockerfile|\bport\b|image name|entry ?point"
+
+
+def fact_request(facts):
+    """A question that asks for the fact's value: `which`/`what` within two words of it, or the branch question."""
+    return rf"\b(?:which|what(?:'s| is| are)?)\s+(?:\S+\s+){{0,2}}?(?:{facts})|{BRANCH_FACT}"
+
+
+def prose(text):
+    """The answer without fenced code blocks, so YAML `?` and `#` lines are not read as prose."""
+    return re.sub(r"```.*?```", "", text, flags=re.S)
+
+
+def question_lines(run):
+    return [l.strip() for l in prose(run.answer).splitlines() if re.search(r"\?(\s|$|\*|\))", l)]
+
+
+def handback_section(run, name):
+    """Body of the `## <name>` hand-back section, or None when the heading is missing."""
+    if not has_heading(run, name):
+        return None
+    return Run.section(SimpleNamespace(answer=prose(run.answer)), rf"^{re.escape(name)}[:.]?$")
+
+
+def defaults_table(run, names):
+    """Split. `## Defaults applied` has a row, with a reason of three words or more, for every named default the YAML
+    applies; a missing section or row fails here. Whether each reason says why the default applies here, rather than
+    what the setting does, is a judgment: a complete table goes to the model (iteration 27: "Pinned with pinact." and
+    "10 for lint and test, 20 for the image jobs" pass a word count and say no why)."""
+    sec = handback_section(run, "Defaults applied")
+    if sec is None:
+        return False, "no `## Defaults applied` section"
+    rows = []
+    for l in sec.splitlines():
+        cells = [c.strip() for c in l.strip().strip("|").split("|")] if l.strip().startswith("|") else []
+        if len(cells) >= 2 and not re.fullmatch(r":?-+:?", cells[0]):
+            rows.append((cells[0], cells[-1]))
+    applied = [n for n in names if HANDBACK_DEFAULTS[n][0](run.all_text)]
+    missing = [n for n in applied
+               if not any(re.search(HANDBACK_DEFAULTS[n][1], d, re.I) and len(r.split()) >= 3 for d, r in rows)]
+    if missing:
+        return False, f"applied={applied} rows={[d for d, _ in rows]} missing={missing}"
+    if not applied:
+        return True, "no listed default applied (vacuous)"
+    return None, f"rows for {applied} present; model judges each reason is a why, not a what"
+
+
+def asks_only_decisions(run, facts):
+    """Split. `## Questions` exists, and no question line asks for a fact the prompt or fixture states. A question that
+    requests the fact (`fact_request`) fails here; one that only names a fact goes to the model, which judges whether
+    it asks for the fact or for a decision about it."""
+    if handback_section(run, "Questions") is None:
+        return False, "no `## Questions` section"
+    lines = question_lines(run)
+    bad = [l[:100] for l in lines if re.search(fact_request(facts), l, re.I)]
+    if bad:
+        return False, f"{len(lines)} question line(s); asks for facts: {bad}"
+    mentions = [l[:160] for l in lines if re.search(facts, l, re.I)]
+    if mentions:
+        return None, f"{len(lines)} question line(s); model judges whether these ask for a known fact: {mentions}"
+    return True, f"{len(lines)} question line(s); none names a known fact"
+
+
+def asks_reusable_docker(run):
+    """`## Questions` has an item on a reusable docker build workflow: a question, or the bespoke default taken."""
+    sec = handback_section(run, "Questions")
+    if sec is None:
+        return False, "no `## Questions` section"
+    docker = r"docker-build-workflow|reusable[^\n]{0,60}\b(docker|container|image)|\b(docker|container|image)\b[^\n]{0,60}reusable"
+    items = [l.strip() for l in sec.splitlines() if re.search(docker, l, re.I)
+             and (re.search(r"\?", l) or re.search(r"default|could not ask|couldn't ask|unavailable|bespoke", l, re.I))]
+    return bool(items), f"item={items[:1]}"
+
+
+def asks_delivery(run):
+    """The delivery question in `## Questions` (naming HTML and Markdown), or the chat default stated near the top."""
+    sec = handback_section(run, "Questions") or ""
+    asked = [l.strip() for l in sec.splitlines() if re.search(r"html|dashboard", l, re.I) and re.search(r"markdown", l, re.I)]
+    top = "\n".join(l for l in prose(run.answer).splitlines() if l.strip())[:1500]
+    default = re.search(r"delivered in (the )?chat by default|default(ed)? to (the )?chat", top, re.I)
+    return bool(asked or default), f"question={asked[:1]} chat default stated={bool(default)}"
+
+
+def placeholders_listed(run, fixture_text, deploy):
+    """Every placeholder the produced YAML introduces is named in `## Placeholders`: new `vars.`/`secrets.` names,
+    `<...>` tokens, and a literal role ARN, region, or environment that the fixture does not have. Each is matched by
+    its value, so "confirm the role, region, and environment" does not name `us-east-1`."""
+    sec = handback_section(run, "Placeholders")
+    if sec is None:
+        return False, "no `## Placeholders` section"
+    text = run.all_text
+    need = []  # (what, pattern the section must match)
+    for kind, name in sorted(set(re.findall(r"\b(vars|secrets)\.([A-Za-z_][A-Za-z0-9_]*)", text))):
+        if f"{kind}.{name}" not in fixture_text:
+            need.append((f"{kind}.{name}", re.escape(name)))
+    for tok in sorted(set(re.findall(r"<([A-Za-z][\w .:/-]{1,60})>", text))):
+        need.append((f"<{tok}>", re.escape(tok)))
+    for key in ("role-to-assume", "aws-region"):
+        for v in re.findall(rf"{key}:\s*(\S+)", text):
+            if "${{" not in v and v not in fixture_text:
+                need.append((f"{key}: {v}", re.escape(v.strip("'\""))))
+    env = (deploy or {}).get("environment")
+    env = env.get("name") if isinstance(env, dict) else env
+    if env and "${{" not in str(env) and f"environment: {env}" not in fixture_text:
+        need.append((f"environment: {env}", re.escape(str(env))))
+    missing = [w for w, pat in need if not re.search(pat, sec, re.I)]
+    return not missing, f"placeholders={[w for w, _ in need]} missing from section={missing}"
+
+
 # ---- per-eval check tables ------------------------------------------------------
 # Each entry: (1-based index, kind, function(run) -> (passed|None, evidence))
 # Patterns for evals 12 and 13 (runner-image tools). Both fixtures are clean under every scanner,
@@ -372,8 +512,8 @@ def checks_for(run):
             (4, "program", lambda: (setup_node_cache(wf), "setup-node cache: npm")),
             (5, "program", lambda: (all_timeouts(wf) and bool(wf.get("name")) and all(j.get("name") for j in jobs(wf).values()) and all(s.get("name") for j in jobs(wf).values() for s in steps(j) if s.get("uses")), f"wf name={wf.get('name')!r} jobs named={[bool(j.get('name')) for j in jobs(wf).values()]} unnamed uses steps={sum(1 for j in jobs(wf).values() for s in steps(j) if s.get('uses') and not s.get('name'))} timeouts={all_timeouts(wf)}")),
             (6, "program", S),
-            (7, "model", None),
-            (8, "model", None),
+            (7, "split", lambda: defaults_table(run, list(HANDBACK_DEFAULTS))),
+            (8, "split", lambda: asks_only_decisions(run, E0_FACTS)),
             (9, TK, T),
         ]
     if e == 1:
@@ -567,7 +707,7 @@ def checks_for(run):
             (2, "split", cites),
             (3, "program", sections),
             (4, "program", tools),
-            (5, "model", None),
+            (5, "program", lambda: asks_delivery(run)),
             (6, "program", speed),
             (7, "program", unmodified),
             (8, "program", S),
@@ -606,7 +746,7 @@ def checks_for(run):
             (5, "program", pipefail),
             (6, "program", lambda: (any(step_uses(s, "checkout") and (s.get("with") or {}).get("persist-credentials") is False for s in steps(deploy)) and "timeout-minutes" in deploy, "persist-credentials false + timeout")),
             (7, "program", lambda: asks_which_bot(run)),
-            (8, "model", None),
+            (8, "program", lambda: placeholders_listed(run, read(f"{FIX}/deploy-static-keys.yml"), deploy)),
             (9, "program", S),
             (10, "program", order),
             (11, "program", lambda: (wf.get("permissions") == {} and (deploy.get("permissions") or {}).get("contents") == "read" and (deploy.get("permissions") or {}).get("id-token") == "write", f"top={wf.get('permissions')} deploy={deploy.get('permissions')}")),
@@ -631,12 +771,13 @@ def checks_for(run):
             (1, "program", lambda: ("node-version-file: .nvmrc" in ci[0], "node-version-file")),
             (2, "program", parallel),
             (3, "program", lambda: ("docker-build-workflow" in run.answer, "names docker-build-workflow")),
-            (4, "model", None),
-            (5, "model", None),
+            (4, "program", lambda: asks_reusable_docker(run)),
+            (5, "split", lambda: asks_only_decisions(run, E8_FACTS)),
             (6, "program", no_triggers),
-            (7, "model", None),
+            (7, "split", lambda: defaults_table(run, ["permissions", "pinning", "concurrency", "caching", "timeout", "trusted refs"])),
             (8, "program", S),
-            (9, "program", lambda: trusted_refs(dk[1]) if dk[1] else (None, "no docker workflow written; model")),
+            # no build-push-action workflow: the image may be pushed from a run step, which only the model can read
+            (9, "program" if dk[1] else "split", lambda: trusted_refs(dk[1]) if dk[1] else (None, "no docker workflow written; model")),
             (10, TK, T),
         ]
     if e == 9:
@@ -895,11 +1036,14 @@ def grade(run):
         if fn is None:
             yield idx, kind, None, "model: judgment only"
             continue
-        try:
-            res, ev = fn()
-        except Exception as ex:  # a check bug must not stop the run
-            res, ev = None, f"CHECK ERROR {type(ex).__name__}: {ex}"
-        yield idx, kind, res, ev
+        yield idx, kind, *run_check(fn)
+
+
+def run_check(fn):
+    try:
+        return fn()
+    except Exception as ex:  # a check bug must not stop the run
+        return None, f"CHECK ERROR {type(ex).__name__}: {ex}"
 
 
 # ---- excerpts for the model grader --------------------------------------------------
@@ -914,7 +1058,7 @@ ASKS = [("answer", r"question|assum|default|ask|deferred"), ("transcript", r"que
 PLACEHOLDERS = [("answer", r"placeholder|confirm|assum")]
 PROVENANCE = [("shas", None), ("transcript", r"command|shell|pin|sha|question|deferred")]
 EXCERPTS = {
-    (0, 7): REASONS, (0, 8): ASKS,
+    (0, 7): REASONS,
     (1, 6): REASONS, (1, 8): PROVENANCE,
     (2, 1): [("yaml", None), ("answer", r"pull_request_target|trigger|security|hard")], (2, 7): REASONS, (2, 8): PLACEHOLDERS, (2, 11): PROVENANCE,
     (3, 8): [("yaml", None), ("answer", r"correctness|comment|remov|hard")], (3, 11): PROVENANCE,
@@ -922,10 +1066,10 @@ EXCERPTS = {
     (4, 5): [("answer", r"needs|parallel|lint|speed|question")], (4, 9): [("answer", r"speed|why|reason|change")],
     (4, 11): [("answer", r"trigger|on:|coverage|question|assum")], (4, 12): PROVENANCE,
     (5, 5): [("answer", r"needs|parallel|chain|why")], (5, 11): PROVENANCE,
-    (6, 2): [("answer", r"correctness|hard|speed|opinion")], (6, 5): [("head", 25), ("answer", r"deliver|format|question|default")],
+    (6, 2): [("answer", r"correctness|hard|speed|opinion")],
     (6, 10): [("answer", None)], (6, 11): [("answer", r"correctness|hard|proposed"), ("yaml", None)], (6, 12): PROVENANCE,
-    (7, 3): [("answer", r"concurrency|cancel|speed|why|reason")], (7, 8): PLACEHOLDERS, (7, 12): [("answer", r"hard|finding")], (7, 13): PROVENANCE,
-    (8, 4): [("answer", r"docker-build-workflow|reusable|question|default|ask|assum")], (8, 5): ASKS, (8, 7): REASONS, (8, 10): PROVENANCE,
+    (7, 3): [("answer", r"concurrency|cancel|speed|why|reason")], (7, 12): [("answer", r"hard|finding")], (7, 13): PROVENANCE,
+    (8, 7): REASONS, (8, 10): PROVENANCE,
     (9, 5): [("answer", r"agentic|dependabot|hard|lock")], (9, 6): [("answer", r"agentic|hard")], (9, 9): PROVENANCE,
     (10, 4): [("yaml", None), ("answer", r"sleep|ready|readiness|health|why")], (10, 7): [("answer", r"parallel|background|new|2026|why")],
     (11, 2): ASKS, (11, 3): [("answer", r"set up job|runner|speed")],
@@ -1002,22 +1146,77 @@ def write_mode(dirs):
                  "evidence": (f"program ({kind}): {ev}" if res is not None else f"model: {ev}"),
                  "graded_by": "program" if res is not None else "model"}
             if res is None:
+                e["kind"] = kind
                 e["context"] = excerpts_for(run, idx)
             exps.append(e)
         n = len(exps); decided = sum(1 for e in exps if e["passed"] is not None)
-        nulls = [i + 1 for i, e in enumerate(exps) if e["passed"] is None]
         ctx_chars = sum(len(c["text"]) for e in exps for c in e.get("context", []))
-        doc = {"expectations": exps,
-               "summary": {"passed": sum(1 for e in exps if e["passed"] is True),
-                           "failed": sum(1 for e in exps if e["passed"] is False), "total": n,
-                           "pass_rate": None, "pending_model": n - decided}}
-        if nulls:
-            doc["residual"] = {"indices": nulls, "prompt": next(x["prompt"] for x in EVALS if x["id"] == run.eval),
-                               "note": "Judge each null entry from its `context` excerpts. Open a source file only if an excerpt is "
-                                       "insufficient, and say so in `evidence`. Set `passed`, replace `evidence` with quoted evidence, "
-                                       "set `graded_by` to \"model\", leave every other entry untouched, then recompute `summary`."}
+        doc = {"expectations": exps}
+        set_summary(doc, run.eval)
         json.dump(doc, open(out, "w"), indent=2)
         print(f"{d}: {decided}/{n} graded by program, {n - decided} left for the model ({ctx_chars} chars of excerpts)")
+
+
+def set_summary(doc, eval_id):
+    """Recompute `summary` and `residual` from the expectations (pass_rate waits for --finalize)."""
+    exps = doc["expectations"]
+    nulls = [i + 1 for i, e in enumerate(exps) if e["passed"] is None]
+    doc["summary"] = {"passed": sum(1 for e in exps if e["passed"] is True),
+                      "failed": sum(1 for e in exps if e["passed"] is False), "total": len(exps),
+                      "pass_rate": None, "pending_model": len(nulls)}
+    if nulls:
+        doc["residual"] = {"indices": nulls, "prompt": next(x["prompt"] for x in EVALS if x["id"] == eval_id),
+                           "note": "Judge each null entry from its `context` excerpts. Open a source file only if an excerpt is "
+                                   "insufficient, and say so in `evidence`. Set `passed`, replace `evidence` with quoted evidence, "
+                                   "set `graded_by` to \"model\", leave every other entry untouched, then recompute `summary`."}
+    else:
+        doc.pop("residual", None)
+
+
+def rerun_program(d):
+    """Rerun the program checks a run's grading.json still holds as null; return [(index, evidence)] still null.
+
+    Only null entries change, so a verdict a model grader already wrote is kept, and the file is replaced
+    atomically and only when something changed. A null entry without `kind` (written before kinds existed)
+    takes its kind from checks_for, so an old skipped scanner entry is rerun instead of reaching the model."""
+    path = f"{d}/grading.json"
+    with open(path) as f:
+        doc = json.load(f)
+    if all(e.get("passed") is not None for e in doc["expectations"]):
+        return []
+    before = json.dumps(doc)
+    run = Run(d)
+    rows = {idx: (kind, fn) for idx, kind, fn in checks_for(run)}
+    left = []
+    for idx, e in enumerate(doc["expectations"], 1):
+        if e.get("passed") is not None:
+            continue
+        kind, fn = rows[idx]
+        e["kind"] = kind
+        if kind != "program":
+            continue
+        res, ev = run_check(fn) if fn else (None, "no program check")
+        if res is None:
+            e["evidence"] = f"model: {ev}"
+            left.append((idx, ev))
+            continue
+        e.update(passed=res, evidence=f"program ({kind}): {ev}", graded_by="program")
+        e.pop("kind"); e.pop("context", None)
+    set_summary(doc, run.eval)
+    if json.dumps(doc) != before:
+        tmp = f"{path}.tmp"
+        with open(tmp, "w") as f:
+            json.dump(doc, f, indent=2)
+        os.replace(tmp, path)
+    return left
+
+
+def rerun_mode(dirs):
+    """Fill null program verdicts in place; exit 1 naming each one a rerun could not decide."""
+    stuck = [(d, idx, ev) for d in dirs for idx, ev in rerun_program(d)]
+    for d, idx, ev in stuck:
+        print(f"{d}: program assertion #{idx} still null: {ev}")
+    return not stuck
 
 
 def finalize_mode(dirs):
@@ -1086,6 +1285,9 @@ When done, reply with one line per file: its eval name, how many entries you jud
 def batch_mode(dirs):
     """Group runs that still have nulls under an excerpt-byte budget; write one grader prompt per group."""
     budget = int(next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--budget=")), 60000))
+    if not rerun_mode(dirs):  # a program verdict never goes to the model
+        print("stopping: install the missing scanner (or fix the check) and rerun; no grader prompt written")
+        sys.exit(1)
     runs = []
     for d in dirs:
         g = json.load(open(f"{d}/grading.json"))
@@ -1141,6 +1343,8 @@ def main():
         kinds_mode(); return
     if "--batch" in sys.argv:
         batch_mode(dirs); return
+    if "--rerun-program" in sys.argv:
+        sys.exit(0 if rerun_mode(dirs) else 1)
     if "--write" in sys.argv:
         write_mode(dirs)
     elif "--finalize" in sys.argv:

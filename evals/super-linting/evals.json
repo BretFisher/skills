@@ -6,7 +6,7 @@
       "id": 0,
       "name": "fresh-setup-mixed-repo",
       "prompt": "I've got this little repo with a Python script, a deploy shell script, a Dockerfile, and some YAML. Set up linting for it — pick good linters for each file type and make it so they get run before any commit. I'm on a Mac.",
-      "expected_output": "Detects Python/Shell/Dockerfile/YAML, consults super-linter for current linters, recommends primary linters (ruff, shellcheck, hadolint, yamllint), lists install commands instead of installing, writes a ## Linting section into AGENTS.md/CLAUDE.md requiring lint-before-commit, adds a `make lint` target, documents it in README, and asks whether to add a git pre-commit hook instead of adding one.",
+      "expected_output": "Detects Python/Shell/Dockerfile/YAML, reads the skill's bundled super-linter linter list instead of fetching it, recommends primary linters (ruff, shellcheck, hadolint, yamllint), lists install commands instead of installing, writes a ## Linting section into AGENTS.md/CLAUDE.md requiring lint-before-commit, adds a `make lint` target, documents it in README, and asks whether to add a git pre-commit hook instead of adding one.",
       "files": [
         "evals/super-linting/fixtures/mixed-repo/app.py",
         "evals/super-linting/fixtures/mixed-repo/deploy.sh",
@@ -19,10 +19,10 @@
         "The `## Linting` section names `ruff`, `shellcheck`, `hadolint`, and `yamllint`.",
         "The `Makefile` has a `lint:` target whose recipe runs `ruff`, `shellcheck`, `hadolint`, and `yamllint`.",
         "`README.md` mentions `make lint`.",
-        "The raw log shows a fetch of the super-linter README (a command naming `super-linter`), or the answer says it used the offline fallback.",
+        "The raw log shows a read of `references/linter-commands.md` and no network fetch of a super-linter URL (no call naming `raw.githubusercontent.com/super-linter` or `github.com/super-linter`).",
         "No git hook was added: no `.githooks/` directory, no `.pre-commit-config.yaml`, and no `core.hooksPath` change.",
         "No installer ran (no `brew install`, `pipx install`, `pip install`, or `npm install -g` command in the raw log), and the answer lists an install command for each linter that is missing.",
-        "The answer asks whether the user wants a git pre-commit hook (a line naming `hook` that ends in `?`)."
+        "The answer asks whether the user wants a git pre-commit hook (a sentence naming `hook` that ends in `?`, even when it wraps over lines)."
       ]
     },
     {

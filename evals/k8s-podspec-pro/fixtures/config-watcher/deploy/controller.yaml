@@ -1,0 +1,30 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: config-watcher
+  namespace: platform
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: config-watcher
+  template:
+    metadata:
+      labels:
+        app: config-watcher
+    spec:
+      serviceAccountName: config-watcher
+      containers:
+        - name: watcher
+          image: ghcr.io/acme/config-watcher:0.8.3
+          args: ["--metrics-bind-address=:8080", "--health-probe-bind-address=:8081"]
+          ports:
+            - containerPort: 8080
+              name: metrics
+          resources:
+            limits:
+              cpu: "1"
+              memory: 256Mi
+            requests:
+              cpu: 100m
+              memory: 128Mi

@@ -1,5 +1,7 @@
 interface:
   display_name: "GitHub Actions Audit"
   short_description: "Audit this repo's workflows and propose a fix diff"
+  brand_color: "#DB631B"
+  default_prompt: "Audit this repo's GitHub Actions workflows."
 policy:
   allow_implicit_invocation: false

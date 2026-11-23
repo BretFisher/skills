@@ -1,10 +1,56 @@
 # Bret's DevOps and \*Ops Skills
 
+[![skills.sh](https://skills.sh/b/bretfisher/skills)](https://skills.sh/bretfisher/skills)
+
 A bunch of skills for daily work in DevOps, grouped into plugins under `./plugins/<group>/skills/`.
+The [`skills-devops`](skills-devops) and [`skills-utils`](skills-utils) symlinks at the repo root point to those folders.
 
 ## Install
 
-Pick one. Skills come in two plugins, so you install only the group you want: `bretfisher-devops` and `bretfisher-utils` (macOS only).
+Skills come in two plugins, so you can install only the group you want: `bretfisher-devops` and `bretfisher-utils`.
+
+### Any agent, with `npx skills`
+
+[`npx skills`](https://github.com/vercel-labs/skills) works with Claude Code, Codex, Cursor, OpenCode, Amp, and many other agents.
+It asks which skills and which agents to install for. `gh skill install bretfisher/skills` also works.
+
+Globally, for all your projects:
+
+```bash
+npx skills add bretfisher/skills -g
+```
+
+Per project, committed so your team gets the skills too (run it from the project root):
+
+```bash
+npx skills add bretfisher/skills
+```
+
+To see the skills first, or to install only some of them:
+
+```bash
+npx skills add bretfisher/skills --list
+```
+
+```bash
+npx skills add bretfisher/skills --skill docker-pro --skill github-actions-workflow-pro -g
+```
+
+To get new versions later (`check` only reports them):
+
+```bash
+npx skills check
+```
+
+```bash
+npx skills update -g
+```
+
+`npx skills list -g` shows the skills grouped by plugin.
+
+### As a plugin, per harness
+
+A plugin install gets the whole group and updates with the marketplace.
 
 **Claude Code:**
 
@@ -17,220 +63,145 @@ Pick one. Skills come in two plugins, so you install only the group you want: `b
 To get every new commit automatically, open `/plugin`, go to **Marketplaces**, select `bretfisher`, and choose **Enable auto-update**.
 If you installed the old `bretfisher-skills` plugin, run the `bretfisher-devops` install line once: updating the marketplace removes the old plugin.
 
+**Claude Desktop and claude.ai:** open **Customize** > **Plugins**, add the marketplace `bretfisher/skills`, then install `bretfisher-devops` and `bretfisher-utils`.
+
 **Codex:**
 
 ```bash
 codex plugin marketplace add bretfisher/skills
 codex plugin add bretfisher-devops@bretfisher
+codex plugin add bretfisher-utils@bretfisher
 ```
+
+To update later, run `codex plugin marketplace upgrade bretfisher`.
+
+**Cursor:** a team admin opens **Dashboard** > **Plugins & MCPs** > **Add Marketplace** > **Import from Repo** and enters `bretfisher/skills`.
+For one user, `npx skills add bretfisher/skills -g -a cursor` installs the same skills.
 
 **GitHub Copilot CLI:**
 
 ```bash
 copilot plugin marketplace add bretfisher/skills
 copilot plugin install bretfisher-devops@bretfisher
+copilot plugin install bretfisher-utils@bretfisher
 ```
 
-**Cursor:** add `bretfisher/skills` as a plugin marketplace; it reads `.cursor-plugin/marketplace.json`.
+To update later, run `copilot plugin marketplace update bretfisher`, then `copilot plugin update --all`.
+
+**VS Code (Copilot agent mode):** set `chat.plugins.enabled` to `true`, add `bretfisher/skills` to `chat.plugins.marketplaces`, then install the plugins from **Chat: Open Customizations**.
+
+**OpenCode, Amp, Gemini CLI, Hermes, Goose, Kiro, Windsurf, and others:** use `npx skills add bretfisher/skills`. It knows the skills folder of each agent.
 
 **Pi:** `pi install git:github.com/BretFisher/skills` loads every skill.
 
-**As individual skills** for OpenCode, Amp, and any other agent. Pick only the ones you want:
-
-```bash
-npx skills add bretfisher/skills
-```
-
-Mark the ones you want to install. Add `-g` to the command to install them globally.
-`gh skill install bretfisher/skills` also works.
-If you installed `screencapture` this way before it was renamed, `npx skills update` keeps the old copy; run `npx skills remove screencapture` and add `screencapture-mac`.
-
 ## Skills
 
-| Plugin              | Skill                         | Purpose                                                                                                                                       |
-| ------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `bretfisher-devops` | `docker-pro`                  | Light up all the best Docker features and security best practices for dockerizing a repo. From a Docker Captain.                              |
-| `bretfisher-devops` | `github-actions-workflow-pro` | Create, edit, audit, and speed up GitHub Actions workflows with opinionated security and speed defaults.                                      |
-| `bretfisher-devops` | `gha-audit`                   | Type `/gha-audit [file]` to run the audit path of `github-actions-workflow-pro` on demand: scanners first, then a report and a proposed diff. |
-| `bretfisher-devops` | `k8s-catch-up`                | Teaches the agent the Kubernetes features that reached beta or GA after its training data ended (currently v1.35 to v1.37).                   |
-| `bretfisher-devops` | `super-linting`               | Picks the right linter for every file type in a project and wires them into a `make lint` target, so code is linted before every commit.      |
-| `bretfisher-utils`  | `screencapture-mac`           | macOS only. Captures the screen, a window, or a region so the agent can see native GUI apps. Web pages go to a browser automation tool.       |
+| Skill                                                                                       | Plugin              | Purpose                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------------- | ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [`docker-pro`](plugins/devops/skills/docker-pro/SKILL.md)                                   | `bretfisher-devops` | Use it when you create or change a Dockerfile, `.dockerignore`, Bake file, or Compose file. It applies modern Docker and BuildKit features and security best practices from a Docker Captain.                                                                                                                     |
+| [`github-actions-workflow-pro`](plugins/devops/skills/github-actions-workflow-pro/SKILL.md) | `bretfisher-devops` | Use it when you create, edit, audit, or speed up a GitHub Actions workflow. It applies opinionated security and speed defaults.                                                                                                                                                                                   |
+| [`gha-audit`](plugins/devops/skills/gha-audit/SKILL.md)                                     | `bretfisher-devops` | Type `/gha-audit [file]` when you want a workflow audit now. It runs the audit path of [`github-actions-workflow-pro`](plugins/devops/skills/github-actions-workflow-pro/SKILL.md): scanners first, then a report and a proposed diff.                                                                            |
+| [`k8s-catch-up`](plugins/devops/skills/k8s-catch-up/SKILL.md)                               | `bretfisher-devops` | Use it when you write Kubernetes manifests or Helm templates, run `kubectl`, or ask what a recent Kubernetes version can do. It teaches the agent the features that reached beta or GA after its training data ended (now v1.35 to v1.37).                                                                        |
+| [`k8s-podspec-pro`](plugins/devops/skills/k8s-podspec-pro/SKILL.md)                         | `bretfisher-devops` | Use it when you write or review a Kubernetes workload (Deployment, StatefulSet, DaemonSet, Job, CronJob, Pod), or a Helm chart or Kustomize base that renders one. It applies the hardened pod spec recommendations from [BretFisher/podspec](https://github.com/BretFisher/podspec) and checks it with a script. |
+| [`super-linting`](plugins/devops/skills/super-linting/SKILL.md)                             | `bretfisher-devops` | Use it when you add, choose, or standardize linters for local development. It picks the right linter for each file type and adds them to a `make lint` target, so code is linted before each commit.                                                                                                              |
+| [`screencapture-mac`](plugins/utils/skills/screencapture-mac/SKILL.md)                      | `bretfisher-utils`  | Use it when the agent must see a native macOS app or a desktop window. It captures the screen, a window, or a region. Web pages go to a browser automation tool.                                                                                                                                                  |
 
 ## Does the skill help?
 
-Run `make eval-test` to test the harness and Docker checker regressions without model calls.
-It accepts Claude Code logs and OpenCode V2 session exports. Unsupported or
-incomplete logs stop deterministic tool grading instead of producing a pass.
+My goal is to prove that each skill helps and does not hurt.
+In general, newer and larger models do better without a skill than older and smaller models.
+But as of October 2026, each skill improved the result on every model tested.
 
-### Eval commands
+To measure this, each eval prompt runs twice on the same model: once with the skill and once without.
+The score is the share of checks that passed. The gain is the difference, in percentage points.
+[How the evals work](docs/eval-design.md): history, design decisions, file layout, and known gaps.
 
-The repo-owned runner uses OpenCode V2 by default. Set an exact model and variant;
-use a new iteration ID for each experiment. These commands make model calls only
-at `eval-run` and `eval-grade`:
+### [`github-actions-workflow-pro`](plugins/devops/skills/github-actions-workflow-pro/SKILL.md)
 
-```bash
-make eval-plan SKILL=k8s-catch-up ITER=26-opencode MODEL='openai/gpt-6.1-sol#low' EVALS=1
-make eval-run SKILL=k8s-catch-up ITER=26-opencode MODEL='openai/gpt-6.1-sol#low' EVALS=1
-make eval-check SKILL=k8s-catch-up ITER=26-opencode
-make eval-grade SKILL=k8s-catch-up ITER=26-opencode GRADER_MODEL='openai/gpt-6.1-sol#low'
-make eval-finalize SKILL=k8s-catch-up ITER=26-opencode
-make eval-benchmark SKILL=k8s-catch-up ITER=26-opencode
-make eval-view SKILL=k8s-catch-up ITER=26-opencode OPEN=1
-```
+| Model       | Without skill | With skill | Gain |
+| ----------- | ------------- | ---------- | ---- |
+| Haiku 4.5   | 47%           | 81%        | +34  |
+| Haiku 5.5   | 60%           | 98%        | +38  |
+| Sonnet 5    | 59%           | 92%        | +33  |
+| Sonnet 5.5  | 64%           | 95%        | +31  |
+| Opus 5.5    | 62%           | 97%        | +35  |
+| GPT-6.1 Sol | 53%           | 86%        | +33  |
 
-`EVALS` selects comma-separated IDs. `REPEAT` sets repeated pairs; `JOBS` limits
-parallel executors. `RESUME=1` skips matching completed runs and retains failed
-runs. For Claude Code, set `HARNESS=claude`, `MODEL` to a full Claude model ID,
-and `EFFORT=high`. The Claude adapter has offline tests but no live validation yet.
+Details: [`evals/github-actions-workflow-pro/coverage.md`](evals/github-actions-workflow-pro/coverage.md).
 
-The Kubernetes updater task needs existing local source checkouts under
-`~/.cache/k8s-catch-up/{enhancements,website}`. Set `SOURCE_CACHE=<directory>` to
-use another location. The runner verifies and copies source data, records hashes,
-and directs the executor to use the copies offline. It does not clone, fetch, or
-change the host checkouts. Its damaged skill copy is committed as a pristine input.
+### [`k8s-catch-up`](plugins/devops/skills/k8s-catch-up/SKILL.md)
 
-For a completed model session that failed only during evidence collection, use
-`make eval-recover RUN=<run-directory>`. It validates the retained evidence and
-workspace before collecting files; it makes no model call and preserves the failure
-record. Other failed runs require a new iteration.
+| Model       | Without skill | With skill | Gain |
+| ----------- | ------------- | ---------- | ---- |
+| Haiku 4.5   | 21%           | 100%       | +79  |
+| Haiku 5.5   | 80%           | 100%       | +20  |
+| Sonnet 5    | 74%           | 100%       | +26  |
+| Sonnet 5.5  | 89%           | 96%        | +7   |
+| Opus 5.5    | 91%           | 96%        | +5   |
+| GPT-6.1 Sol | 90%           | 98%        | +8   |
 
-See [OpenCode eval support](docs/eval-opencode.md) for isolation, evidence, and
-report validation. `eval-view` writes a static review page with nested files,
-grades, and benchmark data. Set `PREVIOUS` to an earlier iteration directory to
-include its outputs and feedback. For an old-skill comparison, use
-`PRIMARY=new_skill BASELINE=old_skill` on the reporting commands.
+Newer models know more, so the gain is smaller. Without the skill, a newer model still gets the stage of a feature (beta or GA, and in which version) and recent deprecations wrong.
 
-The installed `.agents/skills/skill-creator/` stays read-only. Repo-owned adapters
-in `evals/harness/` validate the data and call its unchanged viewer functions.
+Details: [`evals/k8s-catch-up/coverage.md`](evals/k8s-catch-up/coverage.md).
 
-Each skill's evals run on a model twice: once with the skill installed and once without. Same prompts, same
-grader. The score is the share of assertions passed.
+### [`docker-pro`](plugins/devops/skills/docker-pro/SKILL.md)
 
-### github-actions-workflow-pro
+| Model       | Without skill | With skill | Gain |
+| ----------- | ------------- | ---------- | ---- |
+| Haiku 5.5   | 68%           | 96%        | +28  |
+| Sonnet 5.5  | 56%           | 100%       | +44  |
+| Opus 5.5    | 72%           | 100%       | +28  |
+| GPT-6.1 Sol | 36%           | 100%       | +64  |
 
-| Model                       | Without skill | With skill |
-| --------------------------- | ------------- | ---------- |
-| Haiku 4.5                   | 47%           | 81%        |
-| Haiku 5.5                   | 60%           | 98%        |
-| Sonnet 5                    | 59%           | 92%        |
-| Sonnet 5.5                  | 64%           | 95%        |
-| Opus 5.5                    | 62%           | 97%        |
-| GPT-6.1 Sol (low, OpenCode) | 53%           | 86%        |
+Details: [`evals/docker-pro/coverage.md`](evals/docker-pro/coverage.md).
 
-GPT-6.1 Sol: 77/145 assertions without the skill and 125/145 with it, a gain of
-33.1 percentage points. OpenCode v2.0.26; one repeat per task across all 15 tasks
-in iteration `27-opencode-sol-retry`. One baseline was retried after a provider
-transport error; the other 29 executors were retained. This is a preliminary
-result. Fixture mappings and grading defects were corrected, so this is not a
-controlled comparison with earlier model rows. See
-[GitHub Actions eval coverage](evals/github-actions-workflow-pro/coverage.md).
+### [`k8s-podspec-pro`](plugins/devops/skills/k8s-podspec-pro/SKILL.md)
 
-### k8s-catch-up
+| Model      | Without skill | With skill | Gain |
+| ---------- | ------------- | ---------- | ---- |
+| Sonnet 5.5 | 58%           | 98%        | +40  |
 
-| Model                       | Without skill | With skill |
-| --------------------------- | ------------- | ---------- |
-| Haiku 4.5                   | 21%           | 100%       |
-| Haiku 5.5                   | 80%           | 100%       |
-| Sonnet 5                    | 74%           | 100%       |
-| Sonnet 5.5                  | 89%           | 96%        |
-| Opus 5.5                    | 91%           | 96%        |
-| GPT-6.1 Sol (low, OpenCode) | 90%           | 98%        |
+Details: [`evals/k8s-podspec-pro/coverage.md`](evals/k8s-podspec-pro/coverage.md).
 
-GPT-6.1 Sol: 57/63 assertions without the skill and 62/63 with it, a gain of
-7.9 percentage points. OpenCode v2.0.26; one repeat per task across all 15 tasks
-in iteration `28-opencode-sol`. The updater task received identical damaged skill
-and local-source inputs in both configurations. Checker defects were corrected;
-this preliminary result is not a controlled comparison with earlier model rows.
-The remaining skill failure omitted the command to confirm the served group-snapshot
-API version. See [Kubernetes eval coverage](evals/k8s-catch-up/coverage.md).
+### [`super-linting`](plugins/devops/skills/super-linting/SKILL.md)
 
-The newer the model, the more it already knows, so the gap shrinks. What a newer model still gets wrong
-without `k8s-catch-up` is mostly the stage of a feature (beta or GA, and in which version) and recent
-deprecations.
+| Model       | Without skill | With skill | Gain |
+| ----------- | ------------- | ---------- | ---- |
+| Haiku 5.5   | 41%           | 100%       | +59  |
+| Sonnet 5.5  | 29%           | 100%       | +71  |
+| Opus 5.5    | 35%           | 100%       | +65  |
+| GPT-6.1 Sol | 6%            | 94%        | +88  |
 
-### docker-pro
+Details: [`evals/super-linting/coverage.md`](evals/super-linting/coverage.md).
 
-| Model                       | Without skill | With skill |
-| --------------------------- | ------------- | ---------- |
-| Haiku 5.5                   | 68%           | 96%        |
-| Sonnet 5.5                  | 56%           | 100%       |
-| Opus 5.5                    | 72%           | 100%       |
-| GPT-6.1 Sol (low, OpenCode) | 36%           | 100%       |
+### [`gha-audit`](plugins/devops/skills/gha-audit/SKILL.md)
 
-GPT-6.1 Sol: 9/25 assertions without the skill and 25/25 with it, a gain of
-64 percentage points. OpenCode v2.0.26; one repeat per task across all three tasks
-in iteration `5-opencode-fixes`. This is a preliminary result, not a stable quality
-estimate. The skill and checkers changed from earlier runs, so these rows are not
-a controlled model comparison. See [Docker eval coverage](evals/docker-pro/coverage.md).
+| Model       | Without skill | With skill | Gain |
+| ----------- | ------------- | ---------- | ---- |
+| Haiku 5.5   | 71%           | 100%       | +29  |
+| Sonnet 5.5  | 71%           | 100%       | +29  |
+| Opus 5.5    | 43%           | 100%       | +57  |
+| GPT-6.1 Sol | 71%           | 100%       | +29  |
 
-### super-linting
+Details: [`evals/gha-audit/coverage.md`](evals/gha-audit/coverage.md).
 
-| Model                       | Without skill | With skill |
-| --------------------------- | ------------- | ---------- |
-| Haiku 5.5                   | 41%           | 100%       |
-| Sonnet 5.5                  | 35%           | 100%       |
-| Opus 5.5                    | 35%           | 100%       |
-| GPT-6.1 Sol (low, OpenCode) | 6%            | 94%        |
-
-GPT-6.1 Sol: 1/17 assertions without the skill and 16/17 with it, a gain of
-88.2 percentage points. OpenCode v2.0.26; one repeat per task across all three tasks
-in iteration `5-opencode-sol`. The remaining skill failure was an omitted hook
-question. The checker was corrected to follow a shell helper called by `make lint`.
-This is a preliminary result. OpenCode does not automatically load fixture
-`CLAUDE.md` instructions, which limits comparison with Claude Code runs. See
-[Linting eval coverage](evals/super-linting/coverage.md).
-
-### gha-audit
-
-| Model                       | Without skill | With skill |
-| --------------------------- | ------------- | ---------- |
-| Haiku 5.5                   | 71%           | 100%       |
-| Sonnet 5.5                  | 71%           | 100%       |
-| Opus 5.5                    | 43%           | 100%       |
-| GPT-6.1 Sol (low, OpenCode) | 71%           | 100%       |
-
-GPT-6.1 Sol: 5/7 assertions without the skill and 7/7 with it, a gain of
-28.6 percentage points. OpenCode v2.0.26; one repeat per task across both tasks
-in iteration `5-opencode-sol`. With-skill runs include the wrapper's required
-`github-actions-workflow-pro` dependency; the baseline receives neither skill.
-This is a preliminary result. See [Audit eval coverage](evals/gha-audit/coverage.md).
-
-`screencapture-mac` has no evals yet.
-
-## Repo layout
-
-| Path                             | What                                                                                                       | Committed?    |
-| -------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------- |
-| `plugins/<group>/`               | One plugin: a manifest per harness (`plugin.json`, `.claude-plugin/`, `.cursor-plugin/`) and its `skills/` | ✅ yes        |
-| `plugins/<group>/skills/<name>/` | The skill: `SKILL.md`, plus `references/` and `scripts/` where it needs them                               | ✅ yes        |
-| `evals/<name>/`                  | Eval prompts and assertions, fixtures, the program grader, coverage notes                                  | ✅ yes        |
-| `evals/<name>/runs/iteration-N/` | Eval run output (transcripts, gradings, timings)                                                           | ❌ gitignored |
-
-Evals sit outside `plugins/` so an installer copies only the skills. How a run works:
-[docs/eval-walkthrough.md](docs/eval-walkthrough.md). What made the skills and evals better:
-[docs/lessons-learned.md](docs/lessons-learned.md). Per-assertion results: `evals/<name>/coverage.md`.
+[`screencapture-mac`](plugins/utils/skills/screencapture-mac/SKILL.md) has no evals yet.
 
 ## Makefile
 
-`make help` lists everything. Tools are checked, never installed; a missing one prints its `brew install` formula.
+`make help` lists everything, including the eval targets for agents. Tools are checked, never installed; a missing one prints its `brew install` formula.
 
-| Target                                   | What it does                                                                          |
-| ---------------------------------------- | ------------------------------------------------------------------------------------- |
-| `make lint`                              | Pre-commit gate: the same linters CI runs, plus the scanners on this repo's workflows |
-| `make fmt`                               | `prettier --write` on Markdown and JSON                                               |
-| `make eval-key`                          | Compatibility target; eval commits are unsigned and need no key                       |
-| `make eval-check [SKILL=… ITER=…]`       | Program-grade every run of an iteration; leaves judgment assertions for the model     |
-| `make eval-batch [SKILL=… ITER=…]`       | Write one grader prompt per group of runs that still need a model grader              |
-| `make eval-finalize [SKILL=… ITER=…]`    | Recompute every grading summary; fails if an assertion is still ungraded              |
-| `make eval-benchmark [SKILL=… ITER=…]`   | Aggregate an iteration into `benchmark.json` and `benchmark.md`                       |
-| `make eval-view [SKILL=… ITER=…]`        | Open the skill-creator review viewer on an iteration                                  |
-| `make k8s-features [SINCE=… RELEASES=…]` | Print the Kubernetes features that reached beta or GA in a window                     |
-| `make k8s-verify [STRICT=1]`             | Check every k8s-catch-up feature file against its upstream sources                    |
-| `make k8s-check`                         | Exit 1 when a Kubernetes release newer than the skill exists                          |
-| `make pin [FILES=…]`                     | Pin this repo's workflows with pinact                                                 |
-| `make run-stats [RUNS=3] [REPO=…]`       | Rank a repo's workflows and jobs by duration over recent runs                         |
-
-`SKILL` defaults to `github-actions-workflow-pro`; `ITER` defaults to the highest iteration present.
+| Target                                       | What it does                                                                                                                                    |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `make lint [CHECK=…]`                        | Pre-commit gate: every linter in Dagger, the same checks CI runs ([docs](docs/lint.md))                                                         |
+| `make fmt`                                   | `prettier --write` on Markdown, JSON, and `.github` YAML                                                                                        |
+| `make k8s-features [SINCE=… RELEASES=…]`     | Print the Kubernetes features that reached beta or GA in a window                                                                               |
+| `make k8s-verify [STRICT=1]`                 | Check every k8s-catch-up feature file against its upstream sources                                                                              |
+| `make k8s-check`                             | Exit 1 when a Kubernetes release newer than the skill exists                                                                                    |
+| `make podspec-check`                         | Exit 1 when k8s-podspec-pro's copy of `pod.yaml` differs from the podspec repo                                                                  |
+| `make super-linter-check`                    | Exit 1 when super-linter's linter table differs from the super-linting skill's snapshot                                                         |
+| `make run-stats [RUNS=3] [REPO=…]`           | Rank a repo's workflows and jobs by duration over recent runs                                                                                   |
+| `make eval-pull REMOTE_HOST=… REMOTE_REPO=…` | Copy eval runs from another clone over SSH, verify each file, delete the remote copy ([docs](docs/eval-design.md#copy-runs-from-another-clone)) |
 
 See [AGENTS.md](./AGENTS.md) for the repo conventions (also symlinked as `CLAUDE.md`). Open work is tracked in
 [GitHub Issues](https://github.com/BretFisher/skills/issues), one label per skill.

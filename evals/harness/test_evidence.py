@@ -32,6 +32,12 @@ class EvidenceTests(unittest.TestCase):
         with self.assertRaises(EvidenceError):
             claude_events([{"type": "tool", "state": {}}])
 
+    def test_permission_denied_record_with_string_message(self):
+        denied = {"type": "system", "subtype": "permission_denied", "tool_use_id": "1",
+                  "message": "Permission to use Bash has been denied"}
+        evidence = claude_events([call("1", "true"), denied, result("1", "")]).require_complete()
+        self.assertEqual([e["type"] for e in evidence.events], ["tool_input", "tool_result"])
+
     def test_empty_log_cannot_pass(self):
         with self.assertRaises(EvidenceError):
             claude_events([])

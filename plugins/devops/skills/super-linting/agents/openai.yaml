@@ -1,3 +1,5 @@
 interface:
   display_name: "Super Linting"
   short_description: "Pick linters per file type and wire up make lint"
+  brand_color: "#DB631B"
+  default_prompt: "Pick linters for this repo and add a make lint target."

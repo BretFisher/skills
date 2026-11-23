@@ -70,11 +70,28 @@ def main():
                 problems.append(f"{skill_md.relative_to(ROOT)}: name must be {skill}")
             if meta.get("license") != "MIT":
                 problems.append(f"{skill_md.relative_to(ROOT)}: add license: MIT")
-            if not (skill_md.parent / "agents/openai.yaml").is_file():
+            openai_yaml = skill_md.parent / "agents/openai.yaml"
+            if not openai_yaml.is_file():
                 problems.append(f"{skill_md.parent.relative_to(ROOT)}: missing agents/openai.yaml")
+            else:
+                # Codex shows these in its UI; one brand color across every skill and plugin.
+                fields = dict(re.findall(r'^  ([a-z_]+): "(.*)"$', openai_yaml.read_text(), re.M))
+                if fields.get("brand_color") != interface.get("brandColor"):
+                    problems.append(f"{openai_yaml.relative_to(ROOT)}: brand_color must equal plugin.json brandColor {interface.get('brandColor')}")
+                if not fields.get("default_prompt"):
+                    problems.append(f"{openai_yaml.relative_to(ROOT)}: add interface.default_prompt")
             if skill in owner:
                 problems.append(f"skill {skill} is in both {owner[skill]} and {name}")
             owner[skill] = name
+
+        # The Anthropic directory blocks a plugin without a README of 40+ words in its folder.
+        readme_md = folder / "README.md"
+        text = readme_md.read_text() if readme_md.is_file() else ""
+        if len(text.split()) < 40:
+            problems.append(f"{rel}/README.md: add a README of at least 40 words (Anthropic directory requires it)")
+        for skill, plugin in owner.items():
+            if plugin == name and f"(skills/{skill}/SKILL.md)" not in text:
+                problems.append(f"{rel}/README.md: link {skill} to skills/{skill}/SKILL.md in the skills table")
 
     claude = load(".claude-plugin/marketplace.json")
     codex = load(".agents/plugins/marketplace.json")
@@ -92,9 +109,20 @@ def main():
         rel = plugins.get(entry["name"])
         if rel and entry.get("description") != load(f"{rel}/plugin.json").get("description"):
             problems.append(f".claude-plugin/marketplace.json: {entry['name']} description differs from {rel}/plugin.json")
-        for key in ("skills", "strict"):
-            if key in entry:
-                problems.append(f".claude-plugin/marketplace.json: {entry['name']} sets {key}; the skills/ folder is the list")
+        # `npx skills` groups a skill under its plugin only when the entry lists the skill's path.
+        listed = sorted(f"./skills/{skill}" for skill, plugin in owner.items() if plugin == entry["name"])
+        if rel and entry.get("skills") != listed:
+            problems.append(f".claude-plugin/marketplace.json: {entry['name']} skills must be {listed} (sorted, same as the skills/ folder)")
+        if "strict" in entry:
+            problems.append(f".claude-plugin/marketplace.json: {entry['name']} sets strict; the plugin's own plugin.json is the manifest")
+    # Claude Code reads the top-level description and Copilot reads metadata.description.
+    if claude.get("metadata", {}).get("description") != claude.get("description"):
+        problems.append(".claude-plugin/marketplace.json: metadata.description must equal description (Copilot reads metadata)")
+    # skills.sh shows the repo page in these groups; one group per plugin, in marketplace order.
+    groups = [sorted(g.get("skills", [])) for g in load("skills.sh.json").get("groupings", [])]
+    by_plugin = [sorted(s for s, p in owner.items() if p == entry["name"]) for entry in claude["plugins"]]
+    if groups != by_plugin:
+        problems.append(f"skills.sh.json: groupings must list each plugin's skills in marketplace order, {by_plugin}, found {groups}")
     for old, new in claude.get("renames", {}).items():
         if new not in plugins:
             problems.append(f".claude-plugin/marketplace.json: renames {old} -> {new}, which is not a plugin")
@@ -104,10 +132,14 @@ def main():
         problems.append(f"package.json: pi.skills must be ['./plugins/*/skills'], found {pi}")
 
     readme = (ROOT / "README.md").read_text()
-    rows = {skill: plugin for plugin, skill in
-            re.findall(r"^\| `(bretfisher-[a-z0-9-]+)` +\| `([a-z0-9-]+)` +\|", readme, re.M)}
+    # Each row links the skill name to its SKILL.md so readers can jump to the source.
+    table = re.findall(r"^\| \[`([a-z0-9-]+)`\]\(([^)]+)\) +\| `(bretfisher-[a-z0-9-]+)` +\|", readme, re.M)
+    rows = {skill: plugin for skill, _, plugin in table}
     if rows != owner:
         problems.append(f"README.md skills table must map skills to plugins as {owner}, found {rows}")
+    for skill, link, _ in table:
+        if not link.endswith(f"/skills/{skill}/SKILL.md") or not (ROOT / link).is_file():
+            problems.append(f"README.md skills table: {skill} must link to its SKILL.md, found {link}")
 
     for problem in problems:
         print(problem)

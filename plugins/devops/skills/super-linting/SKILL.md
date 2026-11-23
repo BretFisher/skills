@@ -1,101 +1,97 @@
 ---
 name: super-linting
-description: Set up local development linting by picking the right linters for each file type a project uses, then recording them as required pre-commit checks in AGENTS.md / CLAUDE.md and a `make lint` target. Uses the super-linter project as the live source of truth for which linters are current and popular per language. Use this skill whenever the user wants to add, choose, configure, or standardize linters for local development; asks "what linter should I use for X"; wants the agent to lint files before committing; sets up AGENTS.md/CLAUDE.md linting rules; or mentions super-linter, linting setup, pre-commit linting, or keeping linters up to date. This is for LOCAL developer/agent linting, not for authoring CI workflows.
+description: Set up local development linting by picking the right linters for each file type a project uses, then recording them as required pre-commit checks in AGENTS.md / CLAUDE.md and a `make lint` target. Uses the linters the super-linter project runs for each language, with local install and run commands for every one. Use this skill whenever the user wants to add, choose, configure, or standardize linters for local development; asks "what linter should I use for X"; wants the agent to lint files before committing; sets up AGENTS.md/CLAUDE.md linting rules; or mentions super-linter, linting setup, pre-commit linting, or keeping linters up to date. This is for LOCAL developer/agent linting, not for authoring CI workflows.
 license: MIT
 ---
 
 # Super-Linting: local linters for every file type
 
-Pick the right linter for each file type a project uses, then make those linters a required step before every commit — written as instructions the agent will follow in the project's agent guide, plus a `make lint` command a human can run.
+Pick one linter for each file type the project uses, and make those linters a required step before every
+commit: a `## Linting` section in the project's agent guide, plus a `make lint` target a human can run.
+The goal is a fast local loop that catches problems while code is written. CI workflows belong to the
+`github-actions-workflow-pro` skill.
 
-## How linting gets enforced (default vs opt-in)
+## Enforcement: the agent guide by default, a git hook only on request
 
-The **default** enforcement is soft and zero-install: a `## Linting` section in AGENTS.md/CLAUDE.md that tells the agent to lint before committing, backed by a `make lint` target. This is enough for most projects and adds no git machinery.
+"Lint before every commit" and "make them run before any commit" are met by the `## Linting` section and
+`make lint`: that section is what makes every agent session lint before it commits. Add a git hook
+(`.githooks/`, `core.hooksPath`, or a `.pre-commit-config.yaml`) only when the user names a git hook or a
+pre-commit hook, because a hook changes how every commit works for every person on the repo. In all other
+cases, finish the agent guide and `make lint`, then ask the hook question in step 6.
 
-A git **pre-commit hook** is a stronger, harder gate (it blocks the actual `git commit`), but it's extra setup the user didn't necessarily ask for. So **do not add a git hook or a `pre-commit`-framework config by default.** After you've written the agent-guide contract, ask the user whether they want it:
-
-> "I've set up linting as instructions in your agent guide + `make lint`. Want me to also add a real git pre-commit hook that blocks commits when a linter fails, or is relying on the agent (and `make lint`) enough for you?"
-
-Only wire up `.githooks/` + a `make hooks` target (or a `.pre-commit-config.yaml`) if the user opts in. The point is to not surprise the user with git hooks they didn't request.
-
-The goal is a tight local feedback loop: catch lint problems while code is being written, not in CI. This skill is **not** about building CI workflows (use the `github-actions-workflow-pro` skill for that). It is about equipping the agent and the human with the linters that fit _this_ project, drawn from the [super-linter](https://github.com/super-linter/super-linter) project's curated list so the recommendations stay current.
-
-## Why super-linter as the source
-
-super-linter aggregates the popular, well-maintained linters the community actually uses, organized by language. Rather than guessing or relying on a stale memory of "the Python linter," consult super-linter's live list so recommendations track what the ecosystem has moved to (for example, ruff's rise in Python). super-linter is the _catalog_; this skill turns that catalog into concrete local install + run commands and bakes them into the project's agent guide.
+The linter choices come from the super-linter project's list of linters per language. This skill ships that
+list with local install and run commands, and each reference file gives the date it was last checked.
+Read the references for every linter choice, because they are the complete source for this skill.
 
 ## Workflow
 
-### 1. Decide scope — which file types matter
+### 1. Scope the file types
 
-- If there's active work in progress (a feature being built, files in `git status`, files the user just asked you to create), scope to **those** file types. You only need linters for what's actually being written.
-- If the user is setting up linting fresh for a repo, scan the project tree for the file types present and cover all of them.
+- Work in progress (files in `git status`, files the user is about to create): cover only those file types.
+- A fresh setup for a repo: scan the tree and cover every file type in it.
 
-Map the file extensions you find to languages. Use the extension → language table in `references/linter-commands.md` — super-linter organizes everything by language, not extension, so this mapping is the bridge.
+Map files to languages with the table in [linter-commands.md](references/linter-commands.md). A file type
+that table sends elsewhere is in [more-linters.md](references/more-linters.md); read that file only then.
 
-### 2. Get the current linters from super-linter
+### 2. Choose one primary linter per language
 
-Fetch the live super-linter list so the recommendation reflects today's ecosystem, not a cached guess:
+Use the `Primary` linter from the references (Python → `ruff`, Shell → `shellcheck`, Dockerfile →
+`hadolint`, YAML → `yamllint`, Terraform → `tflint`). Name the other super-linter tools for that language
+as optional extras and install none of them by default, because a wall of linters is the fastest way to get
+linting abandoned. Name a formatter separately, because formatting and linting are different jobs.
+Security scanners (Checkov, Trivy, zizmor) are extras for infrastructure-heavy repos.
 
-- WebFetch `https://raw.githubusercontent.com/super-linter/super-linter/main/README.md` and read the **`## Supported linters and formatters`** table. The README is large and may truncate, so target that section specifically (prompt the fetch for "the Supported linters and formatters table rows for <languages>").
-- Each row is `Language | Linters | Formatters`, with linter names as Markdown links to their home pages. Use it to confirm the current linter(s) for each language you care about.
+### 3. Check what is installed, then ask before installing
 
-If the fetch fails or is unavailable, fall back to the snapshot in `references/linter-commands.md` and say you used the offline fallback so the user knows it may lag the live list.
+Check each linter with `command -v <tool>`. For each missing one, show the install command from the
+references; on macOS prefer Homebrew. Ask the user to confirm before you install anything, because
+installs change their machine.
 
-### 3. Choose linters: primary + optional
+### 4. Write the linting contract into the agent guide
 
-For each language, recommend **one primary linter** to install and run now — the canonical, lowest-friction choice (e.g. Python → `ruff`, Go → `golangci-lint`, Shell → `shellcheck`, YAML → `yamllint`, Dockerfile → `hadolint`, Markdown → `markdownlint`). `references/linter-commands.md` marks the primary pick per language.
-
-List the _other_ linters super-linter runs for that language as **optional extras** the user can add later, but don't install everything by default — a wall of linters is the fastest way to get linting abandoned. Note any formatter (e.g. `black`, `prettier`, `terraform fmt`) separately, since formatting and linting are different jobs.
-
-### 4. Check what's installed, then propose installs
-
-Check whether each chosen linter is already on the system (e.g. `command -v ruff`). For anything missing, present the install command from `references/linter-commands.md`. Prefer the install method that matches the project and platform; on macOS, Homebrew is a good default when the linter offers it.
-
-**Ask before installing anything.** Present the list of linters and their install commands, and let the user confirm. Don't silently install a pile of tools.
-
-### 5. Write the linting contract into AGENTS.md / CLAUDE.md
-
-This is the part that makes linting "required." Add (or update) a `## Linting` section in the project's agent guide so every future agent session runs the linters before committing. Detect the right file: if `AGENTS.md` or `CLAUDE.md` exists, edit it (note they may be symlinked — edit the real file). If neither exists, ask whether to create `AGENTS.md`.
-
-Use this structure:
+Edit `AGENTS.md` or `CLAUDE.md`, whichever exists (when one is a symlink, edit the real file). When
+neither exists, ask whether to create `AGENTS.md`. Add or update this section, with one row per file type
+the project uses:
 
 ```markdown
 ## Linting
 
-Before committing, lint every file type you changed and fix what the linter reports. Commits should be made only after the relevant linters pass. Run `make lint` to check everything at once.
+Before committing, lint every file type you changed and fix what the linter reports, so problems are
+caught locally. Commit only after the relevant linters pass. Run `make lint` to check everything at once.
 
-| File type              | Linter     | Run                  |
-| ---------------------- | ---------- | -------------------- |
-| Python (`.py`)         | ruff       | `ruff check <files>` |
-| Shell (`.sh`)          | shellcheck | `shellcheck <files>` |
-| YAML (`.yml`, `.yaml`) | yamllint   | `yamllint <files>`   |
+| File type      | Linter     | Run                  |
+| -------------- | ---------- | -------------------- |
+| Python (`.py`) | ruff       | `ruff check <files>` |
+| Shell (`.sh`)  | shellcheck | `shellcheck <files>` |
 
-Optional extra linters available for this project: <list, or "none">.
+Optional extra linters for this project: <list, or "none">.
 ```
 
-Keep the table to the file types this project actually uses. Phrase it as a clear expectation with the reason (lint before commit so problems are caught locally), not a rigid wall of MUSTs.
+### 5. Add `make lint` and document it
 
-### 6. Add a `make lint` target and document it
-
-Give humans one command. Add a `lint` target to the `Makefile` (create the Makefile if there isn't one) that runs each chosen linter across the repo:
+Add a `lint` target to the `Makefile` (create one when there is none) that runs each primary linter across
+the repo, and mention `make lint` in `README.md`. Match the existing Makefile and README style.
 
 ```makefile
 .PHONY: lint
 lint: ## Run all project linters
 	ruff check .
-	shellcheck **/*.sh
-	yamllint .
+	git ls-files -z --cached --others --exclude-standard '*.sh' | xargs -0 -r shellcheck
 ```
 
-Then document `make lint` in `README.md` so a human knows it exists. Match the repo's existing Makefile and README style if present.
+### 6. Summarize, then offer a git hook
 
-Keep the Makefile to the `lint` target by default. Only add a `hooks` target (and the `.githooks/` hook it installs) if the user opted into a git pre-commit hook per the enforcement question above.
+Report the file types found, the linters chosen (primary and optional) and why, what is installed and what
+still needs an install, and the files you edited. Then ask:
 
-### 7. Summarize and offer the hook
+> "Linting is now in your agent guide and `make lint`. Do you also want a git pre-commit hook that blocks a commit when a linter fails, or is the agent guide and `make lint` enough?"
 
-Tell the user what you did: which file types you found, which linters you chose (primary vs optional) and why, what's installed vs still needs installing, and which files you edited (AGENTS.md/CLAUDE.md, Makefile, README.md). Call out anything you used the offline fallback for. Then ask the enforcement question from the top of this skill — whether they want a git pre-commit hook on top of the agent-guide contract, or prefer to rely on the agent + `make lint`. Don't add the hook unless they say yes.
+Add `.githooks/` and a `make hooks` target (or a `.pre-commit-config.yaml`) only when the user says yes,
+because a hook changes how every commit works and the user did not ask for one.
 
-## Reference
+## Done when
 
-`references/linter-commands.md` — extension → language map, and per-language primary linter, install command(s), and local run command. This is the practical layer super-linter's README doesn't provide (it lists linters but not how to install or invoke them locally). Read it whenever you need an install or run command, or the file-type mapping.
+- [ ] The agent guide has a `## Linting` section that says to lint before committing, one row per file type in scope
+- [ ] The `Makefile` `lint` target runs each primary linter, and `README.md` mentions `make lint`
+- [ ] No installer ran without the user's yes, and each missing linter has its install command in the answer
+- [ ] No git hook exists unless the user named one, and the answer ends with the hook question

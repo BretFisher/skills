@@ -1,8 +1,9 @@
 # Install tests
 
 `make test-install` checks that the skills install correctly in each agent harness before a change to the repo layout is pushed.
-It runs `dagger check --module install-tests` locally.
-It never runs in GitHub Actions or Dagger Cloud.
+It calls every check of the `install-tests` module at the same time, in Dagger script mode (`dagger -c`).
+`dagger.toml` skips these checks, so `dagger check` and Dagger Cloud Checks never run them; script mode is not affected by that skip.
+It never runs in GitHub Actions or Dagger Cloud: Cloud Checks run only the `lint` module's checks ([lint.md](lint.md)).
 You need Docker and the Dagger CLI (`brew install dagger/tap/dagger`).
 
 ## What runs
@@ -34,6 +35,7 @@ After you push, `origin/main` equals the working tree and the upgrade checks onl
 
 A renamed skill fails `npx-skills-upgrade` until it is pushed, because `npx skills update` keeps the old name and never adds the new one.
 That failure is expected; the fix is a README line telling users to remove the old name and add the new one.
+A new skill fails the same check until it is pushed, for the same reason: `npx skills update` updates the installed skills and adds none (seen when `k8s-podspec-pro` was added).
 
 ## Results for the plugins/ move
 
@@ -65,8 +67,14 @@ The desktop apps (Claude desktop, the Cursor editor) and the macOS behavior of `
 ## Running one check
 
 ```bash
-dagger check --module install-tests --check=codex-install
+make test-install/codex-install
+```
+
+To see the logs of a failed check, run it with `sync`:
+
+```bash
+dagger -c 'install-tests | codex-install | sync'
 ```
 
 Add `-i` to open a shell in the container when a command fails.
-After editing `__init__.py`, run `dagger generate -y` once so Dagger reloads the module's function list.
+After editing `__init__.py`, update the module's `sdk/entrypoint/types.dang`, because `dagger generate` fails with Dagger v1.0.0-beta.28 ([lint.md](lint.md)).
