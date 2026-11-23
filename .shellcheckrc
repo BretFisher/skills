@@ -1,0 +1,6 @@
+# shellcheck settings for editors and the `shellcheck` check in .dagger/modules/lint.
+# From super-linter's TEMPLATES/.shellcheckrc.
+# Look for sourced files relative to the checked script
+source-path=SCRIPTDIR
+# Allow opening any sourced file, even if not given as input
+external-sources=true

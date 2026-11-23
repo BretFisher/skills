@@ -114,6 +114,7 @@ But as of October 2026, each skill improved the result on every model tested.
 
 To measure this, each eval prompt runs twice on the same model: once with the skill and once without.
 The score is the share of checks that passed. The gain is the difference, in percentage points.
+[How the evals work](docs/eval-design.md): history, design decisions, file layout, and known gaps.
 
 ### [`github-actions-workflow-pro`](plugins/devops/skills/github-actions-workflow-pro/SKILL.md)
 
@@ -190,17 +191,17 @@ Details: [`evals/gha-audit/coverage.md`](evals/gha-audit/coverage.md).
 
 `make help` lists everything, including the eval targets for agents. Tools are checked, never installed; a missing one prints its `brew install` formula.
 
-| Target                                   | What it does                                                                            |
-| ---------------------------------------- | --------------------------------------------------------------------------------------- |
-| `make lint`                              | Pre-commit gate: the same linters CI runs, plus the scanners on this repo's workflows   |
-| `make fmt`                               | `prettier --write` on Markdown and JSON                                                 |
-| `make k8s-features [SINCE=… RELEASES=…]` | Print the Kubernetes features that reached beta or GA in a window                       |
-| `make k8s-verify [STRICT=1]`             | Check every k8s-catch-up feature file against its upstream sources                      |
-| `make k8s-check`                         | Exit 1 when a Kubernetes release newer than the skill exists                            |
-| `make podspec-check`                     | Exit 1 when k8s-podspec-pro's copy of `pod.yaml` differs from the podspec repo          |
-| `make super-linter-check`                | Exit 1 when super-linter's linter table differs from the super-linting skill's snapshot |
-| `make pin [FILES=…]`                     | Pin this repo's workflows with pinact                                                   |
-| `make run-stats [RUNS=3] [REPO=…]`       | Rank a repo's workflows and jobs by duration over recent runs                           |
+| Target                                       | What it does                                                                                                                                    |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `make lint [CHECK=…]`                        | Pre-commit gate: every linter in Dagger, the same checks CI runs ([docs](docs/lint.md))                                                         |
+| `make fmt`                                   | `prettier --write` on Markdown, JSON, and `.github` YAML                                                                                        |
+| `make k8s-features [SINCE=… RELEASES=…]`     | Print the Kubernetes features that reached beta or GA in a window                                                                               |
+| `make k8s-verify [STRICT=1]`                 | Check every k8s-catch-up feature file against its upstream sources                                                                              |
+| `make k8s-check`                             | Exit 1 when a Kubernetes release newer than the skill exists                                                                                    |
+| `make podspec-check`                         | Exit 1 when k8s-podspec-pro's copy of `pod.yaml` differs from the podspec repo                                                                  |
+| `make super-linter-check`                    | Exit 1 when super-linter's linter table differs from the super-linting skill's snapshot                                                         |
+| `make run-stats [RUNS=3] [REPO=…]`           | Rank a repo's workflows and jobs by duration over recent runs                                                                                   |
+| `make eval-pull REMOTE_HOST=… REMOTE_REPO=…` | Copy eval runs from another clone over SSH, verify each file, delete the remote copy ([docs](docs/eval-design.md#copy-runs-from-another-clone)) |
 
 See [AGENTS.md](./AGENTS.md) for the repo conventions (also symlinked as `CLAUDE.md`). Open work is tracked in
 [GitHub Issues](https://github.com/BretFisher/skills/issues), one label per skill.

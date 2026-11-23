@@ -2,7 +2,7 @@
 
 `make test-install` checks that the skills install correctly in each agent harness before a change to the repo layout is pushed.
 It runs `dagger check --module install-tests` locally.
-It never runs in GitHub Actions or Dagger Cloud.
+It never runs in GitHub Actions or Dagger Cloud: Cloud Checks run only the `lint` module's checks ([lint.md](lint.md)).
 You need Docker and the Dagger CLI (`brew install dagger/tap/dagger`).
 
 ## What runs

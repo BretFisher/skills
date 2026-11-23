@@ -9,7 +9,7 @@ evals/.eval-key/
 # macOS Finder metadata
 .DS_Store
 
-# Python bytecode from make lint-py
+# Python bytecode from the eval harness and scripts
 __pycache__/
 
 # A global `*secret*` ignore rule would hide feature files named after Kubernetes Secrets.

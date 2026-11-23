@@ -17,3 +17,10 @@ source = ".dagger/modules/install-tests"
 [sdks.python.scopes.".dagger/modules/install-tests"]
 is-module = true
 name = "install-tests"
+
+[modules.lint]
+source = ".dagger/modules/lint"
+
+[sdks.python.scopes.".dagger/modules/lint"]
+is-module = true
+name = "lint"
