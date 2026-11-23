@@ -2,13 +2,7 @@
 
 This document is for people who build or compare skill eval systems.
 It tells why the evals in this repo work the way they do, what files each run makes, and what is not solved yet.
-
-Other documents give the details:
-
-- [eval-walkthrough.md](eval-walkthrough.md) follows one eval from the prompt to a score.
-- [eval-opencode.md](eval-opencode.md) describes the CLI runner, the harness adapters, and context isolation.
-- [lessons-learned.md](lessons-learned.md) gives the measurements behind most decisions below.
-- [AGENTS.md](../AGENTS.md) gives the rules for agents that write skills and evals.
+The [docs index](README.md) lists the other eval guides and defines the terms that this one uses.
 
 ## Goals
 
@@ -18,19 +12,6 @@ Other documents give the details:
 4. **Spend the fewest tokens and the least time per run.** Grading must not cost more than it needs to.
 5. **Make results comparable.** Each result records the harness, the harness version, the model, and the effort. If one of these is unknown, you cannot compare the result with the next one.
 6. **Be neutral to the harness.** The same definitions and grading files work for each agent harness that has an adapter.
-
-## Terms
-
-| Term          | Meaning                                                                        |
-| ------------- | ------------------------------------------------------------------------------ |
-| Eval          | One prompt, its fixture files, and its assertions                              |
-| Assertion     | One pass/fail statement about the result. Scores count assertions              |
-| Configuration | `with_skill` or `without_skill` (`old_skill` and `new_skill` compare versions) |
-| Run           | One execution of one eval in one configuration, plus its grading               |
-| Iteration     | A set of runs made together, usually one model on one harness after one change |
-| Executor      | The agent that does the task                                                   |
-| Grader        | The program, then the model, that decides the assertions                       |
-| Kind          | `program`, `split`, or `model`: who can decide an assertion                    |
 
 ## History
 
