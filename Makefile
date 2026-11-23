@@ -52,7 +52,16 @@ lint: ## Run every linter in Dagger, the same checks Dagger Cloud runs on each p
 
 test-install: ## Install the skills into each agent harness in Ubuntu containers, upgrading from origin/main (Dagger, local only; run before pushing a layout change)
 	@$(call need,dagger,dagger/tap/dagger)
-	dagger check --module install-tests
+	@$(MAKE) -j --no-print-directory $(addprefix test-install/,$(INSTALL_TESTS))
+
+INSTALL_TESTS := claude-install claude-upgrade codex-install copilot-install npx-skills-install npx-skills-upgrade pi-install
+
+# dagger.toml skips these checks so Dagger Cloud never runs them; script mode (dagger -c) still calls them.
+# `pass` prints true or false and always exits 0, so the recipe turns false into a failure.
+test-install/%:
+	@r=$$(dagger -s -c 'install-tests | $* | pass'); \
+	if [ "$$r" = true ]; then echo "pass: $*"; \
+	else echo "FAIL: $* (logs: dagger -c 'install-tests | $* | sync')"; exit 1; fi
 
 PRETTIER_FILES = "**/*.md" "**/*.json" "!evals/*/runs/**" "!evals/_dashboard/**" "!.agents/**" "!.claude/worktrees/**" "!.dagger/modules/*/sdk/**" "!.dagger/modules/*/clients/**" "!node_modules/**" "!CLAUDE.md" '.github/**/*.y*ml'
 

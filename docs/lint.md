@@ -70,20 +70,17 @@ The skip path `evals/[^/]+/fixtures` caused this, and it stopped every super-lin
 Cloud Checks replace the GitHub Actions workflow.
 They run on Dagger Cloud engines, report each result to GitHub, and use the `dagger.lock` committed with the repo.
 They must run only the `lint` module's checks: the `install-tests` checks need several minutes and the network, and the `python-sdk` `stale` check fails until `dagger generate` works.
+For that, `dagger.toml` sets `check.skip = ["*"]` on `install-tests` and `python-sdk`, so `dagger check` with no filter selects only the 12 lint checks.
+That skip also applies to `dagger check --module install-tests`, and env overlays and user-level config cannot change it, so `make test-install` calls those checks in script mode instead ([install-tests.md](install-tests.md)).
 
 Set them up once, from the repo root, after the branch is pushed:
 
 ```bash
-dagger cloud checks list
-```
-
-```bash
-dagger cloud checks on <check-name>
+dagger cloud checks on
 ```
 
 ```bash
 dagger workspace activity
 ```
 
-`dagger cloud checks on` with no name turns on the workspace's default check, and the Dagger docs do not say which checks that includes.
-Use the names that `dagger cloud checks list` prints for the `lint` module.
+`dagger cloud checks list` shows each run's checks and results for the current branch.
