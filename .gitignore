@@ -3,6 +3,9 @@
 # The eval *definitions* (evals/<name>/evals.json, fixtures/, coverage.md) ARE committed — only runs are ignored.
 evals/*/runs/
 evals/_dashboard/
+# `make eval-export` tarballs and the local list of extra strings it replaces (host names, user names)
+evals/_export/
+evals/.export-redact
 # eval-only signing key from `make eval-key`; a private key is never committed, even a throwaway one
 evals/.eval-key/
 

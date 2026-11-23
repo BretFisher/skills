@@ -202,6 +202,8 @@ Details: [`evals/gha-audit/coverage.md`](evals/gha-audit/coverage.md).
 | `make super-linter-check`                    | Exit 1 when super-linter's linter table differs from the super-linting skill's snapshot                                                         |
 | `make run-stats [RUNS=3] [REPO=…]`           | Rank a repo's workflows and jobs by duration over recent runs                                                                                   |
 | `make eval-pull REMOTE_HOST=… REMOTE_REPO=…` | Copy eval runs from another clone over SSH, verify each file, delete the remote copy ([docs](docs/eval-design.md#copy-runs-from-another-clone)) |
+| `make eval-secrets`                          | Scan every eval run for secrets, including the nested git repos; read-only                                                                      |
+| `make eval-export`                           | Pack a copy of the evals to share: personal identifiers replaced, secret scan clean ([docs](docs/eval-design.md#share-runs))                    |
 
 See [AGENTS.md](./AGENTS.md) for the repo conventions (also symlinked as `CLAUDE.md`). Open work is tracked in
 [GitHub Issues](https://github.com/BretFisher/skills/issues), one label per skill.

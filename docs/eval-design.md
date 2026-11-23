@@ -30,6 +30,7 @@ The [docs index](README.md) lists the other eval guides and defines the terms th
 | Nov 4       | The scanners run by default, and a program assertion that is still null never goes to a model. Seven hand-back assertions became program checks. The runner finds skills in `plugins/<group>/skills/`. | A model must not decide a scanner result. More program checks give repeatable verdicts.                                                                                           |
 | Nov 6–22    | `k8s-podspec-pro` and `super-linting` ran on the Claude Code adapter.                                                                                                                                  | The CLI runner is now the default way to run evals for each harness.                                                                                                              |
 | Nov 23      | `make eval-pull` copies runs from another clone, verifies each file, and deletes the remote copy.                                                                                                      | Runs made in a second clone stayed there, and git did not track them. See [Gaps](#gaps-and-plans).                                                                                |
+| Nov 23      | `make eval-secrets` scans each run for secrets. `make eval-export` packs a copy to share, with personal identifiers replaced and the secret scan clean.                                                | Two old runs had printed a GitHub token and a session token. Runs also hold the account email, organization ID, and home paths.                                                   |
 
 ## Decisions
 
@@ -54,7 +55,7 @@ Each decision has its reason. A decision with no reason is hard to change safely
 ```text
 evals/
   eval.gitconfig                    eval identity, unsigned commits, no hooks (included by each fixture repo)
-  harness/                          repo-owned runner, evidence reader, grading, reporting, pull, and their tests
+  harness/                          repo-owned runner, evidence reader, grading, reporting, pull, scrub, and their tests
   <skill>/                          COMMITTED
     evals.json                      prompts, fixture files, assertions
     fixtures/                       input files that an eval gives to the executor
@@ -105,6 +106,7 @@ The `<label>` after the number is free text, for example `-opus55` or `-opencode
 | 6    | `make eval-benchmark` | no         | Validates the iteration and writes `benchmark.json` and `.md` |
 | 7    | `make eval-view`      | no         | Writes `review.html`                                          |
 | 8    | `make eval-pull`      | no         | Brings runs from another clone to this one (when needed)      |
+| 9    | `make eval-export`    | no         | Packs a scrubbed, secret-scanned copy to share (when needed)  |
 
 ### What is the same for each harness, and what is different
 
@@ -147,3 +149,27 @@ make eval-pull REMOTE_HOST=<ssh host> REMOTE_REPO=<repo path on that host> DRY_R
 - It skips an iteration that has a file changed in the last 60 minutes (`MIN_AGE=`), because that run can still be in progress.
 - It stops on an iteration when a different local copy with the same name exists, and it keeps the remote copy.
 - `SKILL=` and `ITER=` limit the command to one skill or one iteration. The remote needs `python3` and `rsync`.
+
+## Share runs
+
+Run data holds tool output and harness logs, so it can hold a credential or a personal identifier.
+Two runs printed one before: a grader with `set -x` printed a GitHub token, and an executor printed the whole process environment.
+Use these commands before you give runs to another person:
+
+```bash
+make eval-secrets
+```
+
+```bash
+make eval-export
+```
+
+- `make eval-secrets` scans every run in place and changes nothing. It reads each file, and each object in the nested `work/.git` repos, because git compresses objects and a text search cannot see into them. It exits 1 on a finding.
+- `make eval-export` copies the eval definitions, the harness, and the runs to `evals/_export/`. It leaves out the nested `.git` folders, because their commits hold author emails and cannot be edited in place.
+- In the copy, it replaces email addresses (not example or `noreply` ones), home paths, account and organization IDs, and `USER` and `LOGNAME` values with placeholders such as `<email>` and `/Users/<user>`.
+- It also replaces this machine's host name, and each line of `evals/.export-redact`, in file contents and in path names. That file is gitignored: put other machine names there, because the repo must not name them.
+- It then scans the copy for secrets and for any identifier that is still there. It writes `skill-evals-<time>.tar.gz` only when that scan is clean. If not, it prints the findings masked and keeps the copy for you to examine.
+- Both commands first plant fake secrets in a file and in a git commit, and stop if the scanner misses one. A scanner that finds nothing must prove that it can find something.
+- Findings print only the first and last four characters and a short hash, so a full secret does not go into a terminal or a log.
+- Not replaced: the `sessionId` of each Claude Code log line. It is a random ID for one session, not a person or an account.
+- `EXPORT.json` in the tarball records the source commit, the skills, the file count, and the number of replacements of each kind.

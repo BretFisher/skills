@@ -18,7 +18,7 @@ help: ## Show this help
 	@echo
 	@echo "Variables: SKILL=$(SKILL)  ITER=$(ITER)  SKILL_CREATOR=$(SKILL_CREATOR)"
 
-.PHONY: eval-test eval-run eval-plan eval-grade eval-recover eval-pull test-install
+.PHONY: eval-test eval-run eval-plan eval-grade eval-recover eval-pull eval-secrets eval-export test-install
 eval-test: ## Test the shared eval harness and checker regressions without model calls
 	python3 -m unittest discover -s evals -p 'test_*.py' -v
 
@@ -44,6 +44,13 @@ eval-pull: ## Copy eval runs from another clone over SSH, verify each file's SHA
 	@test -n "$(REMOTE_HOST)" -a -n "$(REMOTE_REPO)" || { echo "set REMOTE_HOST=<ssh host> and REMOTE_REPO=<repo path on that host>"; exit 1; }
 	@$(call need,rsync,rsync)
 	python3 -m evals.harness.pull --host "$(REMOTE_HOST)" --remote-repo "$(REMOTE_REPO)" $(if $(filter command line environment,$(origin SKILL)),--skill "$(SKILL)",) $(if $(filter command line environment,$(origin ITER)),--iteration "iteration-$(ITER)",) $(if $(SUFFIX),--suffix "$(SUFFIX)",) $(if $(MIN_AGE),--min-age "$(MIN_AGE)",) $(if $(KEEP),--keep,) $(if $(DRY_RUN),--dry-run,)
+
+# Like eval-pull, these act on every skill unless you set SKILL= on the command line.
+eval-secrets: ## Scan every eval run in place for secrets (files and nested git objects); read-only; exit 1 on a finding; [SKILL=]
+	python3 -m evals.harness.scrub scan $(if $(filter command line environment,$(origin SKILL)),--skill "$(SKILL)",)
+
+eval-export: ## Write a tarball of eval definitions and runs to share: no nested .git, personal identifiers replaced, secret-scanned; [SKILL= OUT=]
+	python3 -m evals.harness.scrub export $(if $(filter command line environment,$(origin SKILL)),--skill "$(SKILL)",) $(if $(OUT),--out "$(OUT)",)
 
 lint: ## Run every linter in Dagger, the same checks Dagger Cloud runs on each push and PR (CHECK=name runs one; needs Docker)
 	@$(call need,dagger,dagger/tap/dagger)

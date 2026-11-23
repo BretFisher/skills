@@ -16,16 +16,16 @@ The difference in score is the measured benefit, which the [main README](../READ
 
 ## What is in this folder
 
-| Path                  | What it holds                                                                    | In git |
-| --------------------- | -------------------------------------------------------------------------------- | ------ |
-| `<skill>/evals.json`  | The prompts and assertions: the test contract for the skill                      | yes    |
-| `<skill>/fixtures/`   | Input files that the evals give to the executor                                  | yes    |
-| `<skill>/checks.py`   | The program grader: it decides each assertion that a program can decide          | yes    |
-| `<skill>/coverage.md` | Which assertion proves each rule of the skill, and the notes for each iteration  | yes    |
-| `<skill>/runs/`       | The results of each run: outputs, logs, grades, timing, benchmarks               | no     |
-| `harness/`            | The runner, evidence reader, grading, reporting, and pull code, with their tests | yes    |
-| `eval.gitconfig`      | The eval identity for fixture commits: unsigned, with no hooks                   | yes    |
-| `_dashboard/`         | Local report scripts and their output                                            | no     |
+| Path                  | What it holds                                                                           | In git |
+| --------------------- | --------------------------------------------------------------------------------------- | ------ |
+| `<skill>/evals.json`  | The prompts and assertions: the test contract for the skill                             | yes    |
+| `<skill>/fixtures/`   | Input files that the evals give to the executor                                         | yes    |
+| `<skill>/checks.py`   | The program grader: it decides each assertion that a program can decide                 | yes    |
+| `<skill>/coverage.md` | Which assertion proves each rule of the skill, and the notes for each iteration         | yes    |
+| `<skill>/runs/`       | The results of each run: outputs, logs, grades, timing, benchmarks                      | no     |
+| `harness/`            | The runner, evidence reader, grading, reporting, pull, and scrub code, with their tests | yes    |
+| `eval.gitconfig`      | The eval identity for fixture commits: unsigned, with no hooks                          | yes    |
+| `_dashboard/`         | Local report scripts and their output                                                   | no     |
 
 The full layout of a run is in [eval-design.md](../docs/eval-design.md#current-layout).
 
@@ -45,3 +45,4 @@ The full layout of a run is in [eval-design.md](../docs/eval-design.md#current-l
 Run `make help` from the repo root for every `eval-*` target.
 The order of the commands for one iteration is in [eval-design.md](../docs/eval-design.md#one-iteration-from-start-to-end).
 `make eval-test` runs the harness tests with no model calls.
+Before you share runs with another person, run `make eval-secrets` and `make eval-export` ([Share runs](../docs/eval-design.md#share-runs)).
