@@ -1,5 +1,5 @@
 ---
-# super-linter's default (TEMPLATES/trivy.yaml) plus skip-dirs.
+# trivy settings for the `trivy` check in .dagger/modules/lint.
 # Eval fixtures are deliberately insecure or outdated inputs that the evals ask the agent to fix.
 exit-code: 1
 exit-on-eol: 2
@@ -9,5 +9,11 @@ scan:
     - vuln
     - misconfig
     - secret
+  # .agents is vendored upstream code; .dagger holds Dagger's generated SDK code.
   skip-dirs:
     - evals/*/fixtures
+    - .agents
+    - .dagger
+  # Vendored copy of BretFisher/podspec pod.yaml; `make podspec-check` keeps it identical to upstream.
+  skip-files:
+    - plugins/devops/skills/k8s-podspec-pro/references/pod.yaml

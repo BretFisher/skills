@@ -1,6 +1,8 @@
 [codespell]
-# super-linter's default (TEMPLATES/.codespellrc) plus ignore-words-list.
+# codespell settings for the `codespell` check in .dagger/modules/lint.
 check-hidden =
-skip = package-lock.json,*/package-lock.json,*/go.mod,*/go.sum,*.log,.git
-# NotIn is a Kubernetes label-selector operator, not a misspelling of "noting"
-ignore-words-list = notin
+# .agents is vendored upstream code; .dagger/modules/*/{sdk,clients} is generated.
+skip = package-lock.json,*/package-lock.json,*/go.mod,*/go.sum,*.log,.git,*.lock,./.agents,./.dagger/modules/*/sdk,./.dagger/modules/*/clients
+# Correct as written: notin (Kubernetes NotIn operator), froms (Dockerfile FROM lines), edn (Clojure file
+# type), regraded (graded again), and the regex fragments cach and assum.
+ignore-words-list = notin,froms,edn,regraded,cach,assum
