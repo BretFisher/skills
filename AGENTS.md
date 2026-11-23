@@ -25,7 +25,7 @@ evals/<skill-name>/           # EVAL DEFINITIONS — committed; outside the skil
   runs/iteration-N/           #   RUN ARTIFACTS — gitignored: transcripts, grading.json, timing.json, benchmark.*
 evals/_dashboard/             # gitignored: build-dashboard.py and the dashboard.html it builds from every run
 .dagger/modules/install-tests/ # Dagger checks that install the skills into each harness (`make test-install`); sdk/ and clients/ are generated
-docs/                         # human-facing guides: eval-walkthrough.md (how a run works), lessons-learned.md (what improved the skill and evals)
+docs/                         # human-facing guides: eval-design.md (history, decisions, layout, gaps), eval-walkthrough.md (how a run works), lessons-learned.md (what improved the skill and evals)
 ```
 
 ## Where skill evals go — important
@@ -76,6 +76,8 @@ our validation. Ask before editing an installed skill or maintaining a separate 
 
 Eval-harness notes, learned the hard way: graders never embed a `timing` object in `grading.json` (it breaks `aggregate_benchmark`; timing belongs in the sibling `timing.json`) and never use `set -x` near a token-bearing command; executors commit the pristine input files as the work repo's first commit before editing, so `git show HEAD:` still holds the original for the grader. Use the eval identity, explicitly unsigned commits, and disabled hooks in every fixture and scanner repo so no eval commit needs personal keys or signing tools. `evals/eval.gitconfig` supplies the fixture defaults; scanner commits need the same command-level safeguards. When a rate limit kills graders mid-run, validate every surviving `grading.json` (expectation count, field names, no `timing`) and relaunch only the missing runs; do not regrade the survivors.
 
+Runs stay in the clone that made them because `runs/` is gitignored, so deleting a clone or worktree deletes its runs. Before you remove a clone or worktree that holds runs, move them into the main clone, or copy them with `make eval-pull` ([eval-design.md](docs/eval-design.md#copy-runs-from-another-clone)), which verifies each file before it deletes the remote copy. Pass hosts and remote paths as make variables and keep them out of committed files, because they describe a maintainer's machines, not the repo.
+
 If you want to publish a quality scorecard, copy a single curated `benchmark.md` into
 `evals/<skill-name>/` and commit just that — do not commit anything under `runs/`.
 
@@ -100,7 +102,7 @@ Leave `version` out of every manifest so each commit counts as an update.
 Keep a plugin's name, description, and keywords the same in its three manifests and three marketplace entries, because each harness reads only its own file.
 The logo lives at `assets/logo.png`; copy it to `plugins/<group>/assets/logo.png` whenever it changes, because an installer copies only the plugin folder.
 Never rename a plugin without adding the old name to `renames` in `.claude-plugin/marketplace.json`, because installed users reference the plugin by name.
-`make lint` runs `scripts/check-plugins.py`, which fails when those files disagree, and `claude plugin validate .` when the `claude` CLI is installed.
+`make lint` runs `scripts/check-plugins.py` (the `plugins` check), which fails when those files disagree, and `claude plugin validate .` when the `claude` CLI is installed.
 Harness priority, highest first: `npx skills`, Claude Code and Claude Desktop, Codex, Cursor, GitHub Copilot, OpenCode, Pi, then Amp, Hermes, and the rest.
 Before you change the layout, a manifest, or skill frontmatter, check the current docs of each harness in that order for fields and commands we do not use yet, because each harness reads its own file and a missed field fails silently.
 The `npx skills` docs ship in its npm package (`docs/creating-skills.md`, `docs/commands.md`); skills.sh documents `skills.sh.json` at <https://skills.sh/docs/customize>.
@@ -113,6 +115,8 @@ Before pushing a change to the repo layout, plugin entries, or skill names, run 
 ## Before committing
 
 Run `make lint` (and `make fmt` first if prettier complains).
+It runs every linter as a check in the Dagger module `.dagger/modules/lint`, the same checks Dagger Cloud runs on each push and pull request, so it needs Docker and the Dagger CLI.
+To add or change a linter, edit that module and follow [docs/lint.md](docs/lint.md), because Dagger cannot generate its type file yet.
 Tools are never installed by the Makefile; a missing one prints its `brew install` formula.
 
 ## Writing skills

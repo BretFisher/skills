@@ -1,7 +1,6 @@
 ---
-# markdownlint rules for this repo. super-linter reads this file in CI
-# (LINTER_RULES_PATH=.github/linters, MARKDOWN_CONFIG_FILE=.markdown-lint.yml)
-# and `make lint-md` passes it with -c, so both see the same rules.
+# markdownlint rules for this repo. The `markdownlint` check in .dagger/modules/lint
+# passes this file with -c, and editors can point at it, so both see the same rules.
 default: true
 
 # Long lines are the house style for skill prose: one sentence per line reads

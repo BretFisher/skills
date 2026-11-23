@@ -1,8 +1,8 @@
 ---
 # Keep GitHub Actions references up to date (SHA pins / versions).
 # Docs: https://docs.github.com/code-security/dependabot/dependabot-version-updates
-# NOTE: the only action reference today is the super-linter reusable workflow,
-# intentionally tracking @main. Dependabot manages any SHA-pinned actions added later.
+# NOTE: this repo has no workflows today; Dagger Cloud Checks run the linters.
+# Dependabot manages any SHA-pinned actions added later.
 
 version: 2
 updates:
