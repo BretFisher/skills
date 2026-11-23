@@ -17,6 +17,7 @@ skills-devops, skills-utils   # symlinks to plugins/devops/skills and plugins/ut
 .claude-plugin/marketplace.json  # marketplaces listing both plugins: Claude Code (also read by Copilot and npx skills),
 .agents/plugins/marketplace.json #   Codex,
 .cursor-plugin/marketplace.json  #   and Cursor; package.json points Pi at plugins/*/skills
+evals/README.md               # what the evals folder holds; points to the eval guides in docs/
 evals/<skill-name>/           # EVAL DEFINITIONS — committed; outside the skill so installers never ship them
   evals.json                  #   prompts + assertions — the test contract
   fixtures/                   #   input files some evals hand to the agent
@@ -25,7 +26,7 @@ evals/<skill-name>/           # EVAL DEFINITIONS — committed; outside the skil
   runs/iteration-N/           #   RUN ARTIFACTS — gitignored: transcripts, grading.json, timing.json, benchmark.*
 evals/_dashboard/             # gitignored: build-dashboard.py and the dashboard.html it builds from every run
 .dagger/modules/install-tests/ # Dagger checks that install the skills into each harness (`make test-install`); sdk/ and clients/ are generated
-docs/                         # human-facing guides: eval-design.md (history, decisions, layout, gaps), eval-walkthrough.md (how a run works), lessons-learned.md (what improved the skill and evals)
+docs/                         # human-facing guides: README.md (index and shared eval terms), eval-design.md (history, decisions, layout, gaps), eval-walkthrough.md (how a run works), lessons-learned.md (what improved the skill and evals)
 ```
 
 ## Where skill evals go — important

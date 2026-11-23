@@ -2,8 +2,8 @@
 
 Advice for the next agent, or person, who builds and evaluates a developer-oriented skill. Every item
 below was tried on `github-actions-workflow-pro` on 2026-09-09 and has a number behind it; the numbers
-are in the second section. Read [eval-walkthrough.md](eval-walkthrough.md) first if the words run,
-assertion, executor, or grader are new.
+are in the second section. Read [eval-walkthrough.md](eval-walkthrough.md) first if you have not
+seen an eval run, and the [terms](README.md#terms) if the words run, assertion, executor, or grader are new.
 
 ## The short list
 

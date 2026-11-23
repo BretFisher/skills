@@ -3,6 +3,7 @@
 A walkthrough for people new to skill evals. It follows one eval from the prompt in `evals.json` to a
 score in the README results, and shows which steps a program does and which steps a model does.
 The examples come from `github-actions-workflow-pro`, the skill with the most eval history here.
+The words eval, run, iteration, executor, and grader are defined in the [docs index](README.md#terms).
 
 ## What an eval is
 
@@ -244,18 +245,3 @@ token-bearing command; executors commit the pristine input files as the work rep
 editing. That commit uses `evals/eval.gitconfig` (included from each work repo's `.git/config`):
 an eval identity, unsigned commits, and disabled hooks. Scanner scratch commits also explicitly disable signing and hooks, so no eval commit needs a key. When a rate limit kills graders mid-run, validate every surviving `grading.json` (expectation
 count, field names, no `timing`) and relaunch only the missing runs.
-
-## Glossary
-
-| Term           | Meaning                                                                              |
-| -------------- | ------------------------------------------------------------------------------------ |
-| Eval           | One prompt plus its fixture files and assertions                                     |
-| Assertion      | One pass/fail statement about the result; the unit everything is counted in          |
-| Run            | One execution of one eval in one configuration, plus its grading                     |
-| Iteration      | A directory of runs made together, usually one per model or per rule change          |
-| Configuration  | `with_skill`, `without_skill`, or `old_skill`                                        |
-| Executor       | The subagent that performs the task                                                  |
-| Grader         | The subagent that judges the assertions a program left null                          |
-| Kind           | `program`, `split`, or `model`: who can decide an assertion                          |
-| Mech           | Shorthand in `coverage.md` for the scanner assertion present on every eval           |
-| Discriminating | An assertion that fails without the skill and passes with it; the ones worth keeping |
